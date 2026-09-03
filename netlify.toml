@@ -1,0 +1,12 @@
+[build]
+  command = "npm run build:app"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# SPA fallback so React Router deep links resolve
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
