@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, ChevronDown, Clock, Flag, Headphones, Lightbulb } from "lucide-react";
 import { getListeningExam, scoreListening } from "@/lib/mockApi";
 import { studioStore } from "@/features/studio/store";
 import { studioListeningToExam } from "@/features/studio/convert";
 import { setLastAttempt } from "@/store/attempt-store";
+import { fullExamStore } from "@/features/simulation/fullexam-store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AudioPlayer } from "./AudioPlayer";
@@ -30,10 +31,13 @@ export function ListeningRunnerPage() {
     return authored && (authored.sections?.length ?? 0) > 0 ? studioListeningToExam(authored) : getListeningExam();
   }, [id]);
 
+  const [sp] = useSearchParams();
+  const full = sp.get("full");
   const [sIdx, setSIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState(exam.durationSec);
   const [grading, setGrading] = useState(false);
+  const [gradedBand, setGradedBand] = useState(0);
   const [showTips, setShowTips] = useState(false);
 
   const section = exam.sections[sIdx];
@@ -62,6 +66,7 @@ export function ListeningRunnerPage() {
 
   function submit() {
     const { correct, band } = scoreListening(exam, answers);
+    setGradedBand(band);
     setLastAttempt({
       examId: exam.id,
       answers,
@@ -71,6 +76,15 @@ export function ListeningRunnerPage() {
       durationUsedSec: exam.durationSec - timeLeft,
     });
     setGrading(true);
+  }
+
+  function afterGrading() {
+    if (full) {
+      fullExamStore.record("listening", gradedBand);
+      navigate("/simulation/full-exam");
+    } else {
+      navigate(`/results/listening/${exam.id}`);
+    }
   }
 
   return (
@@ -182,7 +196,7 @@ export function ListeningRunnerPage() {
         </div>
       </div>
 
-      <GradingModal open={grading} onDone={() => navigate(`/results/listening/${exam.id}`)} />
+      <GradingModal open={grading} onDone={afterGrading} />
     </div>
   );
 }

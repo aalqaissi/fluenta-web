@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Clock, Flag, Sparkles, Check } from "lucide-react";
 import { writingTasks, sampleWritingResult } from "@/mock/data";
 import { setLastWriting } from "@/store/attempt-store";
+import { fullExamStore } from "@/features/simulation/fullexam-store";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,8 @@ import { VisualPrompt } from "./VisualPrompt";
 export function WritingEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [sp] = useSearchParams();
+  const full = sp.get("full");
   const task = writingTasks.find((t) => t.id === id) ?? writingTasks[0];
   const storeKey = `fluenta.writing.${task.id}`;
 
@@ -51,6 +54,15 @@ export function WritingEditorPage() {
     setLastWriting({ taskId: task.id, answer: text, wordCount: words });
     try { localStorage.removeItem(storeKey); } catch { /* ignore */ }
     setGrading(true);
+  }
+
+  function afterGrading() {
+    if (full) {
+      fullExamStore.record("writing", sampleWritingResult.overall);
+      navigate("/simulation/full-exam");
+    } else {
+      navigate(`/results/writing/${task.id}`);
+    }
   }
 
   return (
@@ -112,7 +124,7 @@ export function WritingEditorPage() {
         </div>
       </div>
 
-      <GradingModal open={grading} onDone={() => navigate(`/results/writing/${task.id}`)} />
+      <GradingModal open={grading} onDone={afterGrading} />
     </div>
   );
 }

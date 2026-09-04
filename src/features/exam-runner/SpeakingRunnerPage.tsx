@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Flag, Mic, RotateCcw, Square } from "lucide-react";
 import { getSpeakingExam, getSpeakingFeedback, speakingOverall } from "@/lib/mockApi";
 import { studioStore } from "@/features/studio/store";
 import { studioSpeakingToExam } from "@/features/studio/convert";
 import { setLastSpeaking } from "@/store/attempt-store";
+import { fullExamStore } from "@/features/simulation/fullexam-store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -20,11 +21,14 @@ export function SpeakingRunnerPage() {
     return authored && (authored.parts?.length ?? 0) > 0 ? studioSpeakingToExam(authored) : getSpeakingExam();
   }, [id]);
 
+  const [sp] = useSearchParams();
+  const full = sp.get("full");
   const [pIdx, setPIdx] = useState(0);
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [recorded, setRecorded] = useState<Record<string, boolean>>({});
   const [grading, setGrading] = useState(false);
+  const [gradedBand, setGradedBand] = useState(0);
   const ref = useRef<number | null>(null);
 
   const part = exam.parts[pIdx];
@@ -70,13 +74,24 @@ export function SpeakingRunnerPage() {
 
   function submit() {
     const feedback = getSpeakingFeedback();
+    const overall = speakingOverall(feedback);
+    setGradedBand(overall);
     setLastSpeaking({
       examId: exam.id,
-      overall: speakingOverall(feedback),
+      overall,
       feedback,
       partsRecorded: completed,
     });
     setGrading(true);
+  }
+
+  function afterGrading() {
+    if (full) {
+      fullExamStore.record("speaking", gradedBand);
+      navigate("/simulation/full-exam");
+    } else {
+      navigate(`/results/speaking/${exam.id}`);
+    }
   }
 
   const isDone = recorded[part.id];
@@ -206,7 +221,7 @@ export function SpeakingRunnerPage() {
         </div>
       </div>
 
-      <GradingModal open={grading} onDone={() => navigate(`/results/speaking/${exam.id}`)} />
+      <GradingModal open={grading} onDone={afterGrading} />
     </div>
   );
 }

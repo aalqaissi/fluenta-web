@@ -13,6 +13,7 @@ import { ListeningRunnerPage } from "./features/exam-runner/ListeningRunnerPage"
 import { ListeningResultsPage } from "./features/exam-runner/ListeningResultsPage";
 import { SpeakingRunnerPage } from "./features/exam-runner/SpeakingRunnerPage";
 import { SpeakingResultsPage } from "./features/exam-runner/SpeakingResultsPage";
+import { FullExamResultsPage } from "./features/exam-runner/FullExamResultsPage";
 import { WritingEditorPage } from "./features/writing/WritingEditorPage";
 import { WritingResultsPage } from "./features/writing/WritingResultsPage";
 import { MockExamsPage } from "./features/mock-exams/MockExamsPage";
@@ -59,6 +60,7 @@ export const router = createBrowserRouter([
       { path: "/results/writing/:id", element: <WritingResultsPage /> },
       { path: "/results/listening/:id", element: <ListeningResultsPage /> },
       { path: "/results/speaking/:id", element: <SpeakingResultsPage /> },
+      { path: "/results/full", element: <FullExamResultsPage /> },
       { path: "/results/:skill/:id", element: <Navigate to="/progress" replace /> },
     ],
   },

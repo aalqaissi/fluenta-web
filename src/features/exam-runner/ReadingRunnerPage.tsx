@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Clock, Search, BookOpen, Flag } from "lucide-react";
 import { getReadingExam, scoreExam } from "@/lib/mockApi";
 import { studioStore } from "@/features/studio/store";
 import { studioReadingToExam } from "@/features/studio/convert";
 import { setLastAttempt } from "@/store/attempt-store";
+import { fullExamStore } from "@/features/simulation/fullexam-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,8 @@ export function ReadingRunnerPage() {
     return authored && (authored.passages?.length ?? 0) > 0 ? studioReadingToExam(authored) : getReadingExam();
   }, [id]);
 
+  const [sp] = useSearchParams();
+  const full = sp.get("full");
   const [pIdx, setPIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [highlights, setHighlights] = useState<Highlight[]>([]);
@@ -29,6 +32,7 @@ export function ReadingRunnerPage() {
   const [find, setFind] = useState("");
   const [timeLeft, setTimeLeft] = useState(exam.durationSec);
   const [grading, setGrading] = useState(false);
+  const [gradedBand, setGradedBand] = useState(0);
 
   const passage = exam.passages[pIdx];
   const totalQ = useMemo(
@@ -56,6 +60,7 @@ export function ReadingRunnerPage() {
 
   function submit() {
     const { correct, band } = scoreExam(exam, answers);
+    setGradedBand(band);
     setLastAttempt({
       examId: exam.id,
       answers,
@@ -65,6 +70,15 @@ export function ReadingRunnerPage() {
       durationUsedSec: exam.durationSec - timeLeft,
     });
     setGrading(true);
+  }
+
+  function afterGrading() {
+    if (full) {
+      fullExamStore.record("reading", gradedBand);
+      navigate("/simulation/full-exam");
+    } else {
+      navigate(`/results/reading/${exam.id}`);
+    }
   }
 
   return (
@@ -177,7 +191,7 @@ export function ReadingRunnerPage() {
         </div>
       </div>
 
-      <GradingModal open={grading} onDone={() => navigate(`/results/reading/${exam.id}`)} />
+      <GradingModal open={grading} onDone={afterGrading} />
     </div>
   );
 }
