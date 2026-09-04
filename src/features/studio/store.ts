@@ -39,9 +39,20 @@ export interface StudioSpeakingPart {
   topic: string;
   questions: StudioSpeakingQ[];
 }
+export type ChartType =
+  | "bar-chart"
+  | "diagram"
+  | "line-graph"
+  | "maps"
+  | "multiple-graph"
+  | "pie-chart"
+  | "process-diagram"
+  | "table";
+export type Formality = "formal" | "informal" | "semi-formal";
+
 export interface WritingParts {
-  academicT1: { imageName: string | null; prompt: string };
-  generalT1: { prompt: string; bullets: string[] };
+  academicT1: { imageName: string | null; chartType: ChartType; imageDescription: string; prompt: string };
+  generalT1: { formality: Formality; prompt: string; bullets: string[] };
   task2: { prompt: string };
 }
 export interface FullParts {
@@ -82,8 +93,8 @@ function blankExam(skill: StudioSkill): StudioExam {
         title: "Untitled writing exam",
         timeLimit: 60,
         writing: {
-          academicT1: { imageName: null, prompt: "" },
-          generalT1: { prompt: "", bullets: ["", "", ""] },
+          academicT1: { imageName: null, chartType: "bar-chart", imageDescription: "", prompt: "" },
+          generalT1: { formality: "formal", prompt: "", bullets: ["", "", ""] },
           task2: { prompt: "" },
         },
       };
@@ -135,7 +146,7 @@ function seed(): StudioExam[] {
     },
     {
       id: "seed-w1", skill: "writing", title: "Writing Practice Sep 3, 2026", module: "both", status: "draft", timeLimit: 60, updatedAt: "2026-09-03T09:00:00Z",
-      writing: { academicT1: { imageName: "internet-access.png", prompt: "The chart below shows…" }, generalT1: { prompt: "", bullets: ["", "", ""] }, task2: { prompt: "Some people think…" } },
+      writing: { academicT1: { imageName: "internet-access.png", chartType: "line-graph", imageDescription: "Percentage of households with internet access in three countries, 2000–2020.", prompt: "The chart below shows…" }, generalT1: { formality: "formal", prompt: "", bullets: ["", "", ""] }, task2: { prompt: "Some people think…" } },
     },
     {
       id: "seed-s1", skill: "speaking", title: "Speaking Full Mock — Work & Study", module: "both", status: "published", timeLimit: 14, updatedAt: "2026-09-02T12:00:00Z",
