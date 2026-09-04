@@ -1,5 +1,7 @@
 // Tiny in-memory store to carry a submitted attempt from runner -> results
 // (frontend-only prototype; survives client-side navigation, resets on reload).
+import type { SpeakingFeedback } from "@/mock/types";
+
 export interface Attempt {
   examId: string;
   answers: Record<string, string>;
@@ -29,4 +31,20 @@ export function setLastWriting(w: WritingAttempt) {
 }
 export function getLastWriting() {
   return lastWriting;
+}
+
+// Speaking is graded on subjective criteria (no correct answers), so the
+// attempt carries the mock band + per-criterion feedback produced at submit.
+export interface SpeakingAttempt {
+  examId: string;
+  overall: number;
+  feedback: SpeakingFeedback[];
+  partsRecorded: number;
+}
+let lastSpeaking: SpeakingAttempt | null = null;
+export function setLastSpeaking(s: SpeakingAttempt) {
+  lastSpeaking = s;
+}
+export function getLastSpeaking() {
+  return lastSpeaking;
 }

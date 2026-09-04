@@ -7,6 +7,8 @@ import type {
   QuestionType,
   ListeningExam,
   ListeningSectionRun,
+  SpeakingExam,
+  SpeakingPart,
 } from "@/mock/types";
 import { QUESTION_TYPE_LABEL } from "@/mock/data";
 import type { StudioExam } from "./store";
@@ -128,6 +130,28 @@ export function studioListeningToExam(e: StudioExam): ListeningExam {
     scope: "user",
     durationSec: (e.timeLimit || 30) * 60,
     sections,
+    attempts: 0,
+  };
+}
+
+const PART_SECONDS: Record<number, number> = { 1: 5 * 60, 2: 4 * 60, 3: 5 * 60 };
+
+/** Convert an admin-authored Studio speaking exam into the runner shape. */
+export function studioSpeakingToExam(e: StudioExam): SpeakingExam {
+  const parts: SpeakingPart[] = (e.parts ?? []).map((p) => ({
+    id: p.id,
+    number: p.number,
+    title: p.title,
+    durationSec: PART_SECONDS[p.number] ?? 5 * 60,
+    cueCard: p.number === 2 ? p.cueCard || p.topic || undefined : undefined,
+    questions: p.number === 2 ? [] : p.questions.map((q) => q.text).filter(Boolean),
+  }));
+
+  return {
+    id: e.id,
+    title: e.title,
+    scope: "user",
+    parts,
     attempts: 0,
   };
 }

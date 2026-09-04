@@ -1,8 +1,8 @@
 import { delay } from "./utils";
 import { readingExam } from "@/mock/passages";
 import { listeningExam } from "@/mock/listening";
-import { sampleWritingResult } from "@/mock/data";
-import type { WritingResult, ReadingExam, ListeningExam, QuestionGroup } from "@/mock/types";
+import { sampleWritingResult, speakingParts, sampleSpeakingFeedback } from "@/mock/data";
+import type { WritingResult, ReadingExam, ListeningExam, QuestionGroup, SpeakingExam, SpeakingFeedback } from "@/mock/types";
 
 export interface GradingStep {
   label: string;
@@ -23,6 +23,22 @@ export function getReadingExam() {
 
 export function getListeningExam() {
   return listeningExam;
+}
+
+export function getSpeakingExam(): SpeakingExam {
+  return { id: "speak-skills", title: "Speaking Mock — Skills & Learning", scope: "global", parts: speakingParts, attempts: 0 };
+}
+
+/** Mock per-criterion speaking feedback (no real audio is graded in the prototype). */
+export function getSpeakingFeedback(): SpeakingFeedback[] {
+  return sampleSpeakingFeedback;
+}
+
+/** IELTS-style overall = mean of the four criteria, rounded to the nearest 0.5. */
+export function speakingOverall(feedback: SpeakingFeedback[]): number {
+  if (!feedback.length) return 0;
+  const avg = feedback.reduce((s, f) => s + f.band, 0) / feedback.length;
+  return Math.round(avg * 2) / 2;
 }
 
 /** Simulate AI grading with progress callbacks. Returns after ~ the given duration. */

@@ -177,6 +177,15 @@ export interface SpeakingFeedback {
   note: string;
 }
 
+/** Runtime speaking exam consumed by the student runner. */
+export interface SpeakingExam {
+  id: string;
+  title: string;
+  scope: "global" | "user";
+  parts: SpeakingPart[];
+  attempts: number;
+}
+
 // ---- Plans / billing --------------------------------------------
 
 export interface Plan {

@@ -11,6 +11,8 @@ import { ReadingRunnerPage } from "./features/exam-runner/ReadingRunnerPage";
 import { ReadingResultsPage } from "./features/exam-runner/ReadingResultsPage";
 import { ListeningRunnerPage } from "./features/exam-runner/ListeningRunnerPage";
 import { ListeningResultsPage } from "./features/exam-runner/ListeningResultsPage";
+import { SpeakingRunnerPage } from "./features/exam-runner/SpeakingRunnerPage";
+import { SpeakingResultsPage } from "./features/exam-runner/SpeakingResultsPage";
 import { WritingEditorPage } from "./features/writing/WritingEditorPage";
 import { WritingResultsPage } from "./features/writing/WritingResultsPage";
 import { MockExamsPage } from "./features/mock-exams/MockExamsPage";
@@ -56,6 +58,7 @@ export const router = createBrowserRouter([
       { path: "/results/reading/:id", element: <ReadingResultsPage /> },
       { path: "/results/writing/:id", element: <WritingResultsPage /> },
       { path: "/results/listening/:id", element: <ListeningResultsPage /> },
+      { path: "/results/speaking/:id", element: <SpeakingResultsPage /> },
       { path: "/results/:skill/:id", element: <Navigate to="/progress" replace /> },
     ],
   },
@@ -64,7 +67,8 @@ export const router = createBrowserRouter([
   { path: "/exam/reading/:id", element: <ReadingRunnerPage /> },
   { path: "/exam/writing/:id", element: <WritingEditorPage /> },
   { path: "/exam/listening/:id", element: <ListeningRunnerPage /> },
-  // graceful fallbacks for the not-yet-playable skills
+  { path: "/exam/speaking/:id", element: <SpeakingRunnerPage /> },
+  // graceful fallback for the Full-Exam runner (its own sub-project)
   { path: "/exam/:skill/:id", element: <Navigate to="/progress" replace /> },
   { path: "*", element: <Navigate to="/" replace /> },
 ]);

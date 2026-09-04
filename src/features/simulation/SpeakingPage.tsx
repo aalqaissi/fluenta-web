@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, Square, RotateCcw, Sparkles, Bot, Volume2, Send } from "lucide-react";
+import { Mic, Square, RotateCcw, Sparkles, Bot, Send, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/common/PageHeader";
 import { UpgradeBanner } from "@/components/common/UpgradeBanner";
@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import { useApp } from "@/store/app-context";
 import { speakingParts, sampleSpeakingFeedback } from "@/mock/data";
+import { getSpeakingExam } from "@/lib/mockApi";
+import { ExaminerAudio } from "@/features/exam-runner/ExaminerAudio";
 import { bandTone, cn, formatBand, pad2 } from "@/lib/utils";
 
 const MODES = [
@@ -17,33 +19,6 @@ const MODES = [
   { key: "topic", label: "Practice by Topic" },
 ];
 const TOPICS = ["Work & Study", "Hometown", "Technology", "Travel", "Environment", "Hobbies"];
-
-/** mock examiner-audio button: plays a simulated clip for a few seconds */
-function ExaminerAudio({ label }: { label: string }) {
-  const [playing, setPlaying] = useState(false);
-  useEffect(() => {
-    if (!playing) return;
-    const t = setTimeout(() => setPlaying(false), 2600);
-    return () => clearTimeout(t);
-  }, [playing]);
-  return (
-    <button
-      onClick={() => setPlaying(true)}
-      className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
-    >
-      {playing ? (
-        <span className="flex items-end gap-0.5">
-          {[0, 1, 2, 3].map((i) => (
-            <span key={i} className="w-0.5 animate-pulse rounded-full bg-primary" style={{ height: 6 + ((i * 5) % 12), animationDelay: `${i * 0.12}s` }} />
-          ))}
-        </span>
-      ) : (
-        <Volume2 className="size-3.5 text-primary" />
-      )}
-      {playing ? "Playing…" : label}
-    </button>
-  );
-}
 
 export function SpeakingPage() {
   const navigate = useNavigate();
@@ -85,6 +60,20 @@ export function SpeakingPage() {
         subtitle="Hear the examiner, record your answer, and get AI feedback on fluency, vocabulary, grammar and pronunciation."
       />
       {locked && <UpgradeBanner feature="Speaking practice" />}
+
+      {mode === "full" && (
+        <Card className="mb-4 flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-base font-bold">Sit the full 3-part speaking test</h2>
+            <p className="text-sm text-muted-foreground">
+              Interview, cue-card long turn, and discussion — recorded in sequence, then AI-reviewed.
+            </p>
+          </div>
+          <Button size="lg" onClick={() => navigate(`/exam/speaking/${getSpeakingExam().id}`)}>
+            <Play className="size-4" /> Start full test
+          </Button>
+        </Card>
+      )}
 
       {/* mode chooser */}
       <div className="mb-4 inline-flex rounded-xl border border-border bg-surface p-1">
