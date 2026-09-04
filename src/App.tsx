@@ -9,6 +9,8 @@ import { SpeakingPage } from "./features/simulation/SpeakingPage";
 import { FullExamPage } from "./features/simulation/FullExamPage";
 import { ReadingRunnerPage } from "./features/exam-runner/ReadingRunnerPage";
 import { ReadingResultsPage } from "./features/exam-runner/ReadingResultsPage";
+import { ListeningRunnerPage } from "./features/exam-runner/ListeningRunnerPage";
+import { ListeningResultsPage } from "./features/exam-runner/ListeningResultsPage";
 import { WritingEditorPage } from "./features/writing/WritingEditorPage";
 import { WritingResultsPage } from "./features/writing/WritingResultsPage";
 import { MockExamsPage } from "./features/mock-exams/MockExamsPage";
@@ -53,6 +55,7 @@ export const router = createBrowserRouter([
       { path: "/help", element: <HelpPage /> },
       { path: "/results/reading/:id", element: <ReadingResultsPage /> },
       { path: "/results/writing/:id", element: <WritingResultsPage /> },
+      { path: "/results/listening/:id", element: <ListeningResultsPage /> },
       { path: "/results/:skill/:id", element: <Navigate to="/progress" replace /> },
     ],
   },
@@ -60,6 +63,7 @@ export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   { path: "/exam/reading/:id", element: <ReadingRunnerPage /> },
   { path: "/exam/writing/:id", element: <WritingEditorPage /> },
+  { path: "/exam/listening/:id", element: <ListeningRunnerPage /> },
   // graceful fallbacks for the not-yet-playable skills
   { path: "/exam/:skill/:id", element: <Navigate to="/progress" replace /> },
   { path: "*", element: <Navigate to="/" replace /> },

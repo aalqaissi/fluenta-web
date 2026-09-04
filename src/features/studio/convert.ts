@@ -1,4 +1,13 @@
-import type { ReadingExam, Passage, QuestionGroup, Question, QuestionOption, QuestionType } from "@/mock/types";
+import type {
+  ReadingExam,
+  Passage,
+  QuestionGroup,
+  Question,
+  QuestionOption,
+  QuestionType,
+  ListeningExam,
+  ListeningSectionRun,
+} from "@/mock/types";
 import { QUESTION_TYPE_LABEL } from "@/mock/data";
 import type { StudioExam } from "./store";
 
@@ -66,6 +75,59 @@ export function studioReadingToExam(e: StudioExam): ReadingExam {
     passages: converted.length ? converted : [],
     durationSec: (e.timeLimit || 60) * 60,
     questionTypes: Array.from(new Set(passages.map((p) => p.questionType))),
+    attempts: 0,
+  };
+}
+
+/**
+ * Convert an admin-authored Studio listening exam into the runner shape.
+ * Follows the same rule as reading: choice types keep their pills, everything
+ * else the quick editor captures (prompt+answer) renders as short-answer.
+ */
+export function studioListeningToExam(e: StudioExam): ListeningExam {
+  const secs = e.sections ?? [];
+  let counter = 1;
+  const sections: ListeningSectionRun[] = secs.map((s, si) => {
+    const isChoice = s.questionType === "true-false-notgiven" || s.questionType === "yes-no-notgiven";
+    const renderType: QuestionType = isChoice ? s.questionType : "short-answer";
+    const shared =
+      s.questionType === "true-false-notgiven" ? TFNG : s.questionType === "yes-no-notgiven" ? YNNG : undefined;
+
+    const questions: Question[] = s.questions.map((q) => ({
+      id: q.id,
+      number: counter++,
+      prompt: q.prompt,
+      correct: q.answer,
+      wordLimit: isChoice ? undefined : "Type your answer",
+    }));
+
+    const group: QuestionGroup = {
+      id: s.id + "-g",
+      type: renderType,
+      rangeLabel: `Questions (${QUESTION_TYPE_LABEL[s.questionType]})`,
+      instructions: isChoice
+        ? "Do the following statements agree with the recording? Choose the correct option."
+        : `Answer the questions below (${QUESTION_TYPE_LABEL[s.questionType]}).`,
+      sharedOptions: shared,
+      questions,
+    };
+
+    return {
+      id: s.id,
+      number: si + 1,
+      context: s.title || `Section ${si + 1}`,
+      difficulty: "Medium",
+      audioDurationSec: 60,
+      group,
+    };
+  });
+
+  return {
+    id: e.id,
+    title: e.title,
+    scope: "user",
+    durationSec: (e.timeLimit || 30) * 60,
+    sections,
     attempts: 0,
   };
 }

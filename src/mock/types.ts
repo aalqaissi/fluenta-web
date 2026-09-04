@@ -139,6 +139,27 @@ export interface ListeningSection {
   type: QuestionType;
 }
 
+/** Runtime listening exam consumed by the student runner (mirrors ReadingExam). */
+export interface ListeningSectionRun {
+  id: string;
+  number: number;
+  context: string;
+  difficulty: "Easy" | "Medium" | "Hard";
+  /** length of the (simulated) section audio in seconds */
+  audioDurationSec: number;
+  transcript?: string;
+  group: QuestionGroup;
+}
+
+export interface ListeningExam {
+  id: string;
+  title: string;
+  scope: "global" | "user";
+  durationSec: number;
+  sections: ListeningSectionRun[];
+  attempts: number;
+}
+
 export interface SpeakingPart {
   id: string;
   number: 1 | 2 | 3;
