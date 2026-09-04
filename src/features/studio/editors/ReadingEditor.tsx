@@ -1,4 +1,4 @@
-import { Plus, Trash2, Type, Image as ImageIcon } from "lucide-react";
+import { Plus, Trash2, Type, Image as ImageIcon, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,20 +30,27 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
           </div>
 
           {/* input mode */}
-          <div className="mb-4 inline-flex rounded-lg border border-border p-1">
-            {(["type", "upload"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setP(idx, { inputMode: m })}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
-                  p.inputMode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                )}
-              >
-                {m === "type" ? <Type className="size-3.5" /> : <ImageIcon className="size-3.5" />}
-                {m === "type" ? "Type / Paste" : "Upload from image"}
-              </button>
-            ))}
+          <div className="mb-4 inline-flex flex-wrap rounded-lg border border-border p-1">
+            {(["type", "upload", "extract"] as const).map((m) => {
+              const meta = {
+                type: { icon: Type, label: "Type / Paste" },
+                upload: { icon: ImageIcon, label: "Upload from image" },
+                extract: { icon: Sparkles, label: "Extract with AI" },
+              }[m];
+              const Icon = meta.icon;
+              return (
+                <button
+                  key={m}
+                  onClick={() => setP(idx, { inputMode: m })}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
+                    p.inputMode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  <Icon className="size-3.5" /> {meta.label}
+                </button>
+              );
+            })}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -67,9 +74,22 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
               <Field label="Passage text">
                 <Textarea value={p.text} onChange={(e) => setP(idx, { text: e.target.value })} rows={6} placeholder="Paste or type the full reading passage here…" />
               </Field>
-            ) : (
+            ) : p.inputMode === "upload" ? (
               <Field label="Passage image">
                 <MediaDrop kind="image" value={p.imageName} onChange={(name) => setP(idx, { imageName: name })} />
+              </Field>
+            ) : (
+              <Field label="Passage photos" hint="Upload photos of the passage and question sheet — AI reads them and fills the form.">
+                <div className="space-y-2">
+                  <MediaDrop kind="image" value={p.imageName} onChange={(name) => setP(idx, { imageName: name })} />
+                  <AiButton
+                    label="Extract passage & questions"
+                    onClick={() => setP(idx, {
+                      text: p.text || "Extracted passage text (AI). The full reading passage read from your photos would appear here for review.",
+                      questions: [...p.questions, ...aiQuestions(p.questionType)],
+                    })}
+                  />
+                </div>
               </Field>
             )}
           </div>

@@ -8,6 +8,13 @@ export interface CertRecord {
   module: "academic" | "general";
   centre: string;
   issuedOn: string; // YYYY-MM-DD
+  // candidate details (TRF)
+  dateOfBirth: string; // YYYY-MM-DD or ""
+  sex: "male" | "female" | "";
+  countryOfOrigin: string;
+  nationality: string;
+  firstLanguage: string;
+  schemeCode: string;
   scores: { listening: number; reading: number; writing: number; speaking: number };
   overall: number;
   cefr: string;
@@ -40,6 +47,12 @@ export function blankCert(): CertRecord {
     module: "academic",
     centre: "Online Practice",
     issuedOn: "2026-09-03",
+    dateOfBirth: "",
+    sex: "",
+    countryOfOrigin: "",
+    nationality: "",
+    firstLanguage: "",
+    schemeCode: "Online Practice Test",
     scores,
     overall,
     cefr: cefrFor(overall),
@@ -55,6 +68,12 @@ let records: CertRecord[] = seedCerts.map((c) => ({
   module: c.module,
   centre: "Online Practice",
   issuedOn: c.issuedOn,
+  dateOfBirth: "",
+  sex: "" as const,
+  countryOfOrigin: "",
+  nationality: "",
+  firstLanguage: "",
+  schemeCode: "Online Practice Test",
   scores: c.scores,
   overall: c.band,
   cefr: c.cefr,

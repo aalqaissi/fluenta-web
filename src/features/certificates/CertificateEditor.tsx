@@ -83,6 +83,30 @@ export function CertificateEditor() {
               <Field label="Date">
                 <Input type="date" value={cert.issuedOn} onChange={(e) => set({ issuedOn: e.target.value })} />
               </Field>
+              <Field label="Date of birth">
+                <Input type="date" value={cert.dateOfBirth} onChange={(e) => set({ dateOfBirth: e.target.value })} />
+              </Field>
+              <Field label="Sex">
+                <Select value={cert.sex || undefined} onValueChange={(v) => set({ sex: v as CertRecord["sex"] })}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Country / region of origin">
+                <Input value={cert.countryOfOrigin} onChange={(e) => set({ countryOfOrigin: e.target.value })} placeholder="e.g. Jordan" />
+              </Field>
+              <Field label="Country of nationality">
+                <Input value={cert.nationality} onChange={(e) => set({ nationality: e.target.value })} placeholder="e.g. Jordanian" />
+              </Field>
+              <Field label="First language">
+                <Input value={cert.firstLanguage} onChange={(e) => set({ firstLanguage: e.target.value })} placeholder="e.g. Arabic" />
+              </Field>
+              <Field label="Scheme code">
+                <Input value={cert.schemeCode} onChange={(e) => set({ schemeCode: e.target.value })} placeholder="Online Practice Test" />
+              </Field>
             </div>
           </Card>
 

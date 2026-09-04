@@ -12,7 +12,7 @@ export interface StudioQuestion {
 export interface StudioPassage {
   id: string;
   title: string;
-  inputMode: "type" | "upload";
+  inputMode: "type" | "upload" | "extract";
   text: string;
   imageName: string | null; // diagram/map/process
   questionType: QuestionType;
@@ -23,6 +23,7 @@ export interface StudioSection {
   title: string;
   audioName: string | null;
   imageName: string | null;
+  transcript: string;
   questionType: QuestionType;
   questions: StudioQuestion[];
 }
@@ -109,7 +110,7 @@ export function newPassage(n: number): StudioPassage {
   return { id: uid(), title: `Passage ${n}`, inputMode: "type", text: "", imageName: null, questionType: "true-false-notgiven", questions: [] };
 }
 export function newSection(n: number): StudioSection {
-  return { id: uid(), title: `Section ${n}`, audioName: null, imageName: null, questionType: "sentence-completion", questions: [] };
+  return { id: uid(), title: `Section ${n}`, audioName: null, imageName: null, transcript: "", questionType: "sentence-completion", questions: [] };
 }
 export function newSpeakingPart(n: 1 | 2 | 3): StudioSpeakingPart {
   return {
@@ -142,7 +143,7 @@ function seed(): StudioExam[] {
     },
     {
       id: "seed-l1", skill: "listening", title: "Joining a Photography Club", module: "academic", status: "published", timeLimit: 30, updatedAt: "2026-09-02T11:00:00Z",
-      sections: [{ id: uid(), title: "Section 1", audioName: "photography-club.mp3", imageName: null, questionType: "sentence-completion", questions: [{ id: uid(), prompt: "The club meets every __________.", answer: "Tuesday" }] }],
+      sections: [{ id: uid(), title: "Section 1", audioName: "photography-club.mp3", imageName: null, transcript: "", questionType: "sentence-completion", questions: [{ id: uid(), prompt: "The club meets every __________.", answer: "Tuesday" }] }],
     },
     {
       id: "seed-w1", skill: "writing", title: "Writing Practice Sep 3, 2026", module: "both", status: "draft", timeLimit: 60, updatedAt: "2026-09-03T09:00:00Z",

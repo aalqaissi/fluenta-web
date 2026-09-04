@@ -42,6 +42,22 @@ export function TestReportForm({ cert }: { cert: CertRecord }) {
           ))}
         </div>
 
+        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {[
+            ["Date of birth", cert.dateOfBirth ? prettyDate(new Date(cert.dateOfBirth + "T00:00:00")) : "—"],
+            ["Sex", cert.sex === "male" ? "M" : cert.sex === "female" ? "F" : "—"],
+            ["Scheme code", cert.schemeCode || "—"],
+            ["Country of origin", cert.countryOfOrigin || "—"],
+            ["Nationality", cert.nationality || "—"],
+            ["First language", cert.firstLanguage || "—"],
+          ].map(([k, v]) => (
+            <div key={k}>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{k}</div>
+              <div className="text-sm font-semibold">{v}</div>
+            </div>
+          ))}
+        </div>
+
         <h3 className="mb-3 mt-6 text-sm font-bold">Test Results</h3>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {rows.map((r) => (

@@ -2,6 +2,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QUESTION_TYPE_LABEL } from "@/mock/data";
 import type { QuestionType } from "@/mock/types";
@@ -51,6 +52,9 @@ export function ListeningEditor({ exam, patch }: { exam: StudioExam; patch: (p: 
             </div>
             <Field label="Plan / Map / Diagram image (optional)">
               <MediaDrop kind="image" value={s.imageName} onChange={(name) => setS(idx, { imageName: name })} />
+            </Field>
+            <Field label="Transcript (optional)" hint="Used for AI grading, or auto-transcribed from the audio if left blank.">
+              <Textarea value={s.transcript} onChange={(e) => setS(idx, { transcript: e.target.value })} rows={3} placeholder="Paste the audio transcript here…" />
             </Field>
 
             <div>
