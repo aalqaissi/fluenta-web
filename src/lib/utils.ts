@@ -27,3 +27,7 @@ export function bandTone(n: number | null | undefined): string {
 export function pad2(n: number): string {
   return n.toString().padStart(2, "0");
 }
+
+export function prettyDate(d: Date): string {
+  return d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+}

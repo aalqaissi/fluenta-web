@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { PenLine, Clock, FileText, Play } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
+import { ModuleToggle } from "@/components/common/ModuleToggle";
 import { UpgradeBanner } from "@/components/common/UpgradeBanner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,19 +11,21 @@ import { writingTasks } from "@/mock/data";
 
 export function WritingHub() {
   const navigate = useNavigate();
-  const { isLocked } = useApp();
+  const { isLocked, module } = useApp();
   const locked = isLocked("writing");
+  const tasks = writingTasks.filter((t) => t.module === "both" || t.module === module);
 
   return (
     <div>
       <PageHeader
         title="Writing practice"
         subtitle="Task 1 & Task 2 with AI feedback across all four IELTS writing criteria."
+        actions={<ModuleToggle />}
       />
       {locked && <UpgradeBanner feature="Writing practice" />}
 
       <div className="grid gap-4 md:grid-cols-2">
-        {writingTasks.map((t) => (
+        {tasks.map((t) => (
           <Card key={t.id} className="flex flex-col p-6">
             <div className="mb-3 flex items-center gap-2">
               <span className="grid size-11 place-items-center rounded-xl bg-info/12 text-info">
@@ -35,12 +38,8 @@ export function WritingHub() {
             </div>
             <p className="flex-1 text-sm leading-relaxed">{t.prompt}</p>
             <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Clock className="size-3.5" /> {Math.round(t.durationSec / 60)} min
-              </span>
-              <span className="flex items-center gap-1">
-                <FileText className="size-3.5" /> min {t.minWords} words
-              </span>
+              <span className="flex items-center gap-1"><Clock className="size-3.5" /> {Math.round(t.durationSec / 60)} min</span>
+              <span className="flex items-center gap-1"><FileText className="size-3.5" /> min {t.minWords} words</span>
             </div>
             <Button className="mt-4" onClick={() => navigate(`/exam/writing/${t.id}`)}>
               <Play className="size-4" /> Start writing

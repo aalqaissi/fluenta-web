@@ -38,6 +38,11 @@ function NavRow({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
               <Sparkles className="size-2.5" /> AI
             </span>
           )}
+          {!collapsed && item.adminBadge && (
+            <span className="inline-flex items-center rounded-full bg-secondary/15 px-1.5 py-0.5 text-[10px] font-bold text-[rgb(var(--on-secondary))]">
+              Admin
+            </span>
+          )}
           {!collapsed && locked && <LockChip />}
         </>
       )}

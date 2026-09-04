@@ -2,6 +2,8 @@ import * as React from "react";
 import { currentUser } from "@/mock/data";
 import type { FluentaUser, PlanTier } from "@/mock/types";
 
+export type IeltsModule = "academic" | "general";
+
 interface AppState {
   user: FluentaUser;
   sidebarCollapsed: boolean;
@@ -13,6 +15,9 @@ interface AppState {
   effectivePlan: PlanTier;
   isLocked: (skill: "listening" | "speaking" | "full-exam" | "reading" | "writing") => boolean;
   updateUser: (patch: Partial<FluentaUser>) => void;
+  /** Academic vs General Training — affects Reading & Writing content */
+  module: IeltsModule;
+  setModule: (m: IeltsModule) => void;
 }
 
 const AppContext = React.createContext<AppState | null>(null);
@@ -21,6 +26,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<FluentaUser>(currentUser);
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const [previewFree, setPreviewFree] = React.useState(false);
+  const [module, setModule] = React.useState<IeltsModule>("academic");
 
   const effectivePlan: PlanTier = previewFree ? "free" : user.plan;
 
@@ -47,6 +53,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     effectivePlan,
     isLocked,
     updateUser,
+    module,
+    setModule,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

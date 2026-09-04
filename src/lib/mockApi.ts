@@ -1,7 +1,7 @@
 import { delay } from "./utils";
 import { readingExam } from "@/mock/passages";
 import { sampleWritingResult } from "@/mock/data";
-import type { WritingResult } from "@/mock/types";
+import type { WritingResult, ReadingExam } from "@/mock/types";
 
 export interface GradingStep {
   label: string;
@@ -31,11 +31,11 @@ export async function runAiGrading(onProgress: (pct: number, label: string) => v
   }
 }
 
-/** Mock reading score from answers vs correct keys. */
-export function scoreReading(answers: Record<string, string>) {
+/** Mock reading score for ANY reading exam (built-in or Studio-authored). */
+export function scoreExam(exam: ReadingExam, answers: Record<string, string>) {
   let correct = 0;
   let total = 0;
-  for (const p of readingExam.passages) {
+  for (const p of exam.passages) {
     for (const g of p.groups) {
       for (const q of g.questions) {
         total++;
@@ -44,8 +44,12 @@ export function scoreReading(answers: Record<string, string>) {
       }
     }
   }
-  const band = rawToBand(correct);
-  return { correct, total, band };
+  return { correct, total, band: rawToBand(correct) };
+}
+
+/** Mock reading score against the built-in exam. */
+export function scoreReading(answers: Record<string, string>) {
+  return scoreExam(readingExam, answers);
 }
 
 /** Rough IELTS Academic Reading raw→band mapping (out of ~40). */

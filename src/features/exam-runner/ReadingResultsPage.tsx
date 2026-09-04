@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Bot, RefreshCw, Sparkles, Trophy } from "lucide-react";
 import { getReadingExam } from "@/lib/mockApi";
+import { studioStore } from "@/features/studio/store";
+import { studioReadingToExam } from "@/features/studio/convert";
 import { getLastAttempt } from "@/store/attempt-store";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,8 +14,9 @@ import { bandTone, formatBand, pad2 } from "@/lib/utils";
 
 export function ReadingResultsPage() {
   const navigate = useNavigate();
-  const exam = getReadingExam();
   const attempt = getLastAttempt();
+  const authored = attempt ? studioStore.get().find((e) => e.id === attempt.examId && e.skill === "reading") : undefined;
+  const exam = authored && (authored.passages?.length ?? 0) > 0 ? studioReadingToExam(authored) : getReadingExam();
 
   if (!attempt) {
     return (

@@ -89,13 +89,20 @@ export interface ReadingExam {
 
 // ---- Writing -----------------------------------------------------
 
+export type WritingVisual = "bar" | "line" | "pie" | "process" | "map" | "table" | null;
+
 export interface WritingTask {
   id: string;
   taskNumber: 1 | 2;
-  kind: string; // "Opinion Essay", "Report"
+  kind: string; // "Opinion Essay", "Report", "Letter"
+  module: "academic" | "general" | "both";
   prompt: string;
   minWords: number;
   durationSec: number;
+  /** Academic Task 1 visual prompt (rendered as an uploaded image stand-in) */
+  visual?: WritingVisual;
+  /** bullet points for GT letters */
+  bullets?: string[];
 }
 
 export type WritingCriterionKey = "task" | "coherence" | "lexical" | "grammar";
@@ -198,9 +205,12 @@ export interface Achievement {
 export interface Certificate {
   id: string;
   title: string;
-  band: number;
+  band: number; // overall
   issuedOn: string;
   skill: SkillKey | "overall";
+  module: "academic" | "general";
+  scores: { listening: number; reading: number; writing: number; speaking: number };
+  cefr: string;
 }
 
 // ---- Recent exams (progress) ------------------------------------

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Clock, Search, BookOpen, Flag } from "lucide-react";
-import { getReadingExam, scoreReading } from "@/lib/mockApi";
+import { getReadingExam, scoreExam } from "@/lib/mockApi";
+import { studioStore } from "@/features/studio/store";
+import { studioReadingToExam } from "@/features/studio/convert";
 import { setLastAttempt } from "@/store/attempt-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,8 +15,12 @@ import { GradingModal } from "./GradingModal";
 import { pad2, cn } from "@/lib/utils";
 
 export function ReadingRunnerPage() {
-  const exam = getReadingExam();
+  const { id } = useParams();
   const navigate = useNavigate();
+  const exam = useMemo(() => {
+    const authored = id ? studioStore.get().find((e) => e.id === id && e.skill === "reading") : undefined;
+    return authored && (authored.passages?.length ?? 0) > 0 ? studioReadingToExam(authored) : getReadingExam();
+  }, [id]);
 
   const [pIdx, setPIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -49,7 +55,7 @@ export function ReadingRunnerPage() {
   }
 
   function submit() {
-    const { correct, band } = scoreReading(answers);
+    const { correct, band } = scoreExam(exam, answers);
     setLastAttempt({
       examId: exam.id,
       answers,

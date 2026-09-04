@@ -13,3 +13,9 @@ npm-debug.log*
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
+
+# generated knowledge graph (regenerable via /graphify)
+graphify-out/
+
+# large source media / recordings — keep out of git (GitHub 100MB/file limit)
+artifact/

@@ -12,6 +12,7 @@ import {
   Trophy,
   BadgeCheck,
   Bot,
+  Wand2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -21,6 +22,7 @@ export interface NavItem {
   icon: LucideIcon;
   lockSkill?: "listening" | "speaking" | "full-exam";
   aiBadge?: boolean;
+  adminBadge?: boolean;
 }
 
 export interface NavGroup {
@@ -43,6 +45,7 @@ export const simulationChildren: NavItem[] = [
 
 export const secondaryNav: NavItem[] = [
   { label: "Mock Exam & Self Improvement", to: "/mock-exams", icon: Layers },
+  { label: "Content Studio", to: "/studio", icon: Wand2, adminBadge: true },
   { label: "Lessons & Library", to: "/lessons", icon: Library },
   { label: "Progress", to: "/progress", icon: TrendingUp },
   { label: "Achievements", to: "/achievements", icon: Trophy },

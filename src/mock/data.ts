@@ -104,22 +104,40 @@ export const planIncludes = [
 
 export const writingTasks: WritingTask[] = [
   {
+    id: "w-task1",
+    taskNumber: 1,
+    kind: "Report",
+    module: "academic",
+    visual: "line",
+    prompt:
+      "The chart below shows the percentage of households with internet access in three countries between 2000 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
+    minWords: 150,
+    durationSec: 20 * 60,
+  },
+  {
+    id: "w-gt-task1",
+    taskNumber: 1,
+    kind: "Letter",
+    module: "general",
+    prompt:
+      "You recently stayed at a hotel and were unhappy with the service. Write a letter to the hotel manager. In your letter:",
+    bullets: [
+      "explain why you were staying at the hotel",
+      "describe the problems you experienced",
+      "say what you would like the manager to do",
+    ],
+    minWords: 150,
+    durationSec: 20 * 60,
+  },
+  {
     id: "w-task2",
     taskNumber: 2,
     kind: "Opinion Essay",
+    module: "both",
     prompt:
       "More companies now place carbon-footprint labels on products so consumers can make environmentally informed choices. Do the advantages of carbon labelling outweigh the disadvantages?",
     minWords: 250,
     durationSec: 40 * 60,
-  },
-  {
-    id: "w-task1",
-    taskNumber: 1,
-    kind: "Report",
-    prompt:
-      "The chart below shows the percentage of households with internet access in three countries between 2000 and 2020. Summarise the information by selecting and reporting the main features.",
-    minWords: 150,
-    durationSec: 20 * 60,
   },
 ];
 
@@ -241,6 +259,6 @@ export const achievements: Achievement[] = [
 // ---- Certificates ------------------------------------------------
 
 export const certificates: Certificate[] = [
-  { id: "cert1", title: "Reading Practice — Band 6.5", band: 6.5, issuedOn: "2026-09-01", skill: "reading" },
-  { id: "cert2", title: "Foundation Reading Course", band: 6, issuedOn: "2026-08-25", skill: "reading" },
+  { id: "cert1", title: "Full Practice Test — Academic", band: 6.5, issuedOn: "2026-09-01", skill: "overall", module: "academic", scores: { listening: 6.5, reading: 6.5, writing: 6.0, speaking: 6.5 }, cefr: "B2" },
+  { id: "cert2", title: "Foundation Reading Course", band: 6, issuedOn: "2026-08-25", skill: "reading", module: "academic", scores: { listening: 6.0, reading: 6.5, writing: 5.5, speaking: 6.0 }, cefr: "B2" },
 ];

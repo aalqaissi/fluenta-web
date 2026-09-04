@@ -1,23 +1,61 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, Square, RotateCcw, Sparkles, Bot } from "lucide-react";
+import { Mic, Square, RotateCcw, Sparkles, Bot, Volume2, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/common/PageHeader";
 import { UpgradeBanner } from "@/components/common/UpgradeBanner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import { useApp } from "@/store/app-context";
 import { speakingParts, sampleSpeakingFeedback } from "@/mock/data";
 import { bandTone, cn, formatBand, pad2 } from "@/lib/utils";
+
+const MODES = [
+  { key: "full", label: "Full Simulation" },
+  { key: "part", label: "Practice by Part" },
+  { key: "topic", label: "Practice by Topic" },
+];
+const TOPICS = ["Work & Study", "Hometown", "Technology", "Travel", "Environment", "Hobbies"];
+
+/** mock examiner-audio button: plays a simulated clip for a few seconds */
+function ExaminerAudio({ label }: { label: string }) {
+  const [playing, setPlaying] = useState(false);
+  useEffect(() => {
+    if (!playing) return;
+    const t = setTimeout(() => setPlaying(false), 2600);
+    return () => clearTimeout(t);
+  }, [playing]);
+  return (
+    <button
+      onClick={() => setPlaying(true)}
+      className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+    >
+      {playing ? (
+        <span className="flex items-end gap-0.5">
+          {[0, 1, 2, 3].map((i) => (
+            <span key={i} className="w-0.5 animate-pulse rounded-full bg-primary" style={{ height: 6 + ((i * 5) % 12), animationDelay: `${i * 0.12}s` }} />
+          ))}
+        </span>
+      ) : (
+        <Volume2 className="size-3.5 text-primary" />
+      )}
+      {playing ? "Playing…" : label}
+    </button>
+  );
+}
 
 export function SpeakingPage() {
   const navigate = useNavigate();
   const { isLocked } = useApp();
   const locked = isLocked("speaking");
+  const [mode, setMode] = useState("full");
   const [partIdx, setPartIdx] = useState(0);
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [done, setDone] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const ref = useRef<number | null>(null);
   const part = speakingParts[partIdx];
 
@@ -36,39 +74,75 @@ export function SpeakingPage() {
   function reset() {
     setRecording(false);
     setDone(false);
+    setSubmitted(false);
     setElapsed(0);
   }
 
   return (
     <div>
-      <PageHeader title="Speaking practice" subtitle="Record your answers and get AI feedback on fluency, vocabulary, grammar and pronunciation." />
+      <PageHeader
+        title="Speaking practice"
+        subtitle="Hear the examiner, record your answer, and get AI feedback on fluency, vocabulary, grammar and pronunciation."
+      />
       {locked && <UpgradeBanner feature="Speaking practice" />}
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        {speakingParts.map((p, i) => (
+      {/* mode chooser */}
+      <div className="mb-4 inline-flex rounded-xl border border-border bg-surface p-1">
+        {MODES.map((m) => (
           <button
-            key={p.id}
-            onClick={() => {
-              setPartIdx(i);
-              reset();
-            }}
+            key={m.key}
+            onClick={() => { setMode(m.key); reset(); }}
             className={cn(
-              "rounded-xl border px-3.5 py-2 text-left text-sm transition-colors",
-              i === partIdx ? "border-primary bg-primary/[0.06]" : "border-border hover:bg-muted"
+              "rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors",
+              mode === m.key ? "bg-primary text-primary-foreground shadow-soft" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <div className="font-bold">Part {p.number}</div>
-            <div className="text-xs text-muted-foreground">{p.title}</div>
+            {m.label}
           </button>
         ))}
       </div>
 
+      {mode === "topic" ? (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {TOPICS.map((t, i) => (
+            <button
+              key={t}
+              onClick={() => reset()}
+              className={cn(
+                "rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors",
+                i === 0 ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted"
+              )}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {speakingParts.map((p, i) => (
+            <button
+              key={p.id}
+              onClick={() => { setPartIdx(i); reset(); }}
+              className={cn(
+                "rounded-xl border px-3.5 py-2 text-left text-sm transition-colors",
+                i === partIdx ? "border-primary bg-primary/[0.06]" : "border-border hover:bg-muted"
+              )}
+            >
+              <div className="font-bold">Part {p.number}</div>
+              <div className="text-xs text-muted-foreground">{p.title}</div>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-        {/* prompt + recorder */}
         <div className="space-y-4">
           {part.cueCard ? (
             <Card className="border-dashed p-5">
-              <Badge variant="secondary" className="mb-2">Cue card</Badge>
+              <div className="mb-2 flex items-center justify-between">
+                <Badge variant="secondary">Cue card</Badge>
+                <ExaminerAudio label="Play examiner" />
+              </div>
               <p className="text-lg font-bold">{part.cueCard}</p>
               <p className="mt-2 text-sm text-muted-foreground">You should say:</p>
               <ul className="mt-1 list-inside list-disc space-y-0.5 text-sm">
@@ -76,17 +150,26 @@ export function SpeakingPage() {
                   <li key={b}>{b}</li>
                 ))}
               </ul>
+              <p className="mt-3 text-xs text-muted-foreground">1 minute to prepare · up to 2 minutes to speak.</p>
             </Card>
           ) : (
             <Card className="p-5">
-              <Badge variant="info" className="mb-2">Examiner questions</Badge>
+              <div className="mb-2 flex items-center justify-between">
+                <Badge variant="info">Examiner questions</Badge>
+                <span className="text-xs text-muted-foreground">Tap ▶ to hear each question</span>
+              </div>
               <ul className="space-y-2.5">
                 {part.questions.map((q, i) => (
-                  <li key={i} className="flex gap-2.5 text-sm">
+                  <li key={i} className="flex items-start gap-2.5 text-sm">
                     <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                       {i + 1}
                     </span>
-                    {q}
+                    <div className="flex-1">
+                      <p>{q}</p>
+                      <div className="mt-1.5">
+                        <ExaminerAudio label="Play" />
+                      </div>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -96,8 +179,9 @@ export function SpeakingPage() {
           <Card className="flex flex-col items-center p-6">
             <button
               onClick={() => (recording ? stop() : setRecording(true))}
+              disabled={submitted}
               className={cn(
-                "relative grid size-24 place-items-center rounded-full text-white transition-all",
+                "relative grid size-24 place-items-center rounded-full text-white transition-all disabled:opacity-60",
                 recording ? "bg-destructive" : "bg-warm-gradient hover:scale-105"
               )}
             >
@@ -107,23 +191,27 @@ export function SpeakingPage() {
             <p className="mt-3 text-sm font-semibold tabular-nums">
               {recording ? "Recording…" : done ? "Recorded" : "Tap to record"} · {pad2(Math.floor(elapsed / 60))}:{pad2(elapsed % 60)}
             </p>
-            {done && (
-              <Button variant="outline" size="sm" className="mt-3" onClick={reset}>
-                <RotateCcw className="size-4" /> Re-record
-              </Button>
+            {done && !submitted && (
+              <div className="mt-3 flex gap-2">
+                <Button variant="outline" size="sm" onClick={reset}>
+                  <RotateCcw className="size-4" /> Re-record
+                </Button>
+                <Button size="sm" onClick={() => setConfirmOpen(true)}>
+                  <Send className="size-4" /> Submit for review
+                </Button>
+              </div>
             )}
             <p className="mt-2 text-xs text-muted-foreground">Microphone is simulated in this preview.</p>
           </Card>
         </div>
 
-        {/* feedback */}
         <Card className="p-5">
           <h3 className="flex items-center gap-2 text-base font-bold">
             <Sparkles className="size-4 text-primary" /> AI feedback
           </h3>
-          {!done ? (
+          {!submitted ? (
             <p className="mt-2 text-sm text-muted-foreground">
-              Record your answer to see a band estimate and coaching notes for each speaking criterion.
+              Record your answer and submit it for review to see a band estimate and coaching notes for each speaking criterion.
             </p>
           ) : (
             <div className="mt-3 space-y-3">
@@ -143,6 +231,17 @@ export function SpeakingPage() {
           )}
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Submit for review?"
+        description="Your recording will be saved to your account and sent for AI feedback. You can re-record before submitting."
+        confirmLabel="Yes, submit"
+        cancelLabel="Keep working"
+        destructive={false}
+        onConfirm={() => setSubmitted(true)}
+      />
     </div>
   );
 }
