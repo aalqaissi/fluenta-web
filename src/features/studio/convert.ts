@@ -13,17 +13,6 @@ import type {
 import { QUESTION_TYPE_LABEL } from "@/mock/data";
 import type { StudioExam } from "./store";
 
-const TFNG: QuestionOption[] = [
-  { key: "True", text: "True" },
-  { key: "False", text: "False" },
-  { key: "Not Given", text: "Not Given" },
-];
-const YNNG: QuestionOption[] = [
-  { key: "Yes", text: "Yes" },
-  { key: "No", text: "No" },
-  { key: "Not Given", text: "Not Given" },
-];
-
 /**
  * Convert an admin-authored Studio reading exam into the shape the student
  * runner consumes. Choice types (TF/NG, YN/NG) keep their pills; other types
@@ -108,27 +97,21 @@ export function studioListeningToExam(e: StudioExam): ListeningExam {
   const secs = e.sections ?? [];
   let counter = 1;
   const sections: ListeningSectionRun[] = secs.map((s, si) => {
-    const isChoice = s.questionType === "true-false-notgiven" || s.questionType === "yes-no-notgiven";
-    const renderType: QuestionType = isChoice ? s.questionType : "short-answer";
-    const shared =
-      s.questionType === "true-false-notgiven" ? TFNG : s.questionType === "yes-no-notgiven" ? YNNG : undefined;
-
-    const questions: Question[] = s.questions.map((q) => ({
-      id: q.id,
-      number: counter++,
-      prompt: q.prompt,
-      correct: q.answer,
-      wordLimit: isChoice ? undefined : "Type your answer",
-    }));
+    const questions: Question[] = s.questions.map((q) => {
+      const qType: QuestionType = q.type ?? s.questionType;
+      const isList = qType === "multiple-choice" || qType === "multi-select";
+      const options: QuestionOption[] | undefined = isList
+        ? (q.options ?? []).map((t, i) => ({ key: LETTERS[i], text: t || `Option ${LETTERS[i]}` }))
+        : undefined;
+      const wordLimit = TEXT_TYPES.has(qType) && q.wordLimit ? `Max ${q.wordLimit} word${q.wordLimit === 1 ? "" : "s"}` : undefined;
+      return { id: q.id, number: counter++, prompt: q.prompt, correct: q.answer, type: qType, options, wordLimit };
+    });
 
     const group: QuestionGroup = {
       id: s.id + "-g",
-      type: renderType,
+      type: s.questionType,
       rangeLabel: `Questions (${QUESTION_TYPE_LABEL[s.questionType]})`,
-      instructions: isChoice
-        ? "Do the following statements agree with the recording? Choose the correct option."
-        : `Answer the questions below (${QUESTION_TYPE_LABEL[s.questionType]}).`,
-      sharedOptions: shared,
+      instructions: readingInstructions(s.questionType),
       questions,
     };
 
