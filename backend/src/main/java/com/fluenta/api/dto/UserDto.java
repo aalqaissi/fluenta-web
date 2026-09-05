@@ -2,7 +2,7 @@ package com.fluenta.api.dto;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-/** Mirrors the frontend {@code FluentaUser}. */
+/** Mirrors the frontend user profile. */
 public record UserDto(
         String id,
         String name,
@@ -15,5 +15,10 @@ public record UserDto(
         double targetBand,
         String examDate,
         boolean saveHistory,
+        String track,
+        String examType,
+        String purpose,
+        String level,
+        boolean onboarded,
         JsonNode streak
 ) {}

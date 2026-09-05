@@ -1,13 +1,29 @@
-# Fluenta — AI IELTS Prep
+# Yalla English Hub — AI English & IELTS Prep
 
-An AI IELTS preparation platform — a rebranded, visually elevated evolution of the "EinsteinAI"
-product. Now a real **client/server app**: a React frontend wired to a **Spring Boot (Java 21) + SQLite**
-backend. AI features (writing/speaking feedback, coach chat, live interview) are **held for a later
-stage** — their buttons are disabled ("coming soon") and their endpoints return `501`. Everything
-else — auth, Content Studio authoring, exam listing, **server-side reading/listening scoring**,
-results, progress, certificates and reference content — is real and persisted.
+An AI English & IELTS preparation platform — a rebranded, visually elevated evolution of the
+"EinsteinAI" product. A real **client/server app**: a React frontend wired to a **Spring Boot
+(Java 21) + SQLite** backend. AI features (writing/speaking feedback, coach chat, live interview)
+are **held for a later stage** — their buttons are disabled ("coming soon") and their endpoints
+return `501`. Everything else is real and persisted.
 
-- **Brand:** Fluenta · warm & encouraging design (edit `src/config/brand.ts` to rebrand).
+**This build** (Einstein-style dashboard):
+- **Login-first** flow → a 4-step **onboarding** wizard (exam, purpose, date, level + target band) → dashboard.
+- **Overview** dashboard: **Practice by Skill** (6 skills — Reading, Writing, Listening, Speaking,
+  Vocabulary, Grammar; Vocabulary/Grammar are dashboard-tracked, practice "coming soon"),
+  **Progress Report** (target progress, per-skill tabs, band-over-time graph, tests/average/gap),
+  **Strengths & Weaknesses** (bar chart + strongest/weakest + per-skill list), **My Feedback**,
+  **Recent Activity**, Plan, Exam Countdown, Study Streak. (Progress is merged here — no separate page.)
+- **Feedback** domain: students submit feedback (statuses new → under review → completed); admins use
+  the **Feedback Review** queue to reply and move status.
+- **Certificates** list (Standard / IELTS Report types, verification numbers) and **Achievements**
+  (categories, tiers, points, status filters).
+- **Program tracks** (IELTS active; General/Business English, TOEFL, PTE, English for Kids scaffolded
+  with a switcher and backend `track` field).
+- Server-side reading/listening scoring; Content Studio authoring.
+
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for pending/held items to prioritize.
+
+- **Brand:** Yalla English Hub · warm & encouraging design (edit `src/config/brand.ts` to rebrand).
 - **Frontend:** React + Vite + TypeScript + Tailwind CSS + shadcn/ui-style components (Radix) + React Router.
 - **Backend:** Spring Boot 3.3 + Java 21 + SQLite (single embedded file). See [`backend/README.md`](backend/README.md).
 
@@ -27,9 +43,10 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173. The app bootstraps a demo session against the API automatically (login
-is a prototype: any email maps to the seeded demo user). The API base URL is `VITE_API_URL`
-(default `http://localhost:8080/api`, see `.env.example`).
+Open http://localhost:5173. **Login is a prototype** (no password): "Continue with Google" signs in
+as the seeded demo user (Sara, already onboarded → straight to the dashboard); entering a **new
+email** creates a fresh account that goes through onboarding first. The API base URL is
+`VITE_API_URL` (default `http://localhost:8080/api`, see `.env.example`).
 
 > **Heads-up (this machine):** the Java web server may fail to start with *"Unable to establish
 > loopback connection"* — a local loopback-intercepting proxy blocks Java's NIO selector, not a bug
@@ -63,7 +80,12 @@ The repo includes `netlify.toml` and `public/_redirects` (SPA fallback so deep l
 
 ## What’s inside
 
-**Screens (18 areas):** Dashboard · Reading practice + full exam runner (all 11 IELTS question types, highlighting, find-text, timer) · AI grading animation · Reading results + review · Writing editor + AI feedback (criteria + inline annotations) · Listening · Speaking (mock recorder + AI feedback) · Full Exam · Mock Exams (tabs, type filter, upload, delete) · Progress · Fluenta Coach (interactive AI chat) · Lessons & Library · Achievements · Certificates · Subscription/Checkout · Account settings · Login/landing · Feedback / Set-exam-date / confirm modals.
+**Screens:** Login → Onboarding → Overview dashboard · Reading/Listening runners (server-scored) +
+results/review · Writing & Speaking runners (AI submit held) · Full Exam · Content Studio (admin
+authoring) + Feedback Review (admin) · Lessons & Library · Achievements · Certificates ·
+Subscription/Checkout · Account settings · Yalla Coach (AI, held) · Feedback / Set-exam-date / confirm
+modals. _(Progress is merged into Overview; "Mock Exam & Self Improvement" is hidden this stage — see
+`docs/ROADMAP.md`.)_
 
 **Demo controls**
 - **Preview free tier** — in the profile menu (bottom-left). Flips the app to the free/locked experience: sidebar shows Pro locks and upsell banners appear, **but every feature stays fully usable** (real screens, not upgrade walls) so the product can be evaluated in full.

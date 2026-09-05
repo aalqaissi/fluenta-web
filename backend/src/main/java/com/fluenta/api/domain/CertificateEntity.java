@@ -16,6 +16,8 @@ public class CertificateEntity {
     private String userId;
     private String title;
     private String candidate;
+    private String type;              // "standard" | "ielts-report"
+    private String verificationNumber; // EIELTS-YYYY-NNNNNN
     private String module;   // academic | general
     private String centre;
     private String issuedOn; // YYYY-MM-DD
@@ -48,6 +50,10 @@ public class CertificateEntity {
     public void setTitle(String title) { this.title = title; }
     public String getCandidate() { return candidate; }
     public void setCandidate(String candidate) { this.candidate = candidate; }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
+    public String getVerificationNumber() { return verificationNumber; }
+    public void setVerificationNumber(String verificationNumber) { this.verificationNumber = verificationNumber; }
     public String getModule() { return module; }
     public void setModule(String module) { this.module = module; }
     public String getCentre() { return centre; }

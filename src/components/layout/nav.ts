@@ -13,6 +13,7 @@ import {
   BadgeCheck,
   Bot,
   Wand2,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
 
@@ -43,12 +44,17 @@ export const simulationChildren: NavItem[] = [
   { label: "Full Exam", to: "/simulation/full-exam", icon: GraduationCap, lockSkill: "full-exam" },
 ];
 
+import { brand } from "@/config/brand";
+
 export const secondaryNav: NavItem[] = [
-  { label: "Mock Exam & Self Improvement", to: "/mock-exams", icon: Layers },
+  // NOTE: "Mock Exam & Self Improvement" is intentionally hidden this stage (see docs/ROADMAP.md
+  // — cleanup item). The route/components still exist; do not delete yet.
+  // { label: "Mock Exam & Self Improvement", to: "/mock-exams", icon: Layers },
   { label: "Content Studio", to: "/studio", icon: Wand2, adminBadge: true },
+  { label: "Feedback Review", to: "/studio/feedback", icon: MessageSquare, adminBadge: true },
   { label: "Lessons & Library", to: "/lessons", icon: Library },
-  { label: "Progress", to: "/progress", icon: TrendingUp },
+  // "Progress" removed — merged into the Overview page (see docs/ROADMAP.md).
   { label: "Achievements", to: "/achievements", icon: Trophy },
   { label: "Certificates", to: "/certificates", icon: BadgeCheck },
-  { label: "Fluenta Coach", to: "/coach", icon: Bot, aiBadge: true },
+  { label: brand.coachName, to: "/coach", icon: Bot, aiBadge: true },
 ];

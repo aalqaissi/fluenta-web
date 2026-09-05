@@ -1,0 +1,315 @@
+{
+  "skills": [
+    {
+      "key": "listening",
+      "band": 6.5,
+      "tests": 8
+    },
+    {
+      "key": "reading",
+      "band": 6,
+      "tests": 9
+    },
+    {
+      "key": "writing",
+      "band": 5.5,
+      "tests": 5
+    },
+    {
+      "key": "speaking",
+      "band": 6,
+      "tests": 4
+    },
+    {
+      "key": "vocabulary",
+      "band": 6.5,
+      "tests": 6
+    },
+    {
+      "key": "grammar",
+      "band": 5.5,
+      "tests": 5
+    }
+  ],
+  "testsCompleted": 37,
+  "series": {
+    "listening": [
+      {
+        "date": "2026-08-18",
+        "band": 4.5
+      },
+      {
+        "date": "2026-08-21",
+        "band": 5
+      },
+      {
+        "date": "2026-08-24",
+        "band": 5
+      },
+      {
+        "date": "2026-08-27",
+        "band": 5.5
+      },
+      {
+        "date": "2026-08-30",
+        "band": 5.5
+      },
+      {
+        "date": "2026-09-02",
+        "band": 6
+      },
+      {
+        "date": "2026-09-05",
+        "band": 6
+      },
+      {
+        "date": "2026-09-08",
+        "band": 6.5
+      }
+    ],
+    "reading": [
+      {
+        "date": "2026-08-18",
+        "band": 4
+      },
+      {
+        "date": "2026-08-21",
+        "band": 4.5
+      },
+      {
+        "date": "2026-08-24",
+        "band": 4.5
+      },
+      {
+        "date": "2026-08-27",
+        "band": 5
+      },
+      {
+        "date": "2026-08-30",
+        "band": 5
+      },
+      {
+        "date": "2026-09-02",
+        "band": 5.5
+      },
+      {
+        "date": "2026-09-05",
+        "band": 5.5
+      },
+      {
+        "date": "2026-09-08",
+        "band": 6
+      }
+    ],
+    "writing": [
+      {
+        "date": "2026-08-18",
+        "band": 3.5
+      },
+      {
+        "date": "2026-08-21",
+        "band": 4
+      },
+      {
+        "date": "2026-08-24",
+        "band": 4
+      },
+      {
+        "date": "2026-08-27",
+        "band": 4.5
+      },
+      {
+        "date": "2026-08-30",
+        "band": 4.5
+      },
+      {
+        "date": "2026-09-02",
+        "band": 5
+      },
+      {
+        "date": "2026-09-05",
+        "band": 5
+      },
+      {
+        "date": "2026-09-08",
+        "band": 5.5
+      }
+    ],
+    "speaking": [
+      {
+        "date": "2026-08-18",
+        "band": 4
+      },
+      {
+        "date": "2026-08-21",
+        "band": 4.5
+      },
+      {
+        "date": "2026-08-24",
+        "band": 4.5
+      },
+      {
+        "date": "2026-08-27",
+        "band": 5
+      },
+      {
+        "date": "2026-08-30",
+        "band": 5
+      },
+      {
+        "date": "2026-09-02",
+        "band": 5.5
+      },
+      {
+        "date": "2026-09-05",
+        "band": 5.5
+      },
+      {
+        "date": "2026-09-08",
+        "band": 6
+      }
+    ],
+    "vocabulary": [
+      {
+        "date": "2026-08-18",
+        "band": 4.5
+      },
+      {
+        "date": "2026-08-21",
+        "band": 5
+      },
+      {
+        "date": "2026-08-24",
+        "band": 5
+      },
+      {
+        "date": "2026-08-27",
+        "band": 5.5
+      },
+      {
+        "date": "2026-08-30",
+        "band": 5.5
+      },
+      {
+        "date": "2026-09-02",
+        "band": 6
+      },
+      {
+        "date": "2026-09-05",
+        "band": 6
+      },
+      {
+        "date": "2026-09-08",
+        "band": 6.5
+      }
+    ],
+    "grammar": [
+      {
+        "date": "2026-08-18",
+        "band": 3.5
+      },
+      {
+        "date": "2026-08-21",
+        "band": 4
+      },
+      {
+        "date": "2026-08-24",
+        "band": 4
+      },
+      {
+        "date": "2026-08-27",
+        "band": 4.5
+      },
+      {
+        "date": "2026-08-30",
+        "band": 4.5
+      },
+      {
+        "date": "2026-09-02",
+        "band": 5
+      },
+      {
+        "date": "2026-09-05",
+        "band": 5
+      },
+      {
+        "date": "2026-09-08",
+        "band": 5.5
+      }
+    ],
+    "overall": [
+      {
+        "date": "2026-08-18",
+        "band": 4
+      },
+      {
+        "date": "2026-08-21",
+        "band": 4.5
+      },
+      {
+        "date": "2026-08-24",
+        "band": 4.5
+      },
+      {
+        "date": "2026-08-27",
+        "band": 5
+      },
+      {
+        "date": "2026-08-30",
+        "band": 5
+      },
+      {
+        "date": "2026-09-02",
+        "band": 5.5
+      },
+      {
+        "date": "2026-09-05",
+        "band": 5.5
+      },
+      {
+        "date": "2026-09-08",
+        "band": 6
+      }
+    ]
+  },
+  "recentActivity": [
+    {
+      "id": "ra1",
+      "type": "completed",
+      "skill": "reading",
+      "title": "Completed Reading Practice",
+      "date": "2026-09-04",
+      "band": 6
+    },
+    {
+      "id": "ra2",
+      "type": "submitted",
+      "skill": "writing",
+      "title": "Submitted Writing Task",
+      "date": "2026-09-04"
+    },
+    {
+      "id": "ra3",
+      "type": "feedback",
+      "skill": "speaking",
+      "title": "Received Speaking Feedback",
+      "date": "2026-09-03",
+      "band": 6
+    },
+    {
+      "id": "ra4",
+      "type": "unfinished",
+      "skill": "grammar",
+      "title": "Continue Grammar Practice",
+      "date": "2026-09-03"
+    },
+    {
+      "id": "ra5",
+      "type": "completed",
+      "skill": "listening",
+      "title": "Completed Listening Practice",
+      "date": "2026-09-02",
+      "band": 6.5
+    }
+  ]
+}

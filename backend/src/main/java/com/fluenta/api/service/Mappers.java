@@ -24,7 +24,8 @@ public class Mappers {
         return new UserDto(
                 u.getId(), u.getName(), u.getEmail(), u.getInitials(), u.getAvatarUrl(),
                 u.getPlan(), u.getPlanLabel(), u.getRenewsInDays(), u.getTargetBand(),
-                u.getExamDate(), u.isSaveHistory(), json.parse(u.getStreak()));
+                u.getExamDate(), u.isSaveHistory(), u.getTrack(), u.getExamType(), u.getPurpose(),
+                u.getLevel(), u.isOnboarded(), json.parse(u.getStreak()));
     }
 
     public ExamDto toDto(ExamEntity e) {
@@ -56,9 +57,9 @@ public class Mappers {
 
     public CertificateDto toDto(CertificateEntity c) {
         return new CertificateDto(
-                c.getId(), c.getTitle(), c.getCandidate(), c.getModule(), c.getCentre(),
-                c.getIssuedOn(), c.getDateOfBirth(), c.getSex(), c.getCountryOfOrigin(),
-                c.getNationality(), c.getFirstLanguage(), c.getSchemeCode(),
+                c.getId(), c.getTitle(), c.getCandidate(), c.getType(), c.getVerificationNumber(),
+                c.getModule(), c.getCentre(), c.getIssuedOn(), c.getDateOfBirth(), c.getSex(),
+                c.getCountryOfOrigin(), c.getNationality(), c.getFirstLanguage(), c.getSchemeCode(),
                 json.parse(c.getScores()), c.getOverall(), c.getCefr(), c.getComments(), c.getStatus());
     }
 
@@ -66,6 +67,8 @@ public class Mappers {
         c.setId(dto.id());
         c.setTitle(dto.title());
         c.setCandidate(dto.candidate());
+        c.setType(dto.type() == null ? "standard" : dto.type());
+        c.setVerificationNumber(dto.verificationNumber());
         c.setModule(dto.module());
         c.setCentre(dto.centre());
         c.setIssuedOn(dto.issuedOn());

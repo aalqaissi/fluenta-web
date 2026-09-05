@@ -36,4 +36,10 @@ public class ContentController {
     public JsonNode progress() {
         return content.read("progress");
     }
+
+    /** Available learning programs/tracks (IELTS active; others "coming soon"). */
+    @GetMapping("/tracks")
+    public JsonNode tracks() {
+        return content.read("tracks");
+    }
 }

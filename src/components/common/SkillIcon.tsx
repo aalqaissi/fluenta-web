@@ -1,4 +1,4 @@
-import { BookOpen, PenLine, Headphones, Mic, type LucideIcon } from "lucide-react";
+import { BookOpen, PenLine, Headphones, Mic, Languages, SpellCheck, type LucideIcon } from "lucide-react";
 import type { SkillKey } from "@/mock/types";
 import { cn } from "@/lib/utils";
 
@@ -7,7 +7,12 @@ export const skillMeta: Record<SkillKey, { label: string; icon: LucideIcon; tint
   writing: { label: "Writing", icon: PenLine, tint: "bg-info/12", text: "text-info" },
   listening: { label: "Listening", icon: Headphones, tint: "bg-secondary/15", text: "text-[rgb(var(--on-secondary))]" },
   speaking: { label: "Speaking", icon: Mic, tint: "bg-primary/12", text: "text-primary" },
+  vocabulary: { label: "Vocabulary", icon: Languages, tint: "bg-amber-100", text: "text-amber-600" },
+  grammar: { label: "Grammar", icon: SpellCheck, tint: "bg-violet-100", text: "text-violet-600" },
 };
+
+/** Skills whose Practice page isn't built yet (dashboard-tracked only, "coming soon"). */
+export const COMING_SOON_SKILLS: SkillKey[] = ["vocabulary", "grammar"];
 
 export function SkillIcon({ skill, className, size = "md" }: { skill: SkillKey; className?: string; size?: "sm" | "md" | "lg" }) {
   const m = skillMeta[skill];

@@ -12,7 +12,12 @@ public record UserPatch(
         String planLabel,
         Integer renewsInDays,
         Double targetBand,
-        String examDate,       // note: null cannot clear examDate via this patch; use "" or a dedicated flag
+        String examDate,       // "" clears the exam date; null leaves it unchanged
         Boolean saveHistory,
+        String track,
+        String examType,
+        String purpose,
+        String level,
+        Boolean onboarded,
         JsonNode streak
 ) {}

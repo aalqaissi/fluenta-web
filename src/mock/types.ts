@@ -2,7 +2,9 @@
 // Fluenta mock domain types (frontend-only, no backend)
 // ============================================================
 
-export type SkillKey = "reading" | "writing" | "listening" | "speaking";
+export type SkillKey = "reading" | "writing" | "listening" | "speaking" | "vocabulary" | "grammar";
+/** The four IELTS-scored skills (Vocabulary & Grammar are dashboard-tracked but not band-scored yet). */
+export type ScoredSkillKey = "reading" | "writing" | "listening" | "speaking";
 export type PlanTier = "free" | "pro";
 
 export interface FluentaUser {
@@ -17,6 +19,12 @@ export interface FluentaUser {
   targetBand: number;
   examDate: string | null; // ISO date
   saveHistory: boolean;
+  /** active learning program/track (e.g. "ielts") */
+  track?: string;
+  examType?: string; // e.g. "IELTS (Academic/General)"
+  purpose?: string; // e.g. "Study Abroad"
+  level?: string; // e.g. "upper-intermediate"
+  onboarded?: boolean;
   streak: { current: number; best: number; last30: number[] }; // last30: 0..3 intensity
 }
 
@@ -227,14 +235,21 @@ export interface Lesson {
 
 // ---- Achievements / certificates --------------------------------
 
+export type AchievementCategory = "exams" | "streaks" | "scores" | "milestones" | "special";
+export type AchievementTier = "bronze" | "silver" | "gold" | "platinum";
+export type AchievementStatus = "unlocked" | "in_progress" | "locked";
+
 export interface Achievement {
   id: string;
   title: string;
   description: string;
+  category: AchievementCategory;
+  tier: AchievementTier;
+  points: number;
   icon: string; // lucide icon name
-  earned: boolean;
-  progress?: number; // 0..100 when locked
-  earnedOn?: string;
+  status: AchievementStatus;
+  progress: number; // 0..100
+  unlockedOn?: string | null;
 }
 
 export interface Certificate {

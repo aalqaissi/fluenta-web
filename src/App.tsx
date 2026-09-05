@@ -32,6 +32,9 @@ import { CheckoutPage } from "./features/checkout/CheckoutPage";
 import { SettingsAccountPage } from "./features/settings/SettingsAccountPage";
 import { HelpPage } from "./features/help/HelpPage";
 import { LoginPage } from "./features/auth/LoginPage";
+import { OnboardingPage } from "./features/auth/OnboardingPage";
+import { FeedbackListPage } from "./features/feedback/FeedbackListPage";
+import { FeedbackReviewPage } from "./features/feedback/FeedbackReviewPage";
 
 export const router = createBrowserRouter([
   {
@@ -49,9 +52,13 @@ export const router = createBrowserRouter([
       { path: "/simulation/full-exam", element: <FullExamPage /> },
       { path: "/mock-exams", element: <MockExamsPage /> },
       { path: "/studio", element: <StudioHome /> },
+      { path: "/studio/feedback", element: <FeedbackReviewPage /> },
       { path: "/studio/certificate/:id", element: <CertificateEditor /> },
       { path: "/studio/:skill/:id", element: <StudioEditorPage /> },
-      { path: "/progress", element: <ProgressPage /> },
+      // Progress is merged into the Overview page — keep the path as a redirect.
+      { path: "/progress", element: <Navigate to="/" replace /> },
+      { path: "/feedback", element: <FeedbackListPage /> },
+      { path: "/feedback/:id", element: <FeedbackListPage /> },
       { path: "/lessons", element: <LessonsPage /> },
       { path: "/achievements", element: <AchievementsPage /> },
       { path: "/certificates", element: <CertificatesPage /> },
@@ -70,6 +77,7 @@ export const router = createBrowserRouter([
   },
   // full-screen (no shell) exam + auth routes
   { path: "/login", element: <LoginPage /> },
+  { path: "/onboarding", element: <OnboardingPage /> },
   { path: "/exam/reading/:id", element: <ReadingRunnerPage /> },
   { path: "/exam/writing/:id", element: <WritingEditorPage /> },
   { path: "/exam/listening/:id", element: <ListeningRunnerPage /> },

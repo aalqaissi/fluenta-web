@@ -97,7 +97,7 @@ export const planIncludes = [
   "Full access to all features",
   "All 4 IELTS sections",
   "Unlimited AI grading & feedback",
-  "Fluenta Coach conversations",
+  "Yalla Coach conversations",
   "Mock exams & self-improvement tools",
 ];
 
@@ -226,7 +226,7 @@ export const initialCoachMessages: CoachMessage[] = [
   {
     id: "c0",
     role: "coach",
-    text: "Hi Sara! I’m your Fluenta Coach. I’ve looked at your latest Reading and Writing results — want to start with the Grammar feedback from your Task 2, or a quick Reading warm-up?",
+    text: "Hi Sara! I’m your Yalla Coach. I’ve looked at your latest Reading and Writing results — want to start with the Grammar feedback from your Task 2, or a quick Reading warm-up?",
     createdAt: "2026-09-02T09:00:00Z",
   },
 ];
@@ -246,7 +246,9 @@ export const lessons: Lesson[] = [
 
 // ---- Achievements ------------------------------------------------
 
-export const achievements: Achievement[] = [
+// NOTE: legacy mock (old shape) — no longer used by the app or seed export. The live achievements
+// come from the API (enriched shape); this stays only so nothing that still imports it breaks.
+export const achievements = [
   { id: "ac1", title: "First Steps", description: "Complete your first practice section.", icon: "Footprints", earned: true, earnedOn: "2026-08-28" },
   { id: "ac2", title: "Warm-Up Streak", description: "Practice 3 days in a row.", icon: "Flame", earned: true, earnedOn: "2026-08-31" },
   { id: "ac3", title: "Reading Rookie", description: "Finish 3 Reading exams.", icon: "BookOpen", earned: true, earnedOn: "2026-09-01" },

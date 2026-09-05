@@ -58,7 +58,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     });
   } catch (e) {
     // Network / CORS / server-down: surface a consistent offline error.
-    throw new ApiError(0, `Cannot reach the Fluenta API at ${API_BASE}. Is the backend running?`);
+    throw new ApiError(0, `Cannot reach the Yalla English Hub API at ${API_BASE}. Is the backend running?`);
   }
 
   if (res.status === 401) {
@@ -145,6 +145,87 @@ export interface PlansDto {
   planIncludes: string[];
 }
 
+// ---- overview / analytics ----
+export interface SkillStat {
+  key: string;
+  label: string;
+  band: number | null;
+  tests: number;
+}
+export interface SkillPoint {
+  key: string;
+  label: string;
+  band: number;
+}
+export interface SeriesPoint {
+  date: string;
+  band: number;
+}
+export interface ActivityItem {
+  id: string;
+  type: "completed" | "submitted" | "feedback" | "unfinished" | string;
+  skill: string;
+  title: string;
+  date: string;
+  band?: number;
+}
+export interface OverviewDto {
+  targetBand: number;
+  currentAverage: number;
+  gapToTarget: number;
+  testsCompleted: number;
+  skills: SkillStat[];
+  strongest: SkillPoint | null;
+  weakest: SkillPoint | null;
+  series: Record<string, SeriesPoint[]>;
+  recentActivity: ActivityItem[];
+}
+
+// ---- tracks / programs ----
+export interface Track {
+  key: string;
+  name: string;
+  short: string;
+  status: "active" | "coming-soon";
+  icon: string;
+  description: string;
+}
+
+// ---- feedback ----
+export type FeedbackStatus = "new" | "under_review" | "completed";
+export interface FeedbackDto {
+  id: string;
+  userId: string;
+  userName: string;
+  category: string;
+  subject: string;
+  message: string;
+  rating: number | null;
+  status: FeedbackStatus;
+  adminReply: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface FeedbackSummary {
+  total: number;
+  newCount: number;
+  underReview: number;
+  completed: number;
+  latest: FeedbackDto | null;
+}
+export interface FeedbackQueue {
+  newCount: number;
+  underReview: number;
+  completed: number;
+  items: FeedbackDto[];
+}
+export interface CreateFeedback {
+  category: string;
+  subject: string;
+  message: string;
+  rating?: number | null;
+}
+
 // ---- endpoint groups ----------------------------------------------
 
 export const api = {
@@ -194,5 +275,18 @@ export const api = {
     achievements: () => request<Achievement[]>("GET", "/achievements"),
     plans: () => request<PlansDto>("GET", "/plans"),
     progress: () => request<ProgressDto>("GET", "/progress"),
+    tracks: () => request<Track[]>("GET", "/tracks"),
+  },
+  overview: () => request<OverviewDto>("GET", "/overview"),
+  feedback: {
+    create: (req: CreateFeedback) => request<FeedbackDto>("POST", "/feedback", req),
+    list: () => request<FeedbackDto[]>("GET", "/feedback"),
+    summary: () => request<FeedbackSummary>("GET", "/feedback/summary"),
+    get: (id: string) => request<FeedbackDto>("GET", `/feedback/${id}`),
+  },
+  adminFeedback: {
+    queue: () => request<FeedbackQueue>("GET", "/admin/feedback"),
+    update: (id: string, patch: { status?: FeedbackStatus; adminReply?: string }) =>
+      request<FeedbackDto>("PATCH", `/admin/feedback/${id}`, patch),
   },
 };

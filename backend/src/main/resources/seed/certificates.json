@@ -3,6 +3,8 @@
     "id": "cert1",
     "title": "Full Practice Test — Academic",
     "candidate": "Sara Hamzeh",
+    "type": "ielts-report",
+    "verificationNumber": "EIELTS-2026-478091",
     "module": "academic",
     "centre": "Online Practice",
     "issuedOn": "2026-09-01",
@@ -20,13 +22,15 @@
     },
     "overall": 6.5,
     "cefr": "B2",
-    "comments": "This report confirms completion of a comprehensive practice examination on Fluenta. Scores are AI-generated estimates for learning purposes.",
+    "comments": "This report confirms completion of a comprehensive practice examination on Yalla English Hub. Scores are AI-generated estimates for learning purposes.",
     "status": "issued"
   },
   {
     "id": "cert2",
     "title": "Foundation Reading Course",
     "candidate": "Sara Hamzeh",
+    "type": "standard",
+    "verificationNumber": "EIELTS-2026-358439",
     "module": "academic",
     "centre": "Online Practice",
     "issuedOn": "2026-08-25",
@@ -44,7 +48,7 @@
     },
     "overall": 6,
     "cefr": "B2",
-    "comments": "This report confirms completion of a comprehensive practice examination on Fluenta. Scores are AI-generated estimates for learning purposes.",
+    "comments": "This report confirms completion of a comprehensive practice examination on Yalla English Hub. Scores are AI-generated estimates for learning purposes.",
     "status": "issued"
   }
 ]

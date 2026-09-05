@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Star, Send } from "lucide-react";
+import { Star, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { api, ApiError } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
@@ -19,18 +20,38 @@ import type { FeedbackType } from "@/mock/types";
 
 const types: FeedbackType[] = ["Suggestion", "Bug", "Praise", "Question"];
 
-export function FeedbackModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+export function FeedbackModal({
+  open,
+  onOpenChange,
+  onSubmitted,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onSubmitted?: () => void;
+}) {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [message, setMessage] = useState("");
   const [subject, setSubject] = useState("");
+  const [category, setCategory] = useState<FeedbackType>("Suggestion");
+  const [saving, setSaving] = useState(false);
 
-  function submit() {
-    toast.success("Thanks for your feedback!", { description: "We read every note — this helps us shape Fluenta." });
-    onOpenChange(false);
-    setRating(0);
-    setMessage("");
-    setSubject("");
+  async function submit() {
+    setSaving(true);
+    try {
+      await api.feedback.create({ category, subject, message, rating: rating || null });
+      toast.success("Thanks for your feedback!", { description: "We read every note — this helps us shape Yalla English Hub." });
+      onOpenChange(false);
+      setRating(0);
+      setMessage("");
+      setSubject("");
+      setCategory("Suggestion");
+      onSubmitted?.();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Could not submit feedback. Is the backend running?");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -44,7 +65,7 @@ export function FeedbackModal({ open, onOpenChange }: { open: boolean; onOpenCha
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label>Feedback type</Label>
-            <Select defaultValue="Suggestion">
+            <Select value={category} onValueChange={(v) => setCategory(v as FeedbackType)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -115,8 +136,8 @@ export function FeedbackModal({ open, onOpenChange }: { open: boolean; onOpenCha
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={submit} disabled={!subject || !message || !rating}>
-            <Send className="size-4" /> Submit feedback
+          <Button onClick={submit} disabled={!subject || !message || !rating || saving}>
+            {saving ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Submit feedback
           </Button>
         </DialogFooter>
       </DialogContent>

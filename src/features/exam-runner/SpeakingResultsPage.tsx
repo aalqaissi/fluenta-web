@@ -56,7 +56,7 @@ export function SpeakingResultsPage() {
               <RefreshCw className="size-4" /> Retake
             </Button>
             <Button onClick={() => navigate("/coach")}>
-              <Bot className="size-4" /> Ask Fluenta Coach
+              <Bot className="size-4" /> Ask Yalla Coach
             </Button>
           </div>
         </div>

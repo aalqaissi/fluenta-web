@@ -135,10 +135,10 @@ export function WritingResultsPage() {
               <Bot className="size-5" /> Get personalized guidance
             </h3>
             <p className="mt-1 text-sm text-white/85">
-              Chat with Fluenta Coach to understand your mistakes and practice targeted exercises.
+              Chat with Yalla Coach to understand your mistakes and practice targeted exercises.
             </p>
             <Button variant="secondary" className="mt-3 w-full" onClick={() => navigate("/coach")}>
-              Start conversation with Fluenta Coach
+              Start conversation with Yalla Coach
             </Button>
           </Card>
         </div>

@@ -15,7 +15,7 @@ import { PlanBadge } from "@/components/common/PlanBadge";
 import { cn } from "@/lib/utils";
 
 export function ProfileMenu({ collapsed }: { collapsed: boolean }) {
-  const { user, effectivePlan, previewFree, setPreviewFree } = useApp();
+  const { user, effectivePlan, previewFree, setPreviewFree, logout } = useApp();
   const navigate = useNavigate();
 
   return (
@@ -61,7 +61,7 @@ export function ProfileMenu({ collapsed }: { collapsed: boolean }) {
           Demo toggle — shows the locked/upsell state the owner sees on a free account.
         </p>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate("/login")}>
+        <DropdownMenuItem onClick={() => { void logout().then(() => navigate("/login")); }}>
           <LogOut /> Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>

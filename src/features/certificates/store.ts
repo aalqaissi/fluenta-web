@@ -2,10 +2,14 @@ import { useEffect, useSyncExternalStore } from "react";
 import { currentUser } from "@/mock/data";
 import { api, type CertificateDto } from "@/lib/api";
 
+export type CertType = "standard" | "ielts-report";
+
 export interface CertRecord {
   id: string;
   title: string;
   candidate: string;
+  type: CertType;
+  verificationNumber: string; // EIELTS-YYYY-NNNNNN
   module: "academic" | "general";
   centre: string;
   issuedOn: string; // YYYY-MM-DD
@@ -38,6 +42,12 @@ export function avgBand(s: CertRecord["scores"]): number {
   return Math.round(raw * 2) / 2; // nearest 0.5
 }
 
+/** IELTS-style verification number, e.g. EIELTS-2026-049464 (backend also generates one). */
+export function newVerificationNumber(): string {
+  const n = Math.floor(Math.random() * 1_000_000);
+  return `EIELTS-${new Date().getFullYear()}-${String(n).padStart(6, "0")}`;
+}
+
 export function blankCert(): CertRecord {
   const scores = { listening: 6.5, reading: 6.5, writing: 6, speaking: 6.5 };
   const overall = avgBand(scores);
@@ -45,6 +55,8 @@ export function blankCert(): CertRecord {
     id: uid(),
     title: "Full Practice Test",
     candidate: currentUser.name,
+    type: "standard",
+    verificationNumber: newVerificationNumber(),
     module: "academic",
     centre: "Online Practice",
     issuedOn: "2026-09-03",
@@ -57,7 +69,7 @@ export function blankCert(): CertRecord {
     scores,
     overall,
     cefr: cefrFor(overall),
-    comments: "This report confirms completion of a comprehensive practice examination on Fluenta. Scores are AI-generated estimates for learning purposes.",
+    comments: "This report confirms completion of a comprehensive practice examination on Yalla English Hub. Scores are AI-generated estimates for learning purposes.",
     status: "draft",
   };
 }

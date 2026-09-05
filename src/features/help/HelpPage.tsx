@@ -8,8 +8,8 @@ import { brand } from "@/config/brand";
 import { cn } from "@/lib/utils";
 
 const faqs = [
-  { q: "How does AI grading work?", a: "After you submit a section, Fluenta analyses your answers and (for Writing/Speaking) your language, then returns a band estimate with specific, actionable feedback in about 15–30 seconds." },
-  { q: "Are the band scores official?", a: "No. Fluenta gives realistic practice estimates to guide your preparation. Only the official IELTS test produces certified scores." },
+  { q: "How does AI grading work?", a: "After you submit a section, Yalla English Hub analyses your answers and (for Writing/Speaking) your language, then returns a band estimate with specific, actionable feedback in about 15–30 seconds." },
+  { q: "Are the band scores official?", a: "No. Yalla English Hub gives realistic practice estimates to guide your preparation. Only the official IELTS test produces certified scores." },
   { q: "Can I upload my own reading passages?", a: "Yes — go to Mock Exams & Self Improvement and use “Upload mock” to turn any passage into a practice exam." },
   { q: "How do I cancel my subscription?", a: "You can manage or cancel your plan anytime from Account → Manage plan. Payment questions are handled via WhatsApp." },
 ];

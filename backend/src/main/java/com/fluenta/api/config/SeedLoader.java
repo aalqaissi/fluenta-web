@@ -77,6 +77,11 @@ public class SeedLoader implements CommandLineRunner {
         e.setTargetBand(u.path("targetBand").asDouble(7));
         e.setExamDate(u.hasNonNull("examDate") ? u.get("examDate").asText() : null);
         e.setSaveHistory(u.path("saveHistory").asBoolean(true));
+        e.setTrack(u.path("track").asText("ielts"));
+        e.setExamType(u.hasNonNull("examType") ? u.get("examType").asText() : null);
+        e.setPurpose(u.hasNonNull("purpose") ? u.get("purpose").asText() : null);
+        e.setLevel(u.hasNonNull("level") ? u.get("level").asText() : null);
+        e.setOnboarded(u.path("onboarded").asBoolean(true));
         e.setStreak(u.has("streak") ? json.write(u.get("streak")) : null);
         users.save(e);
     }
@@ -107,6 +112,8 @@ public class SeedLoader implements CommandLineRunner {
             e.setUserId("u1");
             e.setTitle(c.path("title").asText());
             e.setCandidate(c.path("candidate").asText());
+            e.setType(c.path("type").asText("standard"));
+            e.setVerificationNumber(c.hasNonNull("verificationNumber") ? c.get("verificationNumber").asText() : null);
             e.setModule(c.path("module").asText("academic"));
             e.setCentre(c.path("centre").asText("Online Practice"));
             e.setIssuedOn(c.path("issuedOn").asText());

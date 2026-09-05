@@ -137,4 +137,78 @@ class HttpContractTest {
         mvc.perform(get("/api/plans").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.plans").isArray());
     }
+
+    @Test
+    void meCarriesOnboardingAndTrack() throws Exception {
+        String token = login();
+        mvc.perform(get("/api/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.track").value("ielts"))
+                .andExpect(jsonPath("$.onboarded").value(true));
+    }
+
+    @Test
+    void overviewComputesAggregatesForSixSkills() throws Exception {
+        String token = login();
+        mvc.perform(get("/api/overview").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.skills.length()").value(6))
+                .andExpect(jsonPath("$.targetBand").value(greaterThan(0.0)))
+                .andExpect(jsonPath("$.currentAverage").value(greaterThan(0.0)))
+                .andExpect(jsonPath("$.strongest.key").isNotEmpty())
+                .andExpect(jsonPath("$.weakest.key").isNotEmpty())
+                .andExpect(jsonPath("$.series.overall").isArray())
+                .andExpect(jsonPath("$.recentActivity").isArray());
+    }
+
+    @Test
+    void tracksListHasActiveIelts() throws Exception {
+        String token = login();
+        mvc.perform(get("/api/tracks").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.key=='ielts')].status").value(contains("active")))
+                .andExpect(jsonPath("$[?(@.key=='toefl')]").exists());
+    }
+
+    @Test
+    void achievementsAreEnriched() throws Exception {
+        String token = login();
+        mvc.perform(get("/api/achievements").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].tier").isNotEmpty())
+                .andExpect(jsonPath("$[0].points").isNumber())
+                .andExpect(jsonPath("$[0].category").isNotEmpty());
+    }
+
+    @Test
+    void feedbackFlowStudentThenAdmin() throws Exception {
+        String token = login();
+        // student submits
+        MvcResult res = mvc.perform(post("/api/feedback").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"category\":\"Suggestion\",\"subject\":\"More vocab\",\"message\":\"Please add vocab drills\",\"rating\":5}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("new"))
+                .andReturn();
+        String id = om.readTree(res.getResponse().getContentAsString()).get("id").asText();
+
+        // summary reflects it
+        mvc.perform(get("/api/feedback/summary").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.latest.id").value(id));
+
+        // admin queue lists it
+        mvc.perform(get("/api/admin/feedback").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.id=='" + id + "')]").exists());
+
+        // admin moves it to completed with a reply
+        mvc.perform(patch("/api/admin/feedback/" + id).header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"completed\",\"adminReply\":\"Added to the roadmap, thanks!\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("completed"))
+                .andExpect(jsonPath("$.adminReply").value("Added to the roadmap, thanks!"));
+    }
 }

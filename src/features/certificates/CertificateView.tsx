@@ -30,7 +30,7 @@ export function CertificateView() {
           <Button variant="outline" size="sm" onClick={() => navigate(`/studio/certificate/${cert.id}`)}>
             <Pencil className="size-4" /> Edit
           </Button>
-          <Button variant="outline" size="sm" onClick={() => toast.success("Verified", { description: "This is a genuine Fluenta practice report." })}>
+          <Button variant="outline" size="sm" onClick={() => toast.success("Verified", { description: "This is a genuine Yalla English Hub practice report." })}>
             <ShieldCheck className="size-4" /> Verify
           </Button>
           <Button variant="outline" size="sm" onClick={() => window.print()}>

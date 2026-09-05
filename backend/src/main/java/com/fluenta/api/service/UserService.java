@@ -33,6 +33,11 @@ public class UserService {
         if (patch.targetBand() != null) u.setTargetBand(patch.targetBand());
         if (patch.examDate() != null) u.setExamDate(patch.examDate().isBlank() ? null : patch.examDate());
         if (patch.saveHistory() != null) u.setSaveHistory(patch.saveHistory());
+        if (patch.track() != null) u.setTrack(patch.track());
+        if (patch.examType() != null) u.setExamType(patch.examType());
+        if (patch.purpose() != null) u.setPurpose(patch.purpose());
+        if (patch.level() != null) u.setLevel(patch.level());
+        if (patch.onboarded() != null) u.setOnboarded(patch.onboarded());
         if (patch.streak() != null) u.setStreak(json.write(patch.streak()));
         users.save(u);
         return mappers.toDto(u);

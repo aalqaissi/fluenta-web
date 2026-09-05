@@ -33,8 +33,17 @@ public class CertificateService {
         CertificateEntity c = new CertificateEntity();
         mappers.apply(dto, c);
         if (c.getId() == null || c.getId().isBlank()) c.setId("cert-" + ExamService.uid());
+        if (c.getVerificationNumber() == null || c.getVerificationNumber().isBlank()) {
+            c.setVerificationNumber(newVerificationNumber());
+        }
         c.setUserId(userId);
         return mappers.toDto(certs.save(c));
+    }
+
+    /** IELTS-style verification number, e.g. EIELTS-2026-049464. */
+    static String newVerificationNumber() {
+        int n = java.util.concurrent.ThreadLocalRandom.current().nextInt(0, 1_000_000);
+        return "EIELTS-" + java.time.Year.now() + "-" + String.format("%06d", n);
     }
 
     public CertificateDto update(String userId, String id, CertificateDto dto) {
@@ -42,6 +51,9 @@ public class CertificateService {
         CertificateEntity c = new CertificateEntity();
         mappers.apply(dto, c);
         c.setId(id);
+        if (c.getVerificationNumber() == null || c.getVerificationNumber().isBlank()) {
+            c.setVerificationNumber(newVerificationNumber());
+        }
         c.setUserId(userId);
         return mappers.toDto(certs.save(c));
     }

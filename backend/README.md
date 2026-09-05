@@ -1,9 +1,14 @@
-# Fluenta API — Spring Boot backend
+# Yalla English Hub API — Spring Boot backend
 
 Java 21 · Spring Boot 3.3 · SQLite (single embedded file, no DB engine to install).
-Serves the React/Vite frontend: auth, Content Studio authoring, exam listing, **server-side
-scoring** of reading/listening attempts, results, progress, certificates and seeded reference
-content. **AI features are held this stage** — `/api/ai/*` returns `501 Not Implemented`.
+Serves the React/Vite frontend: auth + onboarding, Content Studio authoring, exam listing,
+**server-side scoring** of reading/listening attempts, results, the **dashboard overview**
+(per-skill analytics + progress-over-time + strengths/weaknesses), **feedback** (student submit +
+admin review queue), **program tracks**, certificates, achievements and seeded reference content.
+**AI features are held this stage** — `/api/ai/*` returns `501 Not Implemented`.
+
+Key endpoints added this stage: `GET /api/overview`, `GET /api/tracks`, `POST/GET /api/feedback`
+(+ `/summary`), `GET/PATCH /api/admin/feedback`. `GET /api/me` now carries onboarding + `track`.
 
 ## Prerequisites
 

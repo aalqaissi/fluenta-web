@@ -32,14 +32,38 @@ public class AuthService {
     }
 
     public LoginResponse login(String email) {
-        UserEntity user = (email == null ? null : users.findFirstByEmailIgnoreCase(email).orElse(null));
-        if (user == null) {
+        UserEntity user;
+        if (email == null || email.isBlank()) {
+            // No email (e.g. the demo "Continue with Google") → the seeded, already-onboarded user.
             user = users.findById(DEFAULT_USER_ID)
                     .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "No seeded user"));
+        } else {
+            user = users.findFirstByEmailIgnoreCase(email).orElseGet(() -> createUser(email));
         }
-        String token = "fluenta_" + UUID.randomUUID().toString().replace("-", "");
+        String token = "yalla_" + UUID.randomUUID().toString().replace("-", "");
         sessions.save(new SessionEntity(token, user.getId(), Instant.now().toString()));
         return new LoginResponse(token, mappers.toDto(user));
+    }
+
+    /** Create a fresh, un-onboarded account for a new email (prototype: no password). */
+    private UserEntity createUser(String email) {
+        UserEntity u = new UserEntity();
+        u.setId("u-" + UUID.randomUUID().toString().substring(0, 8));
+        u.setEmail(email);
+        String local = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
+        String name = local.isBlank() ? "New Learner"
+                : Character.toUpperCase(local.charAt(0)) + local.substring(1);
+        u.setName(name);
+        u.setInitials(name.length() >= 2 ? name.substring(0, 2).toUpperCase() : name.toUpperCase());
+        u.setPlan("free");
+        u.setPlanLabel("Free");
+        u.setRenewsInDays(0);
+        u.setTargetBand(6.5);
+        u.setSaveHistory(true);
+        u.setTrack("ielts");
+        u.setOnboarded(false);
+        u.setStreak("{\"current\":0,\"best\":0,\"last30\":[]}");
+        return users.save(u);
     }
 
     public void logout(String token) {

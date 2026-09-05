@@ -25,6 +25,13 @@ public class UserEntity {
     private String examDate;      // ISO date or null
     private boolean saveHistory;
 
+    // Onboarding + program track
+    private String track;         // "ielts" | "general-english" | ... (active program)
+    private String examType;      // "IELTS (Academic/General)" | "TOEFL" | ...
+    private String purpose;       // "Study Abroad" | "Immigration/PR" | ...
+    private String level;         // "beginner" | "elementary" | ...
+    private boolean onboarded;    // has the user finished the onboarding wizard
+
     /** JSON: { current, best, last30[] } */
     @Column(columnDefinition = "text")
     private String streak;
@@ -51,6 +58,16 @@ public class UserEntity {
     public void setExamDate(String examDate) { this.examDate = examDate; }
     public boolean isSaveHistory() { return saveHistory; }
     public void setSaveHistory(boolean saveHistory) { this.saveHistory = saveHistory; }
+    public String getTrack() { return track; }
+    public void setTrack(String track) { this.track = track; }
+    public String getExamType() { return examType; }
+    public void setExamType(String examType) { this.examType = examType; }
+    public String getPurpose() { return purpose; }
+    public void setPurpose(String purpose) { this.purpose = purpose; }
+    public String getLevel() { return level; }
+    public void setLevel(String level) { this.level = level; }
+    public boolean isOnboarded() { return onboarded; }
+    public void setOnboarded(boolean onboarded) { this.onboarded = onboarded; }
     public String getStreak() { return streak; }
     public void setStreak(String streak) { this.streak = streak; }
 }

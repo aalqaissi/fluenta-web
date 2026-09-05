@@ -1,0 +1,50 @@
+[
+  {
+    "key": "ielts",
+    "name": "IELTS Preparation",
+    "short": "IELTS",
+    "status": "active",
+    "icon": "GraduationCap",
+    "description": "Academic & General Training"
+  },
+  {
+    "key": "general-english",
+    "name": "General English",
+    "short": "General",
+    "status": "coming-soon",
+    "icon": "MessageCircle",
+    "description": "Everyday speaking, listening & grammar"
+  },
+  {
+    "key": "business-english",
+    "name": "Business English",
+    "short": "Business",
+    "status": "coming-soon",
+    "icon": "Briefcase",
+    "description": "Workplace & professional English"
+  },
+  {
+    "key": "toefl",
+    "name": "TOEFL Preparation",
+    "short": "TOEFL",
+    "status": "coming-soon",
+    "icon": "BookOpen",
+    "description": "TOEFL iBT practice & scoring"
+  },
+  {
+    "key": "pte",
+    "name": "PTE Preparation",
+    "short": "PTE",
+    "status": "coming-soon",
+    "icon": "MonitorSmartphone",
+    "description": "PTE Academic practice"
+  },
+  {
+    "key": "kids",
+    "name": "English for Kids",
+    "short": "Kids",
+    "status": "coming-soon",
+    "icon": "Baby",
+    "description": "Fun, playful lessons for young learners"
+  }
+]

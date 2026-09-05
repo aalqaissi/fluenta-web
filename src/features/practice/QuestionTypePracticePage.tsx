@@ -203,7 +203,7 @@ export function QuestionTypePracticePage() {
               <RefreshCw className="size-4" /> Practice again
             </Button>
             <Button onClick={() => navigate("/coach")}>
-              <Bot className="size-4" /> Ask Fluenta Coach
+              <Bot className="size-4" /> Ask Yalla Coach
             </Button>
             <Button variant="ghost" onClick={() => navigate(`/simulation/${skill ?? "reading"}`)}>
               Back to {skill ?? "reading"}

@@ -44,5 +44,10 @@
       2,
       3
     ]
-  }
+  },
+  "track": "ielts",
+  "examType": "IELTS (Academic/General)",
+  "purpose": "Study Abroad",
+  "level": "upper-intermediate",
+  "onboarded": true
 }
