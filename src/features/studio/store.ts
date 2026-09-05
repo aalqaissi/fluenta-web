@@ -57,10 +57,17 @@ export type ChartType =
   | "table";
 export type Formality = "formal" | "informal" | "semi-formal";
 
+interface WritingTaskBase {
+  imageName: string | null;
+  prompt: string;
+  minWords: number;
+  timeMinutes: number;
+  idealAnswer: string;
+}
 export interface WritingParts {
-  academicT1: { imageName: string | null; chartType: ChartType; imageDescription: string; prompt: string };
-  generalT1: { formality: Formality; prompt: string; bullets: string[] };
-  task2: { prompt: string };
+  academicT1: WritingTaskBase & { chartType: ChartType; imageDescription: string };
+  generalT1: WritingTaskBase & { formality: Formality };
+  task2: WritingTaskBase;
 }
 export interface FullParts {
   reading: string | null;
@@ -100,9 +107,9 @@ function blankExam(skill: StudioSkill): StudioExam {
         title: "Untitled writing exam",
         timeLimit: 60,
         writing: {
-          academicT1: { imageName: null, chartType: "bar-chart", imageDescription: "", prompt: "" },
-          generalT1: { formality: "formal", prompt: "", bullets: ["", "", ""] },
-          task2: { prompt: "" },
+          academicT1: { imageName: null, chartType: "bar-chart", imageDescription: "", prompt: "", minWords: 150, timeMinutes: 20, idealAnswer: "" },
+          generalT1: { imageName: null, formality: "formal", prompt: "", minWords: 150, timeMinutes: 20, idealAnswer: "" },
+          task2: { imageName: null, prompt: "", minWords: 250, timeMinutes: 40, idealAnswer: "" },
         },
       };
     case "speaking":
@@ -153,7 +160,7 @@ function seed(): StudioExam[] {
     },
     {
       id: "seed-w1", skill: "writing", title: "Writing Practice Sep 3, 2026", module: "both", status: "draft", timeLimit: 60, updatedAt: "2026-09-03T09:00:00Z",
-      writing: { academicT1: { imageName: "internet-access.png", chartType: "line-graph", imageDescription: "Percentage of households with internet access in three countries, 2000–2020.", prompt: "The chart below shows…" }, generalT1: { formality: "formal", prompt: "", bullets: ["", "", ""] }, task2: { prompt: "Some people think…" } },
+      writing: { academicT1: { imageName: "internet-access.png", chartType: "line-graph", imageDescription: "Percentage of households with internet access in three countries, 2000–2020.", prompt: "The chart below shows…", minWords: 150, timeMinutes: 20, idealAnswer: "" }, generalT1: { imageName: null, formality: "formal", prompt: "", minWords: 150, timeMinutes: 20, idealAnswer: "" }, task2: { imageName: null, prompt: "Some people think…", minWords: 250, timeMinutes: 40, idealAnswer: "" } },
     },
     {
       id: "seed-s1", skill: "speaking", title: "Speaking Full Mock — Work & Study", module: "both", status: "published", timeLimit: 14, updatedAt: "2026-09-02T12:00:00Z",

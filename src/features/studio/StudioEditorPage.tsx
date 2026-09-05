@@ -42,6 +42,8 @@ export function StudioEditorPage() {
   }
 
   const skillLabel = draft.skill === "full" ? "Full Mock" : draft.skill.replace(/^\w/, (c) => c.toUpperCase());
+  // writing chooses its module via task tabs and sets time per task, so it hides the exam-level module/time
+  const showMeta = draft.skill !== "full" && draft.skill !== "writing";
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -62,13 +64,13 @@ export function StudioEditorPage() {
         <div className="mt-3"><StepDots step={step} /></div>
       </div>
 
-      {/* meta */}
+      {/* meta — writing has no module/time here (the tabs choose the module, and time is per task) */}
       <Card className="mb-5 p-5">
-        <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
+        <div className={showMeta ? "grid gap-4 sm:grid-cols-[2fr_1fr_1fr]" : "grid gap-4"}>
           <Field label="Exam title">
             <Input value={draft.title} onChange={(e) => patch({ title: e.target.value })} placeholder="e.g. Academic Reading — Nature & Science" />
           </Field>
-          {draft.skill !== "full" && (
+          {showMeta && (
             <>
               <Field label="Module">
                 <Select value={draft.module} onValueChange={(v) => patch({ module: v as StudioExam["module"] })}>
@@ -119,7 +121,7 @@ export function StudioEditorPage() {
           <div className="grid gap-2 rounded-xl border border-border p-4 text-sm">
             <Row label="Title" value={draft.title || "Untitled"} />
             <Row label="Type" value={skillLabel} />
-            {draft.skill !== "full" && <Row label="Module" value={draft.module} />}
+            {showMeta && <Row label="Module" value={draft.module} />}
             <Row label="Summary" value={summary(draft)} />
           </div>
           <div className="mt-5 flex justify-between">
