@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Bot, Sparkles } from "lucide-react";
-import { sampleWritingResult, writingTasks } from "@/mock/data";
+import { sampleWritingResult } from "@/mock/data";
+import { resolveWritingTask } from "@/features/studio/convert";
 import { getLastWriting } from "@/store/attempt-store";
 import type { WritingCriterionKey } from "@/mock/types";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,7 @@ export function WritingResultsPage() {
   const written = getLastWriting();
   const answer = written?.answer?.trim() ? written.answer : result.answer;
   const wordCount = written?.wordCount ?? result.wordCount;
-  const task = writingTasks.find((t) => t.id === written?.taskId) ?? writingTasks[0];
+  const task = resolveWritingTask(written?.taskId);
 
   const [mode, setMode] = useState<"original" | "feedback">("feedback");
   const [crit, setCrit] = useState<WritingCriterionKey>("task");

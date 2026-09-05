@@ -9,9 +9,11 @@ import type {
   ListeningSectionRun,
   SpeakingExam,
   SpeakingPart,
+  WritingTask,
+  WritingVisual,
 } from "@/mock/types";
-import { QUESTION_TYPE_LABEL } from "@/mock/data";
-import type { StudioExam } from "./store";
+import { QUESTION_TYPE_LABEL, writingTasks } from "@/mock/data";
+import { studioStore, type StudioExam, type ChartType, type Formality } from "./store";
 
 /**
  * Convert an admin-authored Studio reading exam into the shape the student
@@ -155,4 +157,82 @@ export function studioSpeakingToExam(e: StudioExam): SpeakingExam {
     parts,
     attempts: 0,
   };
+}
+
+// ---- writing -----------------------------------------------------
+
+const CHART_VISUAL: Record<ChartType, WritingVisual> = {
+  "bar-chart": "bar",
+  "line-graph": "line",
+  "pie-chart": "pie",
+  "process-diagram": "process",
+  "maps": "map",
+  "table": "table",
+  "diagram": "process",
+  "multiple-graph": "line",
+};
+const FORMALITY_KIND: Record<Formality, string> = {
+  formal: "Formal letter",
+  informal: "Informal letter",
+  "semi-formal": "Semi-formal letter",
+};
+
+/**
+ * Convert an admin-authored Studio writing exam into the per-task shape the
+ * student runner consumes. One exam yields up to three tasks (Academic Task 1,
+ * General Task 1, Task 2); the hub filters by the student's chosen module.
+ * Task ids are derived from the exam id so the runner can resolve them back.
+ * The Academic "image description" stays out of the student view (it is a
+ * grading aid); the chart type drives the visual prompt instead.
+ */
+export function studioWritingToExam(e: StudioExam): WritingTask[] {
+  const w = e.writing;
+  if (!w) return [];
+  const a = w.academicT1;
+  const g = w.generalT1;
+  const t2 = w.task2;
+  return [
+    {
+      id: `${e.id}~t1a`,
+      taskNumber: 1,
+      kind: "Report",
+      module: "academic",
+      prompt: a.prompt || "Summarise the information shown in the chart.",
+      minWords: a.minWords || 150,
+      durationSec: (a.timeMinutes || 20) * 60,
+      visual: CHART_VISUAL[a.chartType],
+    },
+    {
+      id: `${e.id}~t1g`,
+      taskNumber: 1,
+      kind: FORMALITY_KIND[g.formality],
+      module: "general",
+      prompt: g.prompt || "Write a letter as described.",
+      minWords: g.minWords || 150,
+      durationSec: (g.timeMinutes || 20) * 60,
+    },
+    {
+      id: `${e.id}~t2`,
+      taskNumber: 2,
+      kind: "Opinion Essay",
+      module: "both",
+      prompt: t2.prompt || "Discuss the topic and give your own opinion.",
+      minWords: t2.minWords || 250,
+      durationSec: (t2.timeMinutes || 40) * 60,
+    },
+  ];
+}
+
+/** Resolve a writing-runner route id against studio-authored tasks, then seed. */
+export function resolveWritingTask(id: string | undefined): WritingTask {
+  const seed = writingTasks.find((t) => t.id === id);
+  if (seed) return seed;
+  if (id) {
+    for (const e of studioStore.get()) {
+      if (e.skill !== "writing") continue;
+      const t = studioWritingToExam(e).find((t) => t.id === id);
+      if (t) return t;
+    }
+  }
+  return writingTasks[0];
 }

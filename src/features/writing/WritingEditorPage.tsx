@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Clock, Flag, Sparkles, Check } from "lucide-react";
-import { writingTasks, sampleWritingResult } from "@/mock/data";
+import { sampleWritingResult } from "@/mock/data";
+import { resolveWritingTask } from "@/features/studio/convert";
 import { setLastWriting } from "@/store/attempt-store";
 import { fullExamStore } from "@/features/simulation/fullexam-store";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ export function WritingEditorPage() {
   const navigate = useNavigate();
   const [sp] = useSearchParams();
   const full = sp.get("full");
-  const task = writingTasks.find((t) => t.id === id) ?? writingTasks[0];
+  const task = resolveWritingTask(id);
   const storeKey = `fluenta.writing.${task.id}`;
 
   const [text, setText] = useState(() => {
