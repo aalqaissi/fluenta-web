@@ -6,6 +6,8 @@ import { QuestionTypePracticePage } from "./features/practice/QuestionTypePracti
 import { WritingHub } from "./features/writing/WritingHub";
 import { ListeningPage } from "./features/simulation/ListeningPage";
 import { SpeakingPage } from "./features/simulation/SpeakingPage";
+import { SpeakingStandardPage } from "./features/simulation/SpeakingStandardPage";
+import { LiveInterviewPage } from "./features/simulation/LiveInterviewPage";
 import { FullExamPage } from "./features/simulation/FullExamPage";
 import { ReadingRunnerPage } from "./features/exam-runner/ReadingRunnerPage";
 import { ReadingResultsPage } from "./features/exam-runner/ReadingResultsPage";
@@ -42,6 +44,8 @@ export const router = createBrowserRouter([
       { path: "/simulation/writing", element: <WritingHub /> },
       { path: "/simulation/listening", element: <ListeningPage /> },
       { path: "/simulation/speaking", element: <SpeakingPage /> },
+      { path: "/simulation/speaking/standard", element: <SpeakingStandardPage /> },
+      { path: "/simulation/speaking/live", element: <LiveInterviewPage /> },
       { path: "/simulation/full-exam", element: <FullExamPage /> },
       { path: "/mock-exams", element: <MockExamsPage /> },
       { path: "/studio", element: <StudioHome /> },
