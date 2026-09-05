@@ -12,7 +12,18 @@ interface Props {
   review?: boolean;
 }
 
+const TFNG: QuestionOption[] = [
+  { key: "True", text: "True" },
+  { key: "False", text: "False" },
+  { key: "Not Given", text: "Not Given" },
+];
+const YNNG: QuestionOption[] = [
+  { key: "Yes", text: "Yes" },
+  { key: "No", text: "No" },
+  { key: "Not Given", text: "Not Given" },
+];
 const CHOICE_TYPES = new Set(["true-false-notgiven", "yes-no-notgiven"]);
+const LIST_TYPES = new Set(["multiple-choice", "multi-select"]);
 const SELECT_TYPES = new Set([
   "matching-headings",
   "matching-features",
@@ -42,6 +53,9 @@ export function QuestionRenderer({ group, answers, setAnswer, review }: Props) {
         {group.questions.map((q) => {
           const val = answers[q.id] ?? "";
           const correct = review ? val.trim().toLowerCase() === q.correct.trim().toLowerCase() : undefined;
+          const qType = q.type ?? group.type;
+          const pillOptions = qType === "yes-no-notgiven" ? YNNG : TFNG;
+          const listOptions = q.options ?? mcOptions[q.id] ?? [];
 
           return (
             <li
@@ -73,13 +87,13 @@ export function QuestionRenderer({ group, answers, setAnswer, review }: Props) {
                   )}
 
                   <div className="mt-3">
-                    {CHOICE_TYPES.has(group.type) && (
-                      <ChoicePills options={group.sharedOptions ?? []} value={val} onChange={(v) => setAnswer(q.id, v)} disabled={review} />
+                    {CHOICE_TYPES.has(qType) && (
+                      <ChoicePills options={pillOptions} value={val} onChange={(v) => setAnswer(q.id, v)} disabled={review} />
                     )}
-                    {group.type === "multiple-choice" && (
-                      <ChoiceList options={mcOptions[q.id] ?? []} value={val} onChange={(v) => setAnswer(q.id, v)} disabled={review} />
+                    {LIST_TYPES.has(qType) && (
+                      <ChoiceList options={listOptions} value={val} onChange={(v) => setAnswer(q.id, v)} disabled={review} />
                     )}
-                    {SELECT_TYPES.has(group.type) && (
+                    {SELECT_TYPES.has(qType) && (
                       <div className="max-w-xs">
                         <Select value={val} onValueChange={(v) => setAnswer(q.id, v)} disabled={review}>
                           <SelectTrigger>
@@ -95,7 +109,7 @@ export function QuestionRenderer({ group, answers, setAnswer, review }: Props) {
                         </Select>
                       </div>
                     )}
-                    {TEXT_TYPES.has(group.type) && (
+                    {TEXT_TYPES.has(qType) && (
                       <Input
                         value={val}
                         disabled={review}

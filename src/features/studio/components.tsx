@@ -59,11 +59,12 @@ export function MediaDrop({
   );
 }
 
-export function AiButton({ label, onClick }: { label: string; onClick: () => void }) {
+export function AiButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled?: boolean }) {
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-info/40 bg-info/[0.06] px-2.5 py-1.5 text-xs font-semibold text-info transition-colors hover:bg-info/10"
+      disabled={disabled}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-info/40 bg-info/[0.06] px-2.5 py-1.5 text-xs font-semibold text-info transition-colors hover:bg-info/10 disabled:cursor-not-allowed disabled:opacity-50"
     >
       <Sparkles className="size-3.5" /> {label}
     </button>

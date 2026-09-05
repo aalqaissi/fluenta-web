@@ -30,31 +30,49 @@ const YNNG: QuestionOption[] = [
  * (which the quick editor captures as prompt+answer only) render as short-answer
  * text inputs so the authored content is still fully playable & scorable.
  */
+const LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+const TEXT_TYPES = new Set(["sentence-completion", "summary-completion", "short-answer", "diagram-label"]);
+
+function readingInstructions(type: QuestionType): string {
+  switch (type) {
+    case "true-false-notgiven":
+      return "Do the following statements agree with the information in the passage? Choose True, False or Not Given.";
+    case "yes-no-notgiven":
+      return "Do the following statements agree with the writer's views? Choose Yes, No or Not Given.";
+    case "multiple-choice":
+      return "Choose the correct letter for each question.";
+    case "multi-select":
+      return "Choose TWO (or THREE) correct letters for each question.";
+    case "sentence-completion":
+    case "summary-completion":
+    case "diagram-label":
+      return "Complete each sentence. Write no more than the stated number of words.";
+    case "short-answer":
+      return "Answer the questions. Write no more than the stated number of words.";
+    default:
+      return `Answer the questions below (${QUESTION_TYPE_LABEL[type]}).`;
+  }
+}
+
 export function studioReadingToExam(e: StudioExam): ReadingExam {
   const passages = e.passages ?? [];
   let counter = 1;
   const converted: Passage[] = passages.map((p, pi) => {
-    const isChoice = p.questionType === "true-false-notgiven" || p.questionType === "yes-no-notgiven";
-    const renderType: QuestionType = isChoice ? p.questionType : "short-answer";
-    const shared =
-      p.questionType === "true-false-notgiven" ? TFNG : p.questionType === "yes-no-notgiven" ? YNNG : undefined;
-
-    const questions: Question[] = p.questions.map((q) => ({
-      id: q.id,
-      number: counter++,
-      prompt: q.prompt,
-      correct: q.answer,
-      wordLimit: isChoice ? undefined : "Type your answer",
-    }));
+    const questions: Question[] = p.questions.map((q) => {
+      const qType: QuestionType = q.type ?? p.questionType;
+      const isList = qType === "multiple-choice" || qType === "multi-select";
+      const options: QuestionOption[] | undefined = isList
+        ? (q.options ?? []).map((t, i) => ({ key: LETTERS[i], text: t || `Option ${LETTERS[i]}` }))
+        : undefined;
+      const wordLimit = TEXT_TYPES.has(qType) && q.wordLimit ? `Max ${q.wordLimit} word${q.wordLimit === 1 ? "" : "s"}` : undefined;
+      return { id: q.id, number: counter++, prompt: q.prompt, correct: q.answer, type: qType, options, wordLimit };
+    });
 
     const group: QuestionGroup = {
       id: p.id + "-g",
-      type: renderType,
+      type: p.questionType,
       rangeLabel: `Questions (${QUESTION_TYPE_LABEL[p.questionType]})`,
-      instructions: isChoice
-        ? "Do the following statements agree with the passage? Choose the correct option."
-        : `Answer the questions below (${QUESTION_TYPE_LABEL[p.questionType]}).`,
-      sharedOptions: shared,
+      instructions: readingInstructions(p.questionType),
       questions,
     };
 

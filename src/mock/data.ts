@@ -45,6 +45,7 @@ export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
   "true-false-notgiven": "True / False / Not Given",
   "yes-no-notgiven": "Yes / No / Not Given",
   "multiple-choice": "Multiple Choice",
+  "multi-select": "Multi-Select (Choose TWO/THREE)",
   "matching-information": "Matching Information",
   "matching-headings": "Matching Headings",
   "matching-features": "Matching Features",

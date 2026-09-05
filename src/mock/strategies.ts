@@ -38,6 +38,16 @@ export const STRATEGIES: Record<QuestionType, Strategy> = {
       "Beware 'word-match' traps — same words, different meaning.",
     ],
   },
+  "multi-select": {
+    intro: "Choose TWO (or THREE) correct options from a longer list. Each correct letter earns a mark, so weigh every option against the passage.",
+    videoLength: "5 min",
+    tips: [
+      "Check exactly how many answers are required (TWO or THREE).",
+      "Verify every option against the text — several will be close.",
+      "Eliminate options that are true in general but not stated in the passage.",
+      "Order doesn't matter; you just need the right set of letters.",
+    ],
+  },
   "matching-information": {
     intro: "Find which paragraph contains a specific piece of information. Information can appear in any order.",
     videoLength: "5 min",

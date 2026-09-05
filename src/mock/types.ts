@@ -34,6 +34,7 @@ export type QuestionType =
   | "true-false-notgiven"
   | "yes-no-notgiven"
   | "multiple-choice"
+  | "multi-select"
   | "matching-information"
   | "matching-headings"
   | "matching-features"
@@ -54,6 +55,10 @@ export interface Question {
   prompt: string; // the statement / stem / sentence-start
   correct: string; // used only by mock scorer
   wordLimit?: string; // completion / short-answer hint
+  /** per-question type — overrides the group type when the group mixes types */
+  type?: QuestionType;
+  /** per-question choices for multiple-choice / multi-select */
+  options?: QuestionOption[];
 }
 
 export interface QuestionGroup {

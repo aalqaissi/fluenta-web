@@ -8,6 +8,12 @@ export interface StudioQuestion {
   id: string;
   prompt: string;
   answer: string;
+  /** per-question type override; undefined = inherit the passage's question type */
+  type?: QuestionType;
+  /** option texts for Multiple Choice (A–D) / Multi-Select (A–E) */
+  options?: string[];
+  /** word limit for completion / short-answer types */
+  wordLimit?: number;
 }
 export interface StudioPassage {
   id: string;
@@ -139,7 +145,7 @@ function seed(): StudioExam[] {
   return [
     {
       id: "seed-r1", skill: "reading", title: "The History of Glass", module: "academic", status: "published", timeLimit: 20, updatedAt: "2026-09-02T10:00:00Z",
-      passages: [{ id: uid(), title: "The History of Glass", inputMode: "type", text: "Glass is one of the most versatile substances on Earth…", imageName: null, questionType: "true-false-notgiven", questions: [{ id: uid(), prompt: "Glass has been made for thousands of years.", answer: "True" }] }],
+      passages: [{ id: uid(), title: "The History of Glass", inputMode: "type", text: "Glass is one of the most versatile substances on Earth…", imageName: null, questionType: "true-false-notgiven", questions: [{ id: uid(), prompt: "Glass has been made for thousands of years.", answer: "TRUE" }] }],
     },
     {
       id: "seed-l1", skill: "listening", title: "Joining a Photography Club", module: "academic", status: "published", timeLimit: 30, updatedAt: "2026-09-02T11:00:00Z",
