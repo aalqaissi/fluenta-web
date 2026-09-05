@@ -1,0 +1,50 @@
+[
+  {
+    "id": "cert1",
+    "title": "Full Practice Test — Academic",
+    "candidate": "Sara Hamzeh",
+    "module": "academic",
+    "centre": "Online Practice",
+    "issuedOn": "2026-09-01",
+    "dateOfBirth": "",
+    "sex": "",
+    "countryOfOrigin": "",
+    "nationality": "",
+    "firstLanguage": "",
+    "schemeCode": "Online Practice Test",
+    "scores": {
+      "listening": 6.5,
+      "reading": 6.5,
+      "writing": 6,
+      "speaking": 6.5
+    },
+    "overall": 6.5,
+    "cefr": "B2",
+    "comments": "This report confirms completion of a comprehensive practice examination on Fluenta. Scores are AI-generated estimates for learning purposes.",
+    "status": "issued"
+  },
+  {
+    "id": "cert2",
+    "title": "Foundation Reading Course",
+    "candidate": "Sara Hamzeh",
+    "module": "academic",
+    "centre": "Online Practice",
+    "issuedOn": "2026-08-25",
+    "dateOfBirth": "",
+    "sex": "",
+    "countryOfOrigin": "",
+    "nationality": "",
+    "firstLanguage": "",
+    "schemeCode": "Online Practice Test",
+    "scores": {
+      "listening": 6,
+      "reading": 6.5,
+      "writing": 5.5,
+      "speaking": 6
+    },
+    "overall": 6,
+    "cefr": "B2",
+    "comments": "This report confirms completion of a comprehensive practice examination on Fluenta. Scores are AI-generated estimates for learning purposes.",
+    "status": "issued"
+  }
+]

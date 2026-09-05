@@ -1,0 +1,68 @@
+{
+  "sectionSummaries": [
+    {
+      "skill": "listening",
+      "band": null,
+      "tests": 0
+    },
+    {
+      "skill": "reading",
+      "band": 6.5,
+      "tests": 3
+    },
+    {
+      "skill": "writing",
+      "band": 5.5,
+      "tests": 1
+    },
+    {
+      "skill": "speaking",
+      "band": null,
+      "tests": 0
+    }
+  ],
+  "recentExams": [
+    {
+      "id": "r1",
+      "skill": "reading",
+      "title": "Reading Exam",
+      "status": "in-progress",
+      "isMock": true,
+      "date": "2026-09-02",
+      "sectionsDone": 0,
+      "sectionsTotal": 1
+    },
+    {
+      "id": "r2",
+      "skill": "reading",
+      "title": "Reading Exam",
+      "status": "in-progress",
+      "isMock": true,
+      "date": "2026-09-02",
+      "sectionsDone": 0,
+      "sectionsTotal": 1
+    },
+    {
+      "id": "r3",
+      "skill": "reading",
+      "title": "Reading Exam",
+      "status": "completed",
+      "isMock": false,
+      "date": "2026-09-01",
+      "sectionsDone": 1,
+      "sectionsTotal": 1,
+      "band": 6.5
+    },
+    {
+      "id": "r4",
+      "skill": "writing",
+      "title": "Writing Task 2",
+      "status": "completed",
+      "isMock": false,
+      "date": "2026-08-30",
+      "sectionsDone": 1,
+      "sectionsTotal": 1,
+      "band": 5.5
+    }
+  ]
+}

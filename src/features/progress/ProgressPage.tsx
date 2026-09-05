@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { TrendingUp, TrendingDown, Trash2, ChevronRight } from "lucide-react";
+import { TrendingUp, TrendingDown, Trash2, ChevronRight, Loader2, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -8,18 +8,46 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import { SkillIcon, skillMeta } from "@/components/common/SkillIcon";
-import { sectionSummaries, recentExams } from "@/mock/data";
+import { api } from "@/lib/api";
+import { useAsync } from "@/lib/useAsync";
 import type { RecentExam } from "@/mock/types";
 import { bandTone, cn, formatBand } from "@/lib/utils";
 
 export function ProgressPage() {
   const navigate = useNavigate();
-  const [exams, setExams] = useState<RecentExam[]>(recentExams);
+  const { data, loading, error } = useAsync(() => api.content.progress(), []);
+  const sectionSummaries = data?.sectionSummaries ?? [];
+  const [deleted, setDeleted] = useState<Set<string>>(new Set());
   const [toDelete, setToDelete] = useState<RecentExam | null>(null);
 
+  const exams = (data?.recentExams ?? []).filter((e) => !deleted.has(e.id));
   const scored = sectionSummaries.filter((s) => s.band !== null);
   const strongest = scored.length ? scored.reduce((a, b) => (a.band! >= b.band! ? a : b)) : null;
   const weakest = scored.length ? scored.reduce((a, b) => (a.band! <= b.band! ? a : b)) : null;
+
+  if (error) {
+    return (
+      <div>
+        <PageHeader title="Progress" subtitle="Your performance across every skill, with a full history of attempts." />
+        <Card className="p-10 text-center">
+          <WifiOff className="mx-auto mb-2 size-6 text-destructive" />
+          <p className="text-sm text-muted-foreground">{error}</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div>
+        <PageHeader title="Progress" subtitle="Your performance across every skill, with a full history of attempts." />
+        <Card className="p-10 text-center">
+          <Loader2 className="mx-auto size-6 animate-spin text-primary" />
+          <p className="mt-2 text-sm text-muted-foreground">Loading your progress…</p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -106,7 +134,7 @@ export function ProgressPage() {
         confirmLabel="Delete"
         onConfirm={() => {
           if (toDelete) {
-            setExams((prev) => prev.filter((x) => x.id !== toDelete.id));
+            setDeleted((prev) => new Set(prev).add(toDelete.id));
             toast.success("Exam deleted");
           }
         }}

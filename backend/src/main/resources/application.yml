@@ -1,0 +1,30 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: fluenta-api
+  datasource:
+    # SQLite — a single embedded file (./data/fluenta.db), no separate DB engine/server.
+    url: jdbc:sqlite:./data/fluenta.db
+    driver-class-name: org.sqlite.JDBC
+    # SQLite allows a single writer; keep one connection to avoid "database is locked".
+    hikari:
+      maximum-pool-size: 1
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.community.dialect.SQLiteDialect
+        format_sql: false
+    open-in-view: false
+
+# CORS origin for the Vite dev server (overridable via FLUENTA_CORS_ORIGINS).
+fluenta:
+  cors:
+    origins: ${FLUENTA_CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+
+logging:
+  level:
+    org.hibernate.SQL: warn

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Clock, Search, BookOpen, Flag } from "lucide-react";
-import { getReadingExam, scoreExam } from "@/lib/mockApi";
-import { studioStore } from "@/features/studio/store";
-import { studioReadingToExam } from "@/features/studio/convert";
+import { api, ApiError } from "@/lib/api";
+import { useAsync } from "@/lib/useAsync";
+import { loadReadingExam } from "./loadExam";
 import { setLastAttempt } from "@/store/attempt-store";
 import { fullExamStore } from "@/features/simulation/fullexam-store";
 import { Button } from "@/components/ui/button";
@@ -13,16 +14,22 @@ import { HighlightableText, type Highlight } from "./HighlightableText";
 import { HighlightToolbar } from "./HighlightToolbar";
 import { QuestionRenderer } from "./questions/QuestionRenderer";
 import { GradingModal } from "./GradingModal";
+import { RunnerLoading, RunnerError } from "./RunnerStates";
 import { pad2, cn } from "@/lib/utils";
+import type { ReadingExam } from "@/mock/types";
 
 export function ReadingRunnerPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const exam = useMemo(() => {
-    const authored = id ? studioStore.get().find((e) => e.id === id && e.skill === "reading") : undefined;
-    return authored && (authored.passages?.length ?? 0) > 0 ? studioReadingToExam(authored) : getReadingExam();
-  }, [id]);
+  const { data: exam, loading, error, reload } = useAsync(() => loadReadingExam(id!), [id]);
 
+  if (loading) return <RunnerLoading />;
+  if (error || !exam) return <RunnerError message={error ?? "Exam not found"} onRetry={reload} onBack={() => navigate(-1)} />;
+  return <ReadingRunner exam={exam} />;
+}
+
+function ReadingRunner({ exam }: { exam: ReadingExam }) {
+  const navigate = useNavigate();
   const [sp] = useSearchParams();
   const full = sp.get("full");
   const [pIdx, setPIdx] = useState(0);
@@ -32,6 +39,7 @@ export function ReadingRunnerPage() {
   const [find, setFind] = useState("");
   const [timeLeft, setTimeLeft] = useState(exam.durationSec);
   const [grading, setGrading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [gradedBand, setGradedBand] = useState(0);
 
   const passage = exam.passages[pIdx];
@@ -58,18 +66,31 @@ export function ReadingRunnerPage() {
     setAnswers((a) => ({ ...a, [qid]: val }));
   }
 
-  function submit() {
-    const { correct, band } = scoreExam(exam, answers);
-    setGradedBand(band);
-    setLastAttempt({
-      examId: exam.id,
-      answers,
-      correct,
-      total: totalQ,
-      band,
-      durationUsedSec: exam.durationSec - timeLeft,
-    });
-    setGrading(true);
+  async function submit() {
+    if (submitting || grading) return;
+    setSubmitting(true);
+    try {
+      const a = await api.attempts.submit({
+        examId: exam.id,
+        skill: "reading",
+        answers,
+        durationUsedSec: exam.durationSec - timeLeft,
+      });
+      setGradedBand(a.band);
+      setLastAttempt({
+        examId: exam.id,
+        answers,
+        correct: a.correct,
+        total: a.total,
+        band: a.band,
+        durationUsedSec: a.durationUsedSec,
+      });
+      setGrading(true);
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Could not submit your exam. Is the backend running?");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function afterGrading() {
@@ -184,8 +205,8 @@ export function ReadingRunnerPage() {
               Next passage <ArrowRight className="size-4" />
             </Button>
           ) : (
-            <Button variant="success" onClick={submit}>
-              <Flag className="size-4" /> Submit for grading
+            <Button variant="success" onClick={submit} disabled={submitting}>
+              <Flag className="size-4" /> {submitting ? "Submitting…" : "Submit for grading"}
             </Button>
           )}
         </div>

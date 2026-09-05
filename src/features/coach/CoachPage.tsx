@@ -47,6 +47,12 @@ export function CoachPage() {
     <div className="flex h-[calc(100dvh-8rem)] flex-col">
       <PageHeader title={brand.coachName} subtitle="Your always-on AI tutor — ask about feedback, drills, or a study plan." />
 
+      {/* AI held this stage */}
+      <div className="mb-3 flex items-center gap-2 rounded-xl border border-info/30 bg-info/[0.06] px-3 py-2 text-sm text-info">
+        <Sparkles className="size-4" />
+        <span><strong>Coming soon.</strong> The AI Coach is being built — chat is disabled for now.</span>
+      </div>
+
       {/* context chips */}
       <div className="mb-3 flex flex-wrap gap-2">
         <Badge variant="muted"><Sparkles className="size-3 text-info" /> Personalized to your results</Badge>
@@ -91,14 +97,15 @@ export function CoachPage() {
         <div ref={endRef} />
       </div>
 
-      {/* suggestions */}
+      {/* suggestions (disabled while the AI Coach is held) */}
       {messages.length <= 2 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {coachSuggestions.map((s) => (
             <button
               key={s}
-              onClick={() => send(s)}
-              className="rounded-full border border-border bg-surface px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+              disabled
+              title="Coming soon"
+              className="cursor-not-allowed rounded-full border border-border bg-surface px-3 py-1.5 text-sm text-muted-foreground opacity-60"
             >
               {s}
             </button>
@@ -106,21 +113,16 @@ export function CoachPage() {
         </div>
       )}
 
-      {/* input */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          send(input);
-        }}
-        className="mt-3 flex items-center gap-2"
-      >
+      {/* input (disabled while the AI Coach is held) */}
+      <form onSubmit={(e) => e.preventDefault()} className="mt-3 flex items-center gap-2">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={`Message ${brand.coachName}…`}
+          placeholder={`${brand.coachName} is coming soon…`}
           className="h-12"
+          disabled
         />
-        <Button type="submit" size="icon" className="size-12 shrink-0" disabled={!input.trim()}>
+        <Button type="button" size="icon" className="size-12 shrink-0" disabled title="Coming soon">
           <Send className="size-5" />
         </Button>
       </form>

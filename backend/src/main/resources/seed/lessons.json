@@ -1,0 +1,82 @@
+[
+  {
+    "id": "le1",
+    "title": "True/False/Not Given, decoded",
+    "skill": "reading",
+    "level": "Foundation",
+    "minutes": 8,
+    "kind": "Video",
+    "summary": "Stop losing marks on ‘Not Given’ — a reliable 4-step method.",
+    "progress": 100
+  },
+  {
+    "id": "le2",
+    "title": "Task 2: building a clear position",
+    "skill": "writing",
+    "level": "Intermediate",
+    "minutes": 12,
+    "kind": "Article",
+    "summary": "Turn a prompt into a thesis and a plan in under three minutes.",
+    "progress": 40
+  },
+  {
+    "id": "le3",
+    "title": "Skimming vs scanning",
+    "skill": "reading",
+    "level": "Foundation",
+    "minutes": 6,
+    "kind": "Video",
+    "summary": "Read faster without losing comprehension.",
+    "progress": 0
+  },
+  {
+    "id": "le4",
+    "title": "Linking words that actually help",
+    "skill": "writing",
+    "level": "Intermediate",
+    "minutes": 9,
+    "kind": "Drill",
+    "summary": "Cohesion beyond ‘firstly, secondly, finally’.",
+    "progress": 0
+  },
+  {
+    "id": "le5",
+    "title": "Listening: predicting answers",
+    "skill": "listening",
+    "level": "Intermediate",
+    "minutes": 10,
+    "kind": "Video",
+    "summary": "Use the questions to anticipate what you’ll hear.",
+    "progress": 0
+  },
+  {
+    "id": "le6",
+    "title": "Speaking Part 2: the cue card",
+    "skill": "speaking",
+    "level": "Intermediate",
+    "minutes": 11,
+    "kind": "Video",
+    "summary": "Structure a 2-minute long turn with confidence.",
+    "progress": 20
+  },
+  {
+    "id": "le7",
+    "title": "Paraphrasing under pressure",
+    "skill": "general",
+    "level": "Advanced",
+    "minutes": 14,
+    "kind": "Article",
+    "summary": "The core skill behind every band-7+ answer.",
+    "progress": 0
+  },
+  {
+    "id": "le8",
+    "title": "Matching Headings without panic",
+    "skill": "reading",
+    "level": "Advanced",
+    "minutes": 9,
+    "kind": "Drill",
+    "summary": "A paragraph-mapping routine that saves time.",
+    "progress": 0
+  }
+]

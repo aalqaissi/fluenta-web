@@ -1,0 +1,66 @@
+[
+  {
+    "id": "ac1",
+    "title": "First Steps",
+    "description": "Complete your first practice section.",
+    "icon": "Footprints",
+    "earned": true,
+    "earnedOn": "2026-08-28"
+  },
+  {
+    "id": "ac2",
+    "title": "Warm-Up Streak",
+    "description": "Practice 3 days in a row.",
+    "icon": "Flame",
+    "earned": true,
+    "earnedOn": "2026-08-31"
+  },
+  {
+    "id": "ac3",
+    "title": "Reading Rookie",
+    "description": "Finish 3 Reading exams.",
+    "icon": "BookOpen",
+    "earned": true,
+    "earnedOn": "2026-09-01"
+  },
+  {
+    "id": "ac4",
+    "title": "Feedback Fan",
+    "description": "Read your AI feedback in full 5 times.",
+    "icon": "MessageSquareHeart",
+    "earned": false,
+    "progress": 60
+  },
+  {
+    "id": "ac5",
+    "title": "Band Climber",
+    "description": "Improve any section by 0.5.",
+    "icon": "TrendingUp",
+    "earned": false,
+    "progress": 30
+  },
+  {
+    "id": "ac6",
+    "title": "All-Rounder",
+    "description": "Attempt all four skills.",
+    "icon": "Sparkles",
+    "earned": false,
+    "progress": 50
+  },
+  {
+    "id": "ac7",
+    "title": "Marathoner",
+    "description": "Complete a full mock exam.",
+    "icon": "Medal",
+    "earned": false,
+    "progress": 0
+  },
+  {
+    "id": "ac8",
+    "title": "Coach’s Favourite",
+    "description": "Have 10 coaching conversations.",
+    "icon": "Bot",
+    "earned": false,
+    "progress": 10
+  }
+]

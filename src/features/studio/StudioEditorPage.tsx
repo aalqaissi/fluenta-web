@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Upload, ArrowRight, CheckCircle2, FileWarning } from "lucide-react";
+import { ArrowLeft, Save, Upload, ArrowRight, CheckCircle2, FileWarning, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatusBadge, StepDots, Field } from "./components";
-import { studioStore, useStudioExam, type StudioExam } from "./store";
+import { studioStore, useStudioExamsState, type StudioExam } from "./store";
 import { ReadingEditor } from "./editors/ReadingEditor";
 import { WritingEditor } from "./editors/WritingEditor";
 import { ListeningEditor } from "./editors/ListeningEditor";
@@ -18,11 +18,26 @@ import { FullMockEditor } from "./editors/FullMockEditor";
 export function StudioEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const source = useStudioExam(id);
-  const [draft, setDraft] = useState<StudioExam | null>(() => (source ? structuredClone(source) : null));
+  const { exams, loading } = useStudioExamsState();
+  const source = id ? exams.find((e) => e.id === id) : undefined;
+  const [draft, setDraft] = useState<StudioExam | null>(null);
   const [step, setStep] = useState<1 | 2>(1);
 
-  if (!source || !draft) {
+  // Initialise (or switch) the editable draft once the exam is available from the store/API.
+  useEffect(() => {
+    if (source && (!draft || draft.id !== source.id)) setDraft(structuredClone(source));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source]);
+
+  if (!draft) {
+    if (loading) {
+      return (
+        <div className="mx-auto grid max-w-2xl place-items-center py-24 text-center">
+          <Loader2 className="size-6 animate-spin text-primary" />
+          <p className="mt-2 text-sm text-muted-foreground">Loading exam…</p>
+        </div>
+      );
+    }
     return (
       <div className="mx-auto max-w-2xl py-16">
         <EmptyState icon={FileWarning} title="Content not found" action={<Button onClick={() => navigate("/studio")}>Back to Studio</Button>} />

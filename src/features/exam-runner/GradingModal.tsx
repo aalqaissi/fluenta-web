@@ -1,39 +1,54 @@
 import { useEffect, useState } from "react";
-import { BrainCircuit, Check, Loader2 } from "lucide-react";
+import { ListChecks, Check, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { gradingSteps, runAiGrading } from "@/lib/mockApi";
 import { cn } from "@/lib/utils";
+
+// Honest, deterministic scoring feedback (reading/listening are scored on the server against the
+// answer key — no AI at this stage).
+const scoringSteps = [
+  { label: "Checking your answers…", atProgress: 20 },
+  { label: "Comparing with the answer key…", atProgress: 50 },
+  { label: "Calculating your band score…", atProgress: 80 },
+  { label: "Done!", atProgress: 100 },
+];
 
 export function GradingModal({ open, onDone }: { open: boolean; onDone: () => void }) {
   const [pct, setPct] = useState(0);
-  const [label, setLabel] = useState(gradingSteps[0].label);
 
   useEffect(() => {
     if (!open) return;
     setPct(0);
+    let value = 0;
     let cancelled = false;
-    runAiGrading((p, l) => {
+    const totalMs = 1800;
+    const ticks = 36;
+    const timer = setInterval(() => {
       if (cancelled) return;
-      setPct(p);
-      setLabel(l);
-    }).then(() => {
-      if (!cancelled) setTimeout(onDone, 500);
-    });
+      value = Math.min(100, value + Math.ceil(100 / ticks));
+      setPct(value);
+      if (value >= 100) {
+        clearInterval(timer);
+        setTimeout(() => !cancelled && onDone(), 400);
+      }
+    }, totalMs / ticks);
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  const label = [...scoringSteps].reverse().find((s) => pct >= s.atProgress)?.label ?? scoringSteps[0].label;
+
   return (
     <Dialog open={open}>
       <DialogContent hideClose className="max-w-md text-center" onEscapeKeyDown={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
-        <DialogTitle className="sr-only">AI is grading your work</DialogTitle>
+        <DialogTitle className="sr-only">Scoring your answers</DialogTitle>
         <div className="mx-auto mb-2 flex size-16 items-center justify-center rounded-2xl bg-warm-soft">
-          <BrainCircuit className="size-8 text-primary" />
+          <ListChecks className="size-8 text-primary" />
         </div>
-        <h3 className="text-xl font-extrabold">AI is grading your work</h3>
+        <h3 className="text-xl font-extrabold">Scoring your answers</h3>
         <p className="text-sm text-muted-foreground">{label}</p>
 
         <div className="mt-4">
@@ -45,7 +60,7 @@ export function GradingModal({ open, onDone }: { open: boolean; onDone: () => vo
         </div>
 
         <ul className="mt-4 space-y-2 text-left">
-          {gradingSteps.map((s) => {
+          {scoringSteps.map((s) => {
             const active = pct >= s.atProgress;
             const current = label === s.label && pct < 100;
             return (
@@ -63,7 +78,7 @@ export function GradingModal({ open, onDone }: { open: boolean; onDone: () => vo
             );
           })}
         </ul>
-        <p className="mt-4 text-xs text-muted-foreground">This usually takes 15–30 seconds. Please don’t close this window.</p>
+        <p className="mt-4 text-xs text-muted-foreground">Your answers are scored on the server. This only takes a moment.</p>
       </DialogContent>
     </Dialog>
   );

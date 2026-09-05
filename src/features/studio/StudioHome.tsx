@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  BookOpen, PenLine, Headphones, Mic, GraduationCap, Plus, Pencil, Copy, Eye, Trash2,
-  Upload, CloudOff, BadgeCheck,
+  BookOpen, PenLine, Headphones, Mic, GraduationCap, Pencil, Copy, Eye, Trash2,
+  Upload, CloudOff, BadgeCheck, Loader2, WifiOff,
 } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import { StatusBadge } from "./components";
-import { studioStore, useStudioExams, type StudioSkill, type StudioExam } from "./store";
+import { studioStore, useStudioExamsState, type StudioSkill, type StudioExam } from "./store";
 import { cn, prettyDate } from "@/lib/utils";
 
 const SKILLS: { key: StudioSkill; label: string; icon: typeof BookOpen; tint: string }[] = [
@@ -24,7 +24,7 @@ const SKILLS: { key: StudioSkill; label: string; icon: typeof BookOpen; tint: st
 
 export function StudioHome() {
   const navigate = useNavigate();
-  const exams = useStudioExams();
+  const { exams, loading, error, reload } = useStudioExamsState();
   const [filter, setFilter] = useState<StudioSkill | "all">("all");
   const [toDelete, setToDelete] = useState<StudioExam | null>(null);
 
@@ -66,7 +66,18 @@ export function StudioHome() {
         </TabsList>
       </Tabs>
 
-      {list.length === 0 ? (
+      {error ? (
+        <Card className="p-10 text-center">
+          <WifiOff className="mx-auto mb-2 size-6 text-destructive" />
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={reload}>Retry</Button>
+        </Card>
+      ) : loading && list.length === 0 ? (
+        <Card className="p-10 text-center">
+          <Loader2 className="mx-auto size-6 animate-spin text-primary" />
+          <p className="mt-2 text-sm text-muted-foreground">Loading your content…</p>
+        </Card>
+      ) : list.length === 0 ? (
         <Card className="p-10 text-center">
           <p className="text-sm text-muted-foreground">No content here yet. Use “Create new content” above.</p>
         </Card>

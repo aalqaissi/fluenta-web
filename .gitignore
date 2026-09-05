@@ -19,3 +19,8 @@ graphify-out/
 
 # large source media / recordings — keep out of git (GitHub 100MB/file limit)
 artifact/
+
+# backend (Spring Boot / Maven) build output + local SQLite database file
+backend/target/
+backend/data/
+backend/.mvn/wrapper/maven-wrapper.jar

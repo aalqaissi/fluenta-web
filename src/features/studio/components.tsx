@@ -60,13 +60,20 @@ export function MediaDrop({
 }
 
 export function AiButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled?: boolean }) {
+  // AI features are held this stage — every AI action is disabled with a "coming soon" hint.
+  // (The `onClick`/`disabled` props are kept so callers are unchanged; they simply never fire.)
+  void onClick;
+  void disabled;
   return (
     <button
-      onClick={onClick}
-      disabled={disabled}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-info/40 bg-info/[0.06] px-2.5 py-1.5 text-xs font-semibold text-info transition-colors hover:bg-info/10 disabled:cursor-not-allowed disabled:opacity-50"
+      type="button"
+      disabled
+      title="AI features are coming soon"
+      aria-disabled="true"
+      className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-border bg-muted px-2.5 py-1.5 text-xs font-semibold text-muted-foreground opacity-70"
     >
       <Sparkles className="size-3.5" /> {label}
+      <span className="ml-1 rounded bg-background px-1 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">soon</span>
     </button>
   );
 }

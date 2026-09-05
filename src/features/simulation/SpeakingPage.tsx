@@ -104,8 +104,8 @@ export function SpeakingPage() {
           <div className="mt-4 rounded-xl bg-muted/50 p-3 text-sm">
             <span className="font-semibold">Best for:</span> <span className="text-muted-foreground">Exam simulation &amp; advanced prep</span>
           </div>
-          <Button className="mt-5 w-full" size="lg" onClick={() => navigate("/simulation/speaking/live")}>
-            Start Live Interview <ArrowRight className="size-4" />
+          <Button className="mt-5 w-full" size="lg" disabled title="Coming soon">
+            Live Interview — coming soon
           </Button>
         </Card>
       </div>

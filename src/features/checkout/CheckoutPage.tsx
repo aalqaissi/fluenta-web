@@ -1,31 +1,63 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, MessageCircle, Tag, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Check, MessageCircle, Tag, ShieldCheck, Loader2, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { plans, planIncludes } from "@/mock/data";
+import { api } from "@/lib/api";
+import { useAsync } from "@/lib/useAsync";
 import { brand } from "@/config/brand";
 import { cn } from "@/lib/utils";
 
 export function CheckoutPage() {
   const navigate = useNavigate();
+  const { data, loading, error } = useAsync(() => api.content.plans(), []);
+  const plans = data?.plans ?? [];
+  const planIncludes = data?.planIncludes ?? [];
   const [selected, setSelected] = useState("trial");
   const [promo, setPromo] = useState("");
-  const plan = plans.find((p) => p.id === selected)!;
+  const plan = plans.find((p) => p.id === selected) ?? plans[0];
 
-  return (
-    <div className="mx-auto max-w-5xl">
+  const header = (
+    <>
       <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate(-1)}>
         <ArrowLeft className="size-4" /> Back
       </Button>
-
       <div className="mb-6">
         <h1 className="text-3xl font-extrabold tracking-tight">Complete your subscription</h1>
         <p className="mt-1 text-muted-foreground">Join thousands of students achieving their IELTS goals.</p>
       </div>
+    </>
+  );
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-5xl">
+        {header}
+        <Card className="p-10 text-center">
+          <WifiOff className="mx-auto mb-2 size-6 text-destructive" />
+          <p className="text-sm text-muted-foreground">{error}</p>
+        </Card>
+      </div>
+    );
+  }
+  if (loading || !plan) {
+    return (
+      <div className="mx-auto max-w-5xl">
+        {header}
+        <Card className="p-10 text-center">
+          <Loader2 className="mx-auto size-6 animate-spin text-primary" />
+          <p className="mt-2 text-sm text-muted-foreground">Loading plans…</p>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-5xl">
+      {header}
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
         {/* plans */}

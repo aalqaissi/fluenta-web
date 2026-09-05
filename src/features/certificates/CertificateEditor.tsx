@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Save, BadgeCheck, Download } from "lucide-react";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Field } from "@/features/studio/components";
 import { TestReportForm } from "./TestReportForm";
-import { certStore, blankCert, avgBand, cefrFor, type CertRecord } from "./store";
+import { certStore, useCerts, blankCert, avgBand, cefrFor, type CertRecord } from "./store";
 import { formatBand } from "@/lib/utils";
 
 const BANDS = [0, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9];
@@ -17,7 +17,21 @@ const BANDS = [0, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9];
 export function CertificateEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [cert, setCert] = useState<CertRecord>(() => (id && id !== "new" ? certStore.find(id) ?? blankCert() : blankCert()));
+  const editingId = id && id !== "new" ? id : null;
+  const certs = useCerts(); // triggers the API load + reactive updates
+  const [cert, setCert] = useState<CertRecord>(() => (editingId ? certStore.find(editingId) ?? blankCert() : blankCert()));
+  const [hydrated, setHydrated] = useState(!editingId || !!certStore.find(editingId));
+
+  // When editing an existing certificate that wasn't cached yet, adopt it once it loads.
+  useEffect(() => {
+    if (editingId && !hydrated) {
+      const found = certs.find((c) => c.id === editingId);
+      if (found) {
+        setCert(found);
+        setHydrated(true);
+      }
+    }
+  }, [certs, editingId, hydrated]);
 
   function set(patch: Partial<CertRecord>) {
     setCert((c) => {

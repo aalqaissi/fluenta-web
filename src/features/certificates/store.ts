@@ -1,5 +1,6 @@
-import { useSyncExternalStore } from "react";
-import { certificates as seedCerts, currentUser } from "@/mock/data";
+import { useEffect, useSyncExternalStore } from "react";
+import { currentUser } from "@/mock/data";
+import { api, type CertificateDto } from "@/lib/api";
 
 export interface CertRecord {
   id: string;
@@ -61,28 +62,36 @@ export function blankCert(): CertRecord {
   };
 }
 
-let records: CertRecord[] = seedCerts.map((c) => ({
-  id: c.id,
-  title: c.title,
-  candidate: currentUser.name,
-  module: c.module,
-  centre: "Online Practice",
-  issuedOn: c.issuedOn,
-  dateOfBirth: "",
-  sex: "" as const,
-  countryOfOrigin: "",
-  nationality: "",
-  firstLanguage: "",
-  schemeCode: "Online Practice Test",
-  scores: c.scores,
-  overall: c.band,
-  cefr: c.cefr,
-  comments: "This report confirms completion of a comprehensive practice examination on Fluenta. Scores are AI-generated estimates for learning purposes.",
-  status: "issued",
-}));
+// API-backed reactive store. CertificateDto mirrors CertRecord field-for-field.
+let records: CertRecord[] = [];
+let loaded = false;
+let loading = false;
+let error: string | null = null;
+let snapshot: CertRecord[] = records;
 
 const listeners = new Set<() => void>();
-const emit = () => listeners.forEach((l) => l());
+function emit() {
+  snapshot = records;
+  listeners.forEach((l) => l());
+}
+
+function ensureLoaded() {
+  if (loaded || loading) return;
+  loading = true;
+  api.certificates
+    .list()
+    .then((list) => {
+      records = list as unknown as CertRecord[];
+      loaded = true;
+    })
+    .catch((e) => {
+      error = String((e as any)?.message ?? e);
+    })
+    .finally(() => {
+      loading = false;
+      emit();
+    });
+}
 
 export const certStore = {
   subscribe(l: () => void) {
@@ -91,18 +100,27 @@ export const certStore = {
   },
   get: () => records,
   find: (id: string) => records.find((r) => r.id === id),
+  error: () => error,
+  ensureLoaded,
   upsert(rec: CertRecord) {
-    records = records.some((r) => r.id === rec.id)
-      ? records.map((r) => (r.id === rec.id ? rec : r))
-      : [rec, ...records];
+    const exists = records.some((r) => r.id === rec.id);
+    records = exists ? records.map((r) => (r.id === rec.id ? rec : r)) : [rec, ...records];
     emit();
+    const dto = rec as unknown as CertificateDto;
+    (exists ? api.certificates.update(rec.id, dto) : api.certificates.create(dto)).catch(() => {
+      /* optimistic; reload resyncs */
+    });
   },
   remove(id: string) {
     records = records.filter((r) => r.id !== id);
     emit();
+    api.certificates.remove(id).catch(() => { /* optimistic */ });
   },
 };
 
 export function useCerts(): CertRecord[] {
-  return useSyncExternalStore(certStore.subscribe, certStore.get, certStore.get);
+  useEffect(() => {
+    ensureLoaded();
+  }, []);
+  return useSyncExternalStore(certStore.subscribe, () => snapshot, () => snapshot);
 }

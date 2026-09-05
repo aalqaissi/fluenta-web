@@ -20,7 +20,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LockChip } from "@/components/common/LockChip";
 import { useApp } from "@/store/app-context";
 import { brand } from "@/config/brand";
-import { sectionSummaries } from "@/mock/data";
+import { api } from "@/lib/api";
+import { useAsync } from "@/lib/useAsync";
 import { formatBand, bandTone, cn } from "@/lib/utils";
 import { SetExamDateModal } from "@/components/modals/SetExamDateModal";
 import { FeedbackModal } from "@/components/modals/FeedbackModal";
@@ -39,6 +40,8 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const [examOpen, setExamOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const { data: progress } = useAsync(() => api.content.progress(), []);
+  const sectionSummaries = progress?.sectionSummaries ?? [];
   const isPro = effectivePlan === "pro";
   const targetPct = Math.round((3 / user.targetBand) * 100);
 

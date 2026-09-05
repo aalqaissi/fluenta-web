@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, ChevronDown, Clock, Flag, Headphones, Lightbulb } from "lucide-react";
-import { getListeningExam, scoreListening } from "@/lib/mockApi";
-import { studioStore } from "@/features/studio/store";
-import { studioListeningToExam } from "@/features/studio/convert";
+import { api, ApiError } from "@/lib/api";
+import { useAsync } from "@/lib/useAsync";
+import { loadListeningExam } from "./loadExam";
 import { setLastAttempt } from "@/store/attempt-store";
 import { fullExamStore } from "@/features/simulation/fullexam-store";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { AudioPlayer } from "./AudioPlayer";
 import { QuestionRenderer } from "./questions/QuestionRenderer";
 import { GradingModal } from "./GradingModal";
+import { RunnerLoading, RunnerError } from "./RunnerStates";
 import { pad2, cn } from "@/lib/utils";
+import type { ListeningExam } from "@/mock/types";
 
 const TIPS = [
   "Read the questions before the audio starts so you know what to listen for.",
@@ -26,17 +29,22 @@ const TIPS = [
 export function ListeningRunnerPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const exam = useMemo(() => {
-    const authored = id ? studioStore.get().find((e) => e.id === id && e.skill === "listening") : undefined;
-    return authored && (authored.sections?.length ?? 0) > 0 ? studioListeningToExam(authored) : getListeningExam();
-  }, [id]);
+  const { data: exam, loading, error, reload } = useAsync(() => loadListeningExam(id!), [id]);
 
+  if (loading) return <RunnerLoading />;
+  if (error || !exam) return <RunnerError message={error ?? "Exam not found"} onRetry={reload} onBack={() => navigate(-1)} />;
+  return <ListeningRunner exam={exam} />;
+}
+
+function ListeningRunner({ exam }: { exam: ListeningExam }) {
+  const navigate = useNavigate();
   const [sp] = useSearchParams();
   const full = sp.get("full");
   const [sIdx, setSIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState(exam.durationSec);
   const [grading, setGrading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [gradedBand, setGradedBand] = useState(0);
   const [showTips, setShowTips] = useState(false);
 
@@ -64,18 +72,31 @@ export function ListeningRunnerPage() {
     setAnswers((a) => ({ ...a, [qid]: val }));
   }
 
-  function submit() {
-    const { correct, band } = scoreListening(exam, answers);
-    setGradedBand(band);
-    setLastAttempt({
-      examId: exam.id,
-      answers,
-      correct,
-      total: totalQ,
-      band,
-      durationUsedSec: exam.durationSec - timeLeft,
-    });
-    setGrading(true);
+  async function submit() {
+    if (submitting || grading) return;
+    setSubmitting(true);
+    try {
+      const a = await api.attempts.submit({
+        examId: exam.id,
+        skill: "listening",
+        answers,
+        durationUsedSec: exam.durationSec - timeLeft,
+      });
+      setGradedBand(a.band);
+      setLastAttempt({
+        examId: exam.id,
+        answers,
+        correct: a.correct,
+        total: a.total,
+        band: a.band,
+        durationUsedSec: a.durationUsedSec,
+      });
+      setGrading(true);
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Could not submit your exam. Is the backend running?");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function afterGrading() {
@@ -189,8 +210,8 @@ export function ListeningRunnerPage() {
               Complete section &amp; continue <ArrowRight className="size-4" />
             </Button>
           ) : (
-            <Button variant="success" onClick={submit}>
-              <Flag className="size-4" /> Submit for grading
+            <Button variant="success" onClick={submit} disabled={submitting}>
+              <Flag className="size-4" /> {submitting ? "Submitting…" : "Submit for grading"}
             </Button>
           )}
         </div>

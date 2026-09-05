@@ -1,18 +1,41 @@
-# Fluenta — AI IELTS Prep (frontend prototype)
+# Fluenta — AI IELTS Prep
 
-A clickable, **frontend-only** prototype of an AI-powered IELTS preparation platform — a rebranded, visually elevated evolution of the "EinsteinAI" product. Built for **stakeholder validation** before real implementation. **No backend**: all data is mocked and AI grading is simulated.
+An AI IELTS preparation platform — a rebranded, visually elevated evolution of the "EinsteinAI"
+product. Now a real **client/server app**: a React frontend wired to a **Spring Boot (Java 21) + SQLite**
+backend. AI features (writing/speaking feedback, coach chat, live interview) are **held for a later
+stage** — their buttons are disabled ("coming soon") and their endpoints return `501`. Everything
+else — auth, Content Studio authoring, exam listing, **server-side reading/listening scoring**,
+results, progress, certificates and reference content — is real and persisted.
 
 - **Brand:** Fluenta · warm & encouraging design (edit `src/config/brand.ts` to rebrand).
-- **Stack:** React + Vite + TypeScript + Tailwind CSS + shadcn/ui-style components (Radix) + React Router + lucide-react.
+- **Frontend:** React + Vite + TypeScript + Tailwind CSS + shadcn/ui-style components (Radix) + React Router.
+- **Backend:** Spring Boot 3.3 + Java 21 + SQLite (single embedded file). See [`backend/README.md`](backend/README.md).
 
 ## Run locally
+
+Backend (terminal 1):
+
+```bash
+cd backend
+mvnw spring-boot:run
+```
+
+Frontend (terminal 2):
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173. Sign-in is mocked — the login screen at `/login` drops you into the dashboard.
+Open http://localhost:5173. The app bootstraps a demo session against the API automatically (login
+is a prototype: any email maps to the seeded demo user). The API base URL is `VITE_API_URL`
+(default `http://localhost:8080/api`, see `.env.example`).
+
+> **Heads-up (this machine):** the Java web server may fail to start with *"Unable to establish
+> loopback connection"* — a local loopback-intercepting proxy blocks Java's NIO selector, not a bug
+> in this code. See [`backend/README.md`](backend/README.md) for the one-line fixes (allow
+> `java.exe` loopback, or run the backend in Docker/WSL/another host). The frontend shows a clear
+> "Can't reach the API" screen with Retry until the backend is up.
 
 ## Build
 
@@ -58,4 +81,6 @@ src/
   App.tsx                # routes
 ```
 
-> Everything here is a prototype: no real backend, auth, payments, audio capture, or AI. Passages, lessons and results are illustrative placeholders.
+> Real backend + persistence now exist (Spring Boot + SQLite) with server-side reading/listening
+> scoring. Still prototype-level / held for a later stage: real password auth, payments, audio
+> capture, and all AI features (writing & speaking feedback, coach chat, live interview).

@@ -1,0 +1,51 @@
+{
+  "plans": [
+    {
+      "id": "starter",
+      "name": "Starter Plan",
+      "price": "Free",
+      "cadence": "",
+      "detail": "Reading & Writing practice with limits."
+    },
+    {
+      "id": "trial",
+      "name": "7-Day Trial",
+      "badge": "NEW USERS",
+      "price": "$4.99",
+      "cadence": "today",
+      "detail": "$4.99 today, then $19.99/month after day 7.",
+      "highlight": true
+    },
+    {
+      "id": "monthly",
+      "name": "Monthly",
+      "badge": "STANDARD",
+      "price": "$19.99",
+      "cadence": "/month",
+      "detail": "$19.99 after a 3-day free trial, then $19.99/month."
+    },
+    {
+      "id": "sixmonth",
+      "name": "6-Month",
+      "badge": "BEST VALUE",
+      "price": "$49.99",
+      "cadence": "/6 months",
+      "detail": "$49.99 after a 3-day free trial."
+    },
+    {
+      "id": "yearly",
+      "name": "Yearly",
+      "badge": "SAVE 77%",
+      "price": "$54.99",
+      "cadence": "/year",
+      "detail": "Best price for committed learners."
+    }
+  ],
+  "planIncludes": [
+    "Full access to all features",
+    "All 4 IELTS sections",
+    "Unlimited AI grading & feedback",
+    "Fluenta Coach conversations",
+    "Mock exams & self-improvement tools"
+  ]
+}

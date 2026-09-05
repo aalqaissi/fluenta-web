@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { PlayCircle, FileText, Dumbbell, Clock, CheckCircle2 } from "lucide-react";
+import { PlayCircle, FileText, Dumbbell, Clock, CheckCircle2, Loader2, WifiOff } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { lessons } from "@/mock/data";
+import { api } from "@/lib/api";
+import { useAsync } from "@/lib/useAsync";
 import type { Lesson } from "@/mock/types";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,8 @@ const kindIcon = { Video: PlayCircle, Article: FileText, Drill: Dumbbell };
 
 export function LessonsPage() {
   const [filter, setFilter] = useState("all");
+  const { data, loading, error } = useAsync(() => api.content.lessons(), []);
+  const lessons = data ?? [];
   const list = lessons.filter((l) => filter === "all" || l.skill === filter);
 
   return (
@@ -44,11 +47,23 @@ export function LessonsPage() {
         ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {list.map((l) => (
-          <LessonCard key={l.id} lesson={l} />
-        ))}
-      </div>
+      {error ? (
+        <Card className="p-10 text-center">
+          <WifiOff className="mx-auto mb-2 size-6 text-destructive" />
+          <p className="text-sm text-muted-foreground">{error}</p>
+        </Card>
+      ) : loading ? (
+        <Card className="p-10 text-center">
+          <Loader2 className="mx-auto size-6 animate-spin text-primary" />
+          <p className="mt-2 text-sm text-muted-foreground">Loading lessons…</p>
+        </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {list.map((l) => (
+            <LessonCard key={l.id} lesson={l} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

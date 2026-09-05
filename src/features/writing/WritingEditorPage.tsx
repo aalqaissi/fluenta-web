@@ -119,9 +119,12 @@ export function WritingEditorPage() {
           <span className={cn("text-sm font-semibold", enough ? "text-success" : "text-muted-foreground")}>
             {words} words {enough ? "· minimum reached" : `· ${task.minWords - words} to go`}
           </span>
-          <Button variant="success" onClick={submit} disabled={words < 5}>
-            <Flag className="size-4" /> Submit for AI feedback
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="hidden text-xs text-muted-foreground sm:inline">AI feedback is coming soon</span>
+            <Button variant="success" disabled title="AI feedback is coming soon">
+              <Flag className="size-4" /> Submit for AI feedback
+            </Button>
+          </div>
         </div>
       </div>
 

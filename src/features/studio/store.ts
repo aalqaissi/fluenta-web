@@ -1,5 +1,6 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import type { QuestionType } from "@/mock/types";
+import { api, ApiError, type ExamDto } from "@/lib/api";
 
 export type StudioSkill = "reading" | "writing" | "listening" | "speaking" | "full";
 export type PubStatus = "draft" | "published";
@@ -142,60 +143,130 @@ export function newSpeakingQ(): StudioSpeakingQ {
   return { id: uid(), text: "", audioName: null };
 }
 
-// ---- reactive module store -------------------------------------
+// ---- API mapping ------------------------------------------------
 
-let exams: StudioExam[] = seed();
+/** ExamDto (nested content) → flat StudioExam used across the Studio UI. */
+export function toStudioExam(d: ExamDto): StudioExam {
+  const c = (d.content ?? {}) as Partial<StudioExam>;
+  return {
+    id: d.id,
+    skill: d.skill as StudioSkill,
+    title: d.title,
+    module: d.module,
+    status: d.status,
+    timeLimit: d.timeLimit,
+    updatedAt: d.updatedAt,
+    passages: c.passages,
+    sections: c.sections,
+    writing: c.writing,
+    parts: c.parts,
+    full: c.full,
+  };
+}
+
+/** Flat StudioExam → ExamDto for persistence (authoring content nested under `content`). */
+export function toExamDto(e: StudioExam): ExamDto {
+  return {
+    id: e.id,
+    skill: e.skill,
+    title: e.title,
+    module: e.module,
+    status: e.status,
+    scope: "user",
+    timeLimit: e.timeLimit,
+    updatedAt: e.updatedAt,
+    format: "studio",
+    content: {
+      ...(e.passages ? { passages: e.passages } : {}),
+      ...(e.sections ? { sections: e.sections } : {}),
+      ...(e.writing ? { writing: e.writing } : {}),
+      ...(e.parts ? { parts: e.parts } : {}),
+      ...(e.full ? { full: e.full } : {}),
+    },
+  };
+}
+
+// ---- reactive, API-backed store ---------------------------------
+
+let exams: StudioExam[] = [];
+let loading = false;
+let loaded = false;
+let error: string | null = null;
+
+// getSnapshot must return a stable reference between emits (useSyncExternalStore contract).
+let snapshot: { exams: StudioExam[]; loading: boolean; error: string | null } = { exams, loading, error };
 const listeners = new Set<() => void>();
-const emit = () => listeners.forEach((l) => l());
+function emit() {
+  snapshot = { exams, loading, error };
+  listeners.forEach((l) => l());
+}
+const subscribe = (l: () => void) => {
+  listeners.add(l);
+  return () => listeners.delete(l);
+};
 
-function seed(): StudioExam[] {
-  return [
-    {
-      id: "seed-r1", skill: "reading", title: "The History of Glass", module: "academic", status: "published", timeLimit: 20, updatedAt: "2026-09-02T10:00:00Z",
-      passages: [{ id: uid(), title: "The History of Glass", inputMode: "type", text: "Glass is one of the most versatile substances on Earth…", imageName: null, questionType: "true-false-notgiven", questions: [{ id: uid(), prompt: "Glass has been made for thousands of years.", answer: "TRUE" }] }],
-    },
-    {
-      id: "seed-l1", skill: "listening", title: "Joining a Photography Club", module: "academic", status: "published", timeLimit: 30, updatedAt: "2026-09-02T11:00:00Z",
-      sections: [{ id: uid(), title: "Section 1", audioName: "photography-club.mp3", imageName: null, transcript: "", questionType: "sentence-completion", questions: [{ id: uid(), prompt: "The club meets every __________.", answer: "Tuesday" }] }],
-    },
-    {
-      id: "seed-w1", skill: "writing", title: "Writing Practice Sep 3, 2026", module: "both", status: "draft", timeLimit: 60, updatedAt: "2026-09-03T09:00:00Z",
-      writing: { academicT1: { imageName: "internet-access.png", chartType: "line-graph", imageDescription: "Percentage of households with internet access in three countries, 2000–2020.", prompt: "The chart below shows…", minWords: 150, timeMinutes: 20, idealAnswer: "" }, generalT1: { imageName: null, formality: "formal", prompt: "", minWords: 150, timeMinutes: 20, idealAnswer: "" }, task2: { imageName: null, prompt: "Some people think…", minWords: 250, timeMinutes: 40, idealAnswer: "" } },
-    },
-    {
-      id: "seed-s1", skill: "speaking", title: "Speaking Full Mock — Work & Study", module: "both", status: "published", timeLimit: 14, updatedAt: "2026-09-02T12:00:00Z",
-      parts: [newSpeakingPart(1), newSpeakingPart(2), newSpeakingPart(3)],
-    },
-  ];
+function ensureLoaded() {
+  if (loaded || loading) return;
+  loading = true;
+  error = null;
+  emit();
+  api.exams
+    .list()
+    .then((dtos) => {
+      exams = dtos.filter((d) => d.format === "studio").map(toStudioExam);
+      loaded = true;
+    })
+    .catch((e) => {
+      error = e instanceof ApiError ? e.message : String((e as any)?.message ?? e);
+    })
+    .finally(() => {
+      loading = false;
+      emit();
+    });
+}
+
+// Debounced per-exam persistence so rapid editor edits collapse into one PUT.
+const saveTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+function scheduleSave(id: string) {
+  if (saveTimers[id]) clearTimeout(saveTimers[id]);
+  saveTimers[id] = setTimeout(() => {
+    const e = exams.find((x) => x.id === id);
+    if (e) api.exams.update(id, toExamDto(e)).catch(() => { /* stays optimistic; reload resyncs */ });
+  }, 500);
 }
 
 const store = {
-  subscribe(l: () => void) {
-    listeners.add(l);
-    return () => listeners.delete(l);
+  subscribe,
+  get: () => exams,
+  ensureLoaded,
+  reload() {
+    loaded = false;
+    ensureLoaded();
   },
-  get() {
-    return exams;
-  },
-  create(skill: StudioSkill) {
+  create(skill: StudioSkill): string {
     const e = blankExam(skill);
     exams = [e, ...exams];
     emit();
+    api.exams.create(toExamDto(e)).catch(() => { /* optimistic */ });
     return e.id;
   },
   update(id: string, patch: Partial<StudioExam>) {
     exams = exams.map((e) => (e.id === id ? { ...e, ...patch, updatedAt: now() } : e));
     emit();
+    scheduleSave(id);
   },
   remove(id: string) {
     exams = exams.filter((e) => e.id !== id);
     emit();
+    api.exams.remove(id).catch(() => { /* optimistic */ });
   },
   duplicate(id: string) {
     const e = exams.find((x) => x.id === id);
     if (!e) return;
-    exams = [{ ...structuredClone(e), id: uid(), title: `${e.title} (copy)`, status: "draft", updatedAt: now() }, ...exams];
+    const copy: StudioExam = { ...structuredClone(e), id: uid(), title: `${e.title} (copy)`, status: "draft", updatedAt: now() };
+    exams = [copy, ...exams];
     emit();
+    api.exams.create(toExamDto(copy)).catch(() => { /* optimistic */ });
   },
   setStatus(id: string, status: PubStatus) {
     store.update(id, { status });
@@ -204,9 +275,26 @@ const store = {
 
 export const studioStore = store;
 
-export function useStudioExams(): StudioExam[] {
-  return useSyncExternalStore(store.subscribe, store.get, store.get);
+export interface StudioExamsState {
+  exams: StudioExam[];
+  loading: boolean;
+  error: string | null;
+  reload: () => void;
 }
+
+/** Full state (list + loading/error) — used by the Studio home for proper loading UX. */
+export function useStudioExamsState(): StudioExamsState {
+  useEffect(() => {
+    ensureLoaded();
+  }, []);
+  const snap = useSyncExternalStore(subscribe, () => snapshot, () => snapshot);
+  return { exams: snap.exams, loading: snap.loading, error: snap.error, reload: store.reload };
+}
+
+export function useStudioExams(): StudioExam[] {
+  return useStudioExamsState().exams;
+}
+
 export function useStudioExam(id: string | undefined): StudioExam | undefined {
   const all = useStudioExams();
   return all.find((e) => e.id === id);
