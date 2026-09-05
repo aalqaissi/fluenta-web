@@ -95,16 +95,14 @@ export function WritingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
             <Field label="Task 1 question">
               <Textarea value={w.academicT1.prompt} onChange={(e) => setA({ prompt: e.target.value })} rows={4} placeholder="The chart below shows… Summarise the information…" />
             </Field>
-            <Collapsible label="Advanced">
-              <Field label="Chart type">
-                <Select value={w.academicT1.chartType} onValueChange={(v) => setA({ chartType: v as ChartType })}>
-                  <SelectTrigger><SelectValue placeholder="Choose a chart type…" /></SelectTrigger>
-                  <SelectContent>
-                    {CHART_TYPES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </Collapsible>
+            <Field label="Chart type">
+              <Select value={w.academicT1.chartType} onValueChange={(v) => setA({ chartType: v as ChartType })}>
+                <SelectTrigger><SelectValue placeholder="Choose a chart type…" /></SelectTrigger>
+                <SelectContent>
+                  {CHART_TYPES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
             <Field label="Image description (for accurate grading)">
               <Textarea value={w.academicT1.imageDescription} onChange={(e) => setA({ imageDescription: e.target.value })} rows={2} placeholder="Describe exactly what the chart shows — axes, series, units, notable values — so the AI can grade against it." />
             </Field>
@@ -124,16 +122,14 @@ export function WritingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
             <Field label="Task 1 question (letter prompt)">
               <Textarea value={w.generalT1.prompt} onChange={(e) => setG({ prompt: e.target.value })} rows={4} placeholder="You recently… Write a letter to… In your letter…" />
             </Field>
-            <Collapsible label="Advanced">
-              <Field label="Letter formality">
-                <Select value={w.generalT1.formality} onValueChange={(v) => setG({ formality: v as Formality })}>
-                  <SelectTrigger><SelectValue placeholder="Choose formality…" /></SelectTrigger>
-                  <SelectContent>
-                    {FORMALITY.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </Collapsible>
+            <Field label="Letter formality">
+              <Select value={w.generalT1.formality} onValueChange={(v) => setG({ formality: v as Formality })}>
+                <SelectTrigger><SelectValue placeholder="Choose formality…" /></SelectTrigger>
+                <SelectContent>
+                  {FORMALITY.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
             <MinWordsTime minWords={w.generalT1.minWords} timeMinutes={w.generalT1.timeMinutes} onChange={setG} />
             <Collapsible label="Add an ideal answer (optional)">
               <Textarea value={w.generalT1.idealAnswer} onChange={(e) => setG({ idealAnswer: e.target.value })} rows={5} placeholder={IDEAL_PLACEHOLDER} />
