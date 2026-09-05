@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, Sparkles, CheckCircle2, Loader2, BadgeCheck, TrendingUp, Play } from "lucide-react";
-import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { StandardSpeakingPractice } from "./StandardSpeakingPractice";
+import { getSpeakingExam } from "@/lib/mockApi";
 import { cn } from "@/lib/utils";
 
-type Step = "intro" | "generating" | "practice";
+type Step = "intro" | "generating";
 
 const PARTS = [
   "Speaking Part 1 (Introduction & Interview)",
@@ -34,7 +33,7 @@ export function SpeakingStandardPage() {
       setProgress((p) => {
         if (p >= 100) {
           clearInterval(t);
-          setTimeout(() => setStep("practice"), 350);
+          setTimeout(() => navigate(`/exam/speaking/${getSpeakingExam().id}`), 400);
           return 100;
         }
         return Math.min(100, p + 4);
@@ -42,23 +41,6 @@ export function SpeakingStandardPage() {
     }, 120);
     return () => clearInterval(t);
   }, [step]);
-
-  if (step === "practice") {
-    return (
-      <div>
-        <PageHeader
-          title="Speaking practice"
-          subtitle="Hear the examiner, record your answer, and get AI feedback on fluency, vocabulary, grammar and pronunciation."
-          actions={
-            <Button variant="ghost" size="sm" onClick={() => navigate("/simulation/speaking")}>
-              <ArrowLeft className="size-4" /> Modes
-            </Button>
-          }
-        />
-        <StandardSpeakingPractice />
-      </div>
-    );
-  }
 
   if (step === "generating") {
     const done = Math.floor((progress / 100) * PARTS.length);

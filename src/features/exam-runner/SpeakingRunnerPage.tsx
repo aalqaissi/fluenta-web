@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Flag, Mic, RotateCcw, Square } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, Flag, Lightbulb, Mic, RotateCcw, Square } from "lucide-react";
 import { getSpeakingExam, getSpeakingFeedback, speakingOverall } from "@/lib/mockApi";
 import { studioStore } from "@/features/studio/store";
 import { studioSpeakingToExam } from "@/features/studio/convert";
@@ -9,9 +9,19 @@ import { fullExamStore } from "@/features/simulation/fullexam-store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { ExaminerAudio } from "./ExaminerAudio";
 import { GradingModal } from "./GradingModal";
 import { pad2, cn } from "@/lib/utils";
+
+// max length of a single recording per part (matches the real test's timing)
+const RECORD_CAP = 150; // 2:30
+
+const TIPS = [
+  "Read all the questions first, then answer them one after another in a single, connected response.",
+  "Give reasons and examples — don't stop at a one-sentence answer.",
+  "Use a range of tenses and some less common vocabulary where it fits naturally.",
+  "It's fine to pause to think — use fillers like \"That's an interesting question…\".",
+  "Keep talking until you've covered every question in the part.",
+];
 
 export function SpeakingRunnerPage() {
   const { id } = useParams();
@@ -29,10 +39,11 @@ export function SpeakingRunnerPage() {
   const [recorded, setRecorded] = useState<Record<string, boolean>>({});
   const [grading, setGrading] = useState(false);
   const [gradedBand, setGradedBand] = useState(0);
+  const [showTips, setShowTips] = useState(false);
   const ref = useRef<number | null>(null);
 
   const part = exam.parts[pIdx];
-  const cap = part.durationSec;
+  const cap = RECORD_CAP;
   const completed = Object.values(recorded).filter(Boolean).length;
 
   useEffect(() => {
@@ -76,12 +87,7 @@ export function SpeakingRunnerPage() {
     const feedback = getSpeakingFeedback();
     const overall = speakingOverall(feedback);
     setGradedBand(overall);
-    setLastSpeaking({
-      examId: exam.id,
-      overall,
-      feedback,
-      partsRecorded: completed,
-    });
+    setLastSpeaking({ examId: exam.id, overall, feedback, partsRecorded: completed });
     setGrading(true);
   }
 
@@ -100,15 +106,13 @@ export function SpeakingRunnerPage() {
     <div className="min-h-dvh bg-background">
       {/* top bar */}
       <div className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1000px] items-center gap-4 px-4 py-3 md:px-6">
+        <div className="mx-auto flex max-w-[900px] items-center gap-4 px-4 py-3 md:px-6">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="size-4" /> Back
           </Button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-sm font-bold">{exam.title}</h1>
-            <p className="text-xs text-muted-foreground">
-              Speaking · Part {part.number} of {exam.parts.length}
-            </p>
+            <p className="text-xs text-muted-foreground">Speaking · Part {part.number} of {exam.parts.length}</p>
           </div>
           <Badge variant="muted" className="hidden sm:inline-flex">
             Recording {pIdx + 1} of {exam.parts.length} · {completed} completed
@@ -116,51 +120,54 @@ export function SpeakingRunnerPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1000px] px-4 py-5 md:px-6">
+      <div className="mx-auto max-w-[900px] px-4 py-5 md:px-6">
         {/* part header */}
-        <div className="mb-4">
-          <Badge variant="info" className="mb-1">Part {part.number}</Badge>
-          <h2 className="text-lg font-extrabold">{part.title}</h2>
+        <div className="mb-1 text-xs font-bold uppercase tracking-wide text-primary">Speaking Part {part.number}</div>
+        <h2 className="mb-4 text-lg font-extrabold">{part.title}</h2>
+
+        {/* tips */}
+        <div className="mb-4 rounded-2xl border border-border bg-card">
+          <button
+            type="button"
+            onClick={() => setShowTips((v) => !v)}
+            className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold"
+            aria-expanded={showTips}
+          >
+            <span className="flex items-center gap-2"><Lightbulb className="size-4 text-primary" /> {showTips ? "Hide" : "Show"} speaking tips</span>
+            <ChevronDown className={cn("size-4 transition-transform", showTips && "rotate-180")} />
+          </button>
+          {showTips && (
+            <ul className="ml-1 list-disc space-y-1.5 px-6 pb-4 pl-8 text-sm text-muted-foreground">
+              {TIPS.map((t) => <li key={t}>{t}</li>)}
+            </ul>
+          )}
         </div>
 
         {/* prompt */}
         {part.cueCard ? (
           <Card className="mb-5 border-dashed p-5">
-            <div className="mb-2 flex items-center justify-between">
-              <Badge variant="secondary">Cue card</Badge>
-              <ExaminerAudio label="Play examiner" />
-            </div>
+            <Badge variant="secondary" className="mb-2">Cue card</Badge>
             <p className="text-lg font-bold">{part.cueCard}</p>
             {part.bullets && part.bullets.length > 0 && (
               <>
                 <p className="mt-2 text-sm text-muted-foreground">You should say:</p>
                 <ul className="mt-1 list-inside list-disc space-y-0.5 text-sm">
-                  {part.bullets.map((b) => (
-                    <li key={b}>{b}</li>
-                  ))}
+                  {part.bullets.map((b) => <li key={b}>{b}</li>)}
                 </ul>
               </>
             )}
-            <p className="mt-3 text-xs text-muted-foreground">1 minute to prepare · up to 2 minutes to speak.</p>
+            <p className="mt-3 text-xs text-muted-foreground">You have 1 minute to prepare, then speak for up to 2 minutes in one recording.</p>
           </Card>
         ) : (
           <Card className="mb-5 p-5">
-            <div className="mb-2 flex items-center justify-between">
-              <Badge variant="info">Examiner questions</Badge>
-              <span className="text-xs text-muted-foreground">Answer them all in a single recording.</span>
-            </div>
+            <p className="mb-3 text-sm font-semibold">
+              The examiner will ask you these questions one after another — answer them all in a single recording:
+            </p>
             <ul className="space-y-2.5">
               {part.questions.map((q, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-sm">
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                    {i + 1}
-                  </span>
-                  <div className="flex-1">
-                    <p>{q}</p>
-                    <div className="mt-1.5">
-                      <ExaminerAudio label="Play" />
-                    </div>
-                  </div>
+                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">{i + 1}</span>
+                  <p className="flex-1">{q}</p>
                 </li>
               ))}
             </ul>
@@ -181,7 +188,7 @@ export function SpeakingRunnerPage() {
             {recording ? <Square className="size-8" /> : <Mic className="size-9" />}
           </button>
           <p className="mt-3 text-sm font-semibold tabular-nums">
-            {recording ? "Recording…" : isDone ? "Recorded" : "Tap to record"} · {pad2(Math.floor(elapsed / 60))}:{pad2(elapsed % 60)} / {pad2(Math.floor(cap / 60))}:{pad2(cap % 60)}
+            {recording ? "Recording…" : isDone ? "Recorded" : "Start recording"} · {pad2(Math.floor(elapsed / 60))}:{pad2(elapsed % 60)} / {pad2(Math.floor(cap / 60))}:{pad2(cap % 60)}
           </p>
           {isDone && !recording && (
             <Button variant="outline" size="sm" className="mt-3" onClick={toggleRecord}>
@@ -201,10 +208,7 @@ export function SpeakingRunnerPage() {
               <button
                 key={i}
                 onClick={() => goToPart(i)}
-                className={cn(
-                  "size-2.5 rounded-full transition-colors",
-                  i === pIdx ? "bg-primary" : "bg-border hover:bg-muted-foreground/40"
-                )}
+                className={cn("size-2.5 rounded-full transition-colors", i === pIdx ? "bg-primary" : "bg-border hover:bg-muted-foreground/40")}
                 aria-label={`Part ${i + 1}`}
               />
             ))}
