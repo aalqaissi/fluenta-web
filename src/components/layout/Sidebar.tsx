@@ -9,9 +9,39 @@ import { primaryNav, secondaryNav, simulationChildren, simulationNav, type NavIt
 import { ProfileMenu } from "./ProfileMenu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+function SoonRow({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
+  const row = (
+    <div
+      className={cn(
+        "flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted-foreground opacity-70",
+        collapsed && "justify-center px-0"
+      )}
+      title="Coming soon"
+      aria-disabled="true"
+    >
+      <item.icon className="size-[18px] shrink-0" />
+      {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+      {!collapsed && (
+        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">soon</span>
+      )}
+    </div>
+  );
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{row}</TooltipTrigger>
+        <TooltipContent side="right">{item.label} — coming soon</TooltipContent>
+      </Tooltip>
+    );
+  }
+  return row;
+}
+
 function NavRow({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   const { isLocked } = useApp();
   const locked = item.lockSkill ? isLocked(item.lockSkill) : false;
+
+  if (item.soon) return <SoonRow item={item} collapsed={collapsed} />;
 
   const inner = (
     <NavLink

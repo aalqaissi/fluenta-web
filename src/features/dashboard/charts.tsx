@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { SeriesPoint, SkillStat } from "@/lib/api";
 import { skillMeta } from "@/components/common/SkillIcon";
 import { formatBand } from "@/lib/utils";
@@ -85,6 +85,90 @@ export function SkillBarChart({ skills }: { skills: SkillStat[] }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/** Radar / spider chart of the current band per skill (0–9), matching the Einstein-style analysis. */
+export function SkillRadarChart({ skills }: { skills: SkillStat[] }) {
+  const W = 420;
+  const H = 320;
+  const cx = W / 2;
+  const cy = H / 2 + 4;
+  const R = 108;
+  const N = Math.max(skills.length, 3);
+  const [hover, setHover] = useState<number | null>(null);
+
+  const angle = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / N;
+  const point = (radius: number, i: number): [number, number] => [
+    cx + radius * Math.cos(angle(i)),
+    cy + radius * Math.sin(angle(i)),
+  ];
+  const poly = (radius: number | ((i: number) => number)) =>
+    skills.map((_, i) => point(typeof radius === "function" ? radius(i) : radius, i).join(",")).join(" ");
+
+  const dataR = (i: number) => ((skills[i].band ?? 0) / 9) * R;
+
+  return (
+    <div className="w-full overflow-x-auto">
+      <svg viewBox={`0 0 ${W} ${H}`} className="mx-auto h-72 w-full max-w-[440px]" role="img" aria-label="Band by skill">
+        {/* grid rings at 3/6/9 */}
+        {[3, 6, 9].map((b) => (
+          <polygon key={b} points={poly((b / 9) * R)} className="fill-none stroke-border" strokeWidth={1} />
+        ))}
+        {/* axes + labels */}
+        {skills.map((s, i) => {
+          const [ax, ay] = point(R, i);
+          const [lx, ly] = point(R + 20, i);
+          const anchor = Math.abs(lx - cx) < 8 ? "middle" : lx > cx ? "start" : "end";
+          const meta = skillMeta[s.key as keyof typeof skillMeta];
+          return (
+            <g key={s.key}>
+              <line x1={cx} y1={cy} x2={ax} y2={ay} className="stroke-border" strokeWidth={1} />
+              <text x={lx} y={ly + 3} textAnchor={anchor} className="fill-muted-foreground text-[11px] font-semibold">
+                {meta?.label ?? s.label}
+              </text>
+            </g>
+          );
+        })}
+        {/* center scale hint */}
+        <text x={cx + 3} y={cy - (R * 9) / 9 + 10} className="fill-muted-foreground text-[9px]">9</text>
+        {/* data polygon */}
+        <polygon points={poly(dataR)} className="fill-primary/20 stroke-primary" strokeWidth={2} strokeLinejoin="round" />
+        {/* dots */}
+        {skills.map((s, i) => {
+          const [x, y] = point(dataR(i), i);
+          return (
+            <circle
+              key={s.key}
+              cx={x}
+              cy={y}
+              r={hover === i ? 5 : 3.5}
+              className="cursor-pointer fill-primary"
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+            >
+              <title>{`${skillMeta[s.key as keyof typeof skillMeta]?.label ?? s.label}: ${s.band == null ? "no data" : formatBand(s.band)}`}</title>
+            </circle>
+          );
+        })}
+        {/* hover tooltip */}
+        {hover != null && (() => {
+          const s = skills[hover];
+          const [x, y] = point(dataR(hover), hover);
+          const label = skillMeta[s.key as keyof typeof skillMeta]?.label ?? s.label;
+          const tx = Math.min(Math.max(x, 54), W - 54);
+          return (
+            <g transform={`translate(${tx}, ${Math.max(y - 34, 12)})`}>
+              <rect x={-52} y={-14} width={104} height={30} rx={6} className="fill-card stroke-border" />
+              <text x={0} y={-2} textAnchor="middle" className="fill-foreground text-[11px] font-bold">{label}</text>
+              <text x={0} y={10} textAnchor="middle" className="fill-primary text-[10px] font-semibold">
+                Band Score: {s.band == null ? "–" : formatBand(s.band)}
+              </text>
+            </g>
+          );
+        })()}
+      </svg>
     </div>
   );
 }

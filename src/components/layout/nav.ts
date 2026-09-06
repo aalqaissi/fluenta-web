@@ -14,6 +14,8 @@ import {
   Bot,
   Wand2,
   MessageSquare,
+  Languages,
+  SpellCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,6 +26,8 @@ export interface NavItem {
   lockSkill?: "listening" | "speaking" | "full-exam";
   aiBadge?: boolean;
   adminBadge?: boolean;
+  /** not built yet — shown disabled with a "SOON" badge */
+  soon?: boolean;
 }
 
 export interface NavGroup {
@@ -41,6 +45,8 @@ export const simulationChildren: NavItem[] = [
   { label: "Writing", to: "/simulation/writing", icon: PenLine },
   { label: "Listening", to: "/simulation/listening", icon: Headphones, lockSkill: "listening" },
   { label: "Speaking", to: "/simulation/speaking", icon: Mic, lockSkill: "speaking" },
+  { label: "Vocabulary", to: "/simulation/vocabulary", icon: Languages, soon: true },
+  { label: "Grammar", to: "/simulation/grammar", icon: SpellCheck, soon: true },
   { label: "Full Exam", to: "/simulation/full-exam", icon: GraduationCap, lockSkill: "full-exam" },
 ];
 

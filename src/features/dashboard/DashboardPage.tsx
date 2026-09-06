@@ -21,7 +21,7 @@ import { FeedbackModal } from "@/components/modals/FeedbackModal";
 import { StudyStreak } from "./StudyStreak";
 import { ExamCountdown } from "./ExamCountdown";
 import { TrackSwitcher } from "./TrackSwitcher";
-import { ProgressLineChart, SkillBarChart } from "./charts";
+import { ProgressLineChart, SkillRadarChart } from "./charts";
 import type { SkillKey } from "@/mock/types";
 
 const PRACTICE: { skill: SkillKey; desc: string }[] = [
@@ -204,7 +204,7 @@ export function DashboardPage() {
                 <p className="text-sm text-muted-foreground">Detailed performance analysis across all skills.</p>
               </div>
 
-              <SkillBarChart skills={ov.skills} />
+              <SkillRadarChart skills={ov.skills} />
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {ov.strongest && (

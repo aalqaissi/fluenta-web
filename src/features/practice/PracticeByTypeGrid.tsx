@@ -24,7 +24,7 @@ export function PracticeByTypeGrid({ skill, types }: { skill: SkillKey; types: Q
               <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
             </div>
             <h4 className="font-bold leading-snug">{QUESTION_TYPE_LABEL[t]}</h4>
-            <p className="mt-0.5 text-xs text-muted-foreground">Strategy · Quick tips · Practice</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Passage + questions of this type</p>
             {count > 0 && (
               <Badge variant="muted" className="mt-2 self-start">
                 {count} questions

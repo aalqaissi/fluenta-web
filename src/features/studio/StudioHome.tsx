@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   BookOpen, PenLine, Headphones, Mic, GraduationCap, Pencil, Copy, Eye, Trash2,
-  Upload, CloudOff, BadgeCheck, Loader2, WifiOff,
+  Upload, CloudOff, BadgeCheck, Loader2, WifiOff, Languages, SpellCheck,
 } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -49,6 +49,13 @@ export function StudioHome() {
           {SKILLS.map((s) => (
             <Button key={s.key} variant="outline" onClick={() => create(s.key)}>
               <s.icon className="size-4" /> {s.label}
+            </Button>
+          ))}
+          {/* Not built yet — disabled with a SOON badge (see docs/ROADMAP.md) */}
+          {[{ label: "Vocabulary", icon: Languages }, { label: "Grammar", icon: SpellCheck }].map((s) => (
+            <Button key={s.label} variant="outline" disabled title="Coming soon">
+              <s.icon className="size-4" /> {s.label}
+              <span className="ml-1 rounded bg-muted px-1 text-[10px] font-bold uppercase">soon</span>
             </Button>
           ))}
           <Button variant="outline" onClick={() => navigate("/studio/certificate/new")}>
