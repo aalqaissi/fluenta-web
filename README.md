@@ -33,8 +33,13 @@ Backend (terminal 1):
 
 ```bash
 cd backend
-mvnw spring-boot:run
+run.cmd
 ```
+
+`backend/run.cmd` auto-detects a JDK 21 (your PATH `java` may be another version), sets `JAVA_HOME`
+for you, and starts the API on **http://localhost:8080** — open that URL to see a health page. On
+first run it seeds the SQLite database. (Cross-platform / no wrapper script: `mvnw spring-boot:run`
+with `JAVA_HOME` pointing at a JDK 21.)
 
 Frontend (terminal 2):
 
@@ -48,11 +53,11 @@ as the seeded demo user (Sara, already onboarded → straight to the dashboard);
 email** creates a fresh account that goes through onboarding first. The API base URL is
 `VITE_API_URL` (default `http://localhost:8080/api`, see `.env.example`).
 
-> **Heads-up (this machine):** the Java web server may fail to start with *"Unable to establish
-> loopback connection"* — a local loopback-intercepting proxy blocks Java's NIO selector, not a bug
-> in this code. See [`backend/README.md`](backend/README.md) for the one-line fixes (allow
-> `java.exe` loopback, or run the backend in Docker/WSL/another host). The frontend shows a clear
-> "Can't reach the API" screen with Retry until the backend is up.
+> **Heads-up — if the backend won't start** with *"Unable to establish loopback connection"*: a
+> local loopback-intercepting proxy (seen: `mscopilot_proxy.exe`) breaks Java's NIO selector — it's
+> not a bug in this code. **Fix:** quit that proxy (Task Manager → End task) and re-run, **or** run
+> the backend in Docker/WSL/another host. Until the API is up, the frontend shows a clear
+> "Can't reach the API" screen with Retry. More detail in [`backend/README.md`](backend/README.md).
 
 ## Build
 
