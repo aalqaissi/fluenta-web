@@ -37,7 +37,7 @@ you need to move a file; the code comes from GitHub in step 2.
 
 ### 1. Install the prerequisites
 
-You need three tools: **Git**, **Node.js 22 LTS**, and **JDK 21 (Temurin)**. Maven is **not** required
+You need three tools: **Git**, **Node.js LTS (v22 or newer)**, and **JDK 21 (Temurin)**. Maven is **not** required
 — the repo ships the `mvnw` wrapper. Pick **Option A** (fastest) or **Option B** (manual).
 
 #### Option A — winget (built into Windows 10/11, fastest)
@@ -68,8 +68,9 @@ to **Verify** below.
    **"Git from the command line and also from 3rd-party software"** (the default).
 3. Click **Install**, then **Finish**.
 
-**Node.js 22 LTS**
-1. Open https://nodejs.org and download the **LTS** Windows Installer (`.msi`, 64-bit).
+**Node.js (LTS — v22 or newer)**
+1. Open https://nodejs.org and download the **LTS** Windows Installer (`.msi`, 64-bit). The current
+   LTS (v24) is fine; anything **v22+** works.
 2. Run it → **Next** → accept the license → **Next** → keep the default install folder → **Next**.
 3. On **Custom Setup**, leave everything selected (npm and **"Add to PATH"** are on by default) → **Next**.
    The **"Tools for Native Modules"** checkbox is **not** needed — leave it unchecked → **Next**.
@@ -93,9 +94,16 @@ npm -v
 java -version
 ```
 
-Expected: Git 2.x, Node **v22.x**, npm 10.x, Java **21**. `git`, `node`, and `npm` must be on PATH.
-Java only needs to be **version 21 present on the machine** — `backend\run.cmd` auto-detects a JDK 21
-even if `java -version` prints a different version.
+Expected: Git 2.x, Node **v22 or newer** (LTS — e.g. v22 or v24 both work), npm 10.x, Java **21**.
+`git`, `node`, and `npm` must be on PATH. Java only needs to be **version 21 present on the machine**
+— `backend\run.cmd` auto-detects a JDK 21 even if `java -version` prints a different version.
+
+> **If `npm -v` errors with `npm.ps1 cannot be loaded because running scripts is disabled`** —
+> PowerShell blocks scripts by default. Allow them for your user (one time), then reopen the terminal:
+> ```bash
+> Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+> ```
+> Answer **Y**. (Or just use `npm.cmd` instead of `npm` everywhere — e.g. `npm.cmd install`.)
 
 ### 2. Get the code
 
@@ -141,6 +149,9 @@ the dashboard) or type a **new email** (→ onboarding wizard → dashboard). No
 
 ### Troubleshooting
 
+- **`npm` errors with `running scripts is disabled` / `npm.ps1 cannot be loaded`** — PowerShell blocks
+  scripts by default. Run once: `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
+  (answer **Y**), reopen the terminal. Or use `npm.cmd` in place of `npm`.
 - **Backend stops with `Unable to establish loopback connection`** — a local proxy (seen:
   `mscopilot_proxy.exe`) intercepts loopback and breaks Java's NIO selector. **Fix:** quit that
   process (Task Manager → Details → End task) and re-run `.\run.cmd`; or run the backend in Docker/WSL.
