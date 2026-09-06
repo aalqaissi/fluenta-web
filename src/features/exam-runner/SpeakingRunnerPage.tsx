@@ -218,12 +218,9 @@ export function SpeakingRunnerPage() {
               Next part <ArrowRight className="size-4" />
             </Button>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="hidden text-xs text-muted-foreground sm:inline">AI review is coming soon</span>
-              <Button variant="success" disabled title="AI review is coming soon">
-                <Flag className="size-4" /> Submit for review
-              </Button>
-            </div>
+            <Button variant="success" onClick={submit}>
+              <Flag className="size-4" /> Submit for review
+            </Button>
           )}
         </div>
       </div>

@@ -75,6 +75,9 @@ export function ListeningResultsPage() {
             <Button variant="outline" onClick={() => navigate("/simulation/listening")}>
               <RefreshCw className="size-4" /> Retake
             </Button>
+            <Button onClick={() => navigate("/coach")}>
+              <Bot className="size-4" /> Ask Yalla Coach
+            </Button>
           </div>
         </div>
       </Card>

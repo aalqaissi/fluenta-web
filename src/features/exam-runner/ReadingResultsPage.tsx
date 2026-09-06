@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, RefreshCw, Sparkles, Trophy, Loader2 } from "lucide-react";
+import { ArrowLeft, Bot, RefreshCw, Sparkles, Trophy, Loader2 } from "lucide-react";
 import { useAsync } from "@/lib/useAsync";
 import { loadReadingExam } from "./loadExam";
 import { getLastAttempt } from "@/store/attempt-store";
@@ -64,6 +64,9 @@ export function ReadingResultsPage() {
           <div className="flex flex-wrap gap-2 sm:justify-end">
             <Button variant="outline" onClick={() => navigate("/simulation/reading")}>
               <RefreshCw className="size-4" /> Retake
+            </Button>
+            <Button onClick={() => navigate("/coach")}>
+              <Bot className="size-4" /> Ask Yalla Coach
             </Button>
           </div>
         </div>
