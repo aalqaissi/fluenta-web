@@ -5,16 +5,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-/** Root health page so hitting http://localhost:8080 confirms the API is up (no auth needed). */
+/** Health endpoint (no auth needed). `/` is left for the bundled SPA — see {@code config.SpaConfig}. */
 @RestController
 public class HomeController {
 
-    @GetMapping("/")
-    public Map<String, Object> home() {
+    @GetMapping("/health")
+    public Map<String, Object> health() {
         return Map.of(
                 "app", "Yalla English Hub API",
                 "status", "ok",
-                "api", "/api",
-                "docs", "See backend/README.md");
+                "api", "/api");
     }
 }

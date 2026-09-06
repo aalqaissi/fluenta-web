@@ -126,7 +126,8 @@ cd backend
 ```
 
 - Auto-detects JDK 21, **seeds a local SQLite database** (`backend/data/fluenta.db`) on first run, and
-  serves the API at **http://localhost:8080** (open that URL — you should see a small health JSON).
+  serves the API at **http://localhost:8080** (check it's up at **http://localhost:8080/health**). In
+  dev the UI runs on :5173 (next step); :8080 only serves the API.
 - The **first** run downloads Maven + dependencies (a few minutes); later runs are fast.
 - Leave this terminal running. (PowerShell needs `.\run.cmd`; `cmd.exe` accepts plain `run.cmd`.)
 
@@ -180,6 +181,39 @@ http://localhost:5173.
 npm run build      # type-checks then builds to dist/
 npm run preview    # serve the production build locally
 ```
+
+## Package as a single binary (source-free install)
+
+Bundle the **whole app — web UI + API — into one runnable JAR**, so a destination laptop needs only a
+**Java 21 runtime** and that JAR (no source, Node, or Maven).
+
+On a machine that has the source + Node + a JDK 21, from the repo root:
+
+```bash
+.\package.cmd
+```
+
+It builds the frontend, copies it into the backend (Spring Boot then serves the UI on the same port
+as the API), and packages `backend/target/fluenta-api-*.jar`. It also assembles a ready-to-copy
+bundle in **`dist-app/`**:
+
+```
+dist-app/
+  yalla-english-hub.jar   # the whole app (UI + API)
+  start.cmd               # double-click to run (auto-detects Java 21)
+  README.txt              # run instructions
+```
+
+### Install on a destination laptop (binary only)
+
+1. Install a **Java 21 runtime** — Temurin JRE or JDK 21 from https://adoptium.net (Windows x64).
+2. Copy the **`dist-app/`** folder to the laptop (anywhere).
+3. Double-click **`start.cmd`** (or run `java -jar yalla-english-hub.jar` in that folder).
+4. Open **http://localhost:8080**.
+
+The database is created at `data/fluenta.db` next to the JAR on first run; delete that folder to reset.
+The JAR is self-contained — no source tree needed on that machine. (Same loopback caveat: if it fails
+with *"Unable to establish loopback connection"*, quit `mscopilot_proxy.exe` and re-run.)
 
 ## Deploy to Netlify
 

@@ -6,6 +6,7 @@ dist-ssr
 .env
 .env.*
 !.env.example
+!.env.production
 npm-debug.log*
 .vite
 
@@ -24,3 +25,7 @@ artifact/
 backend/target/
 backend/data/
 backend/.mvn/wrapper/maven-wrapper.jar
+# bundled frontend build (copied in by package.cmd at packaging time)
+backend/src/main/resources/static/
+# single-binary deploy bundle (produced by package.cmd)
+dist-app/

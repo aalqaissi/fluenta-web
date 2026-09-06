@@ -23,4 +23,4 @@ if not defined JDK (
 set "JAVA_HOME=%JDK%"
 echo [run.cmd] Using JAVA_HOME=%JAVA_HOME%
 echo [run.cmd] Starting the API on http://localhost:8080 ...
-call mvnw.cmd spring-boot:run %*
+call .\mvnw.cmd spring-boot:run %*
