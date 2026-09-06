@@ -37,17 +37,65 @@ you need to move a file; the code comes from GitHub in step 2.
 
 ### 1. Install the prerequisites
 
-Download and install these (accept the defaults; where offered, keep **"Add to PATH"** ticked). After
-installing, **close and reopen** any terminal so the PATH updates.
+You need three tools: **Git**, **Node.js 22 LTS**, and **JDK 21 (Temurin)**. Maven is **not** required
+— the repo ships the `mvnw` wrapper. Pick **Option A** (fastest) or **Option B** (manual).
 
-| Tool | Why | Download | Verify (in a new terminal) |
-|---|---|---|---|
-| **Git** | to clone the repo | https://git-scm.com/download/win | `git --version` |
-| **Node.js 22 LTS** | frontend | https://nodejs.org | `node -v` → v22.x, `npm -v` |
-| **JDK 21 (Temurin)** | backend | https://adoptium.net/temurin/releases/?version=21 | `java -version` → 21 |
+#### Option A — winget (built into Windows 10/11, fastest)
 
-Maven is **not** required — the repo ships the `mvnw` wrapper. If `java -version` shows a different
-version than 21, that's fine: `backend\run.cmd` auto-detects a JDK 21.
+Open **PowerShell as Administrator** (Start → type "PowerShell" → right-click → *Run as administrator*)
+and run:
+
+```bash
+winget install --id Git.Git -e --source winget
+```
+```bash
+winget install --id OpenJS.NodeJS.LTS -e --source winget
+```
+```bash
+winget install --id EclipseAdoptium.Temurin.21.JDK -e --source winget
+```
+
+Accept any prompts. If `winget` isn't recognized, install **"App Installer"** from the Microsoft
+Store (that provides winget), or use Option B. When done, **close and reopen** the terminal, then jump
+to **Verify** below.
+
+#### Option B — manual installers
+
+**Git**
+1. Open https://git-scm.com/download/win — the 64-bit installer downloads automatically.
+2. Run `Git-*-64-bit.exe`. Click **Next** through every screen — the defaults are correct. The one
+   screen that matters, **"Adjusting your PATH environment"**, must stay on
+   **"Git from the command line and also from 3rd-party software"** (the default).
+3. Click **Install**, then **Finish**.
+
+**Node.js 22 LTS**
+1. Open https://nodejs.org and download the **LTS** Windows Installer (`.msi`, 64-bit).
+2. Run it → **Next** → accept the license → **Next** → keep the default install folder → **Next**.
+3. On **Custom Setup**, leave everything selected (npm and **"Add to PATH"** are on by default) → **Next**.
+   The **"Tools for Native Modules"** checkbox is **not** needed — leave it unchecked → **Next**.
+4. **Install** → **Finish**.
+
+**JDK 21 (Eclipse Temurin)**
+1. Open https://adoptium.net/temurin/releases/?version=21 → set **Operating System: Windows**,
+   **Architecture: x64**, **Package Type: JDK**, and download the **`.msi`**.
+2. Run the installer → **Next** → accept the license → **Next**.
+3. On the **Custom Setup** screen, click the drop-downs for **"Set JAVA_HOME variable"** and
+   **"Add to PATH"** and choose **"Will be installed on local hard drive"** (these are off by
+   default — turn them on) → **Next**.
+4. **Install** → **Finish**.
+
+#### Verify (open a NEW terminal after installing)
+
+```bash
+git --version
+node -v
+npm -v
+java -version
+```
+
+Expected: Git 2.x, Node **v22.x**, npm 10.x, Java **21**. `git`, `node`, and `npm` must be on PATH.
+Java only needs to be **version 21 present on the machine** — `backend\run.cmd` auto-detects a JDK 21
+even if `java -version` prints a different version.
 
 ### 2. Get the code
 
