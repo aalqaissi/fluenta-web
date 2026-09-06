@@ -2,9 +2,10 @@
 
 An AI English & IELTS preparation platform — a rebranded, visually elevated evolution of the
 "EinsteinAI" product. A real **client/server app**: a React frontend wired to a **Spring Boot
-(Java 21) + SQLite** backend. AI features (writing/speaking feedback, coach chat, live interview)
-are **held for a later stage** — their buttons are disabled ("coming soon") and their endpoints
-return `501`. Everything else is real and persisted.
+(Java 21) + SQLite** backend. AI features (writing/speaking feedback, coach chat, live interview,
+Studio generation) are **enabled but run on mock/simulated data** — the real AI backend isn't built
+yet (`/api/ai/*` returns `501`, and the UI uses local demo content). Everything else is real and
+persisted.
 
 **This build** (Einstein-style dashboard):
 - **Login-first** flow → a 4-step **onboarding** wizard (exam, purpose, date, level + target band) → dashboard.
@@ -27,37 +28,92 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md) for pending/held items to prioritize.
 - **Frontend:** React + Vite + TypeScript + Tailwind CSS + shadcn/ui-style components (Radix) + React Router.
 - **Backend:** Spring Boot 3.3 + Java 21 + SQLite (single embedded file). See [`backend/README.md`](backend/README.md).
 
-## Run locally
+## Set up on a new laptop (step by step)
 
-Backend (terminal 1):
+These steps set up the app from scratch on a fresh **Windows** laptop. If you're doing this over
+**AnyDesk**, connect to the target laptop and **take control** first, then run everything below on
+that remote machine (its own terminals and browser — not yours). Use AnyDesk's file-transfer only if
+you need to move a file; the code comes from GitHub in step 2.
+
+### 1. Install the prerequisites
+
+Download and install these (accept the defaults; where offered, keep **"Add to PATH"** ticked). After
+installing, **close and reopen** any terminal so the PATH updates.
+
+| Tool | Why | Download | Verify (in a new terminal) |
+|---|---|---|---|
+| **Git** | to clone the repo | https://git-scm.com/download/win | `git --version` |
+| **Node.js 22 LTS** | frontend | https://nodejs.org | `node -v` → v22.x, `npm -v` |
+| **JDK 21 (Temurin)** | backend | https://adoptium.net/temurin/releases/?version=21 | `java -version` → 21 |
+
+Maven is **not** required — the repo ships the `mvnw` wrapper. If `java -version` shows a different
+version than 21, that's fine: `backend\run.cmd` auto-detects a JDK 21.
+
+### 2. Get the code
+
+Open **PowerShell** (or Windows Terminal), pick a folder, and clone:
+
+```bash
+cd D:\personal
+git clone https://github.com/aalqaissi/fluenta-web.git
+cd fluenta-web
+```
+
+(If the repo is private, sign in when Git prompts, or use a GitHub personal access token as the
+password.)
+
+### 3. Start the backend — terminal 1
 
 ```bash
 cd backend
 .\run.cmd
 ```
 
-`backend/run.cmd` auto-detects a JDK 21 (your PATH `java` may be another version), sets `JAVA_HOME`
-for you, and starts the API on **http://localhost:8080** — open that URL to see a health page. On
-first run it seeds the SQLite database. (In PowerShell use `.\run.cmd`; in `cmd.exe` plain `run.cmd`
-works. Cross-platform / no wrapper script: `mvnw spring-boot:run` with `JAVA_HOME` on a JDK 21.)
+- Auto-detects JDK 21, **seeds a local SQLite database** (`backend/data/fluenta.db`) on first run, and
+  serves the API at **http://localhost:8080** (open that URL — you should see a small health JSON).
+- The **first** run downloads Maven + dependencies (a few minutes); later runs are fast.
+- Leave this terminal running. (PowerShell needs `.\run.cmd`; `cmd.exe` accepts plain `run.cmd`.)
 
-Frontend (terminal 2):
+### 4. Start the frontend — terminal 2
 
 ```bash
+cd D:\personal\fluenta-web
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173. **Login is a prototype** (no password): "Continue with Google" signs in
-as the seeded demo user (Sara, already onboarded → straight to the dashboard); entering a **new
-email** creates a fresh account that goes through onboarding first. The API base URL is
-`VITE_API_URL` (default `http://localhost:8080/api`, see `.env.example`).
+- `npm install` is only needed the first time (a few minutes). It serves the app at
+  **http://localhost:5173**. Leave this terminal running.
 
-> **Heads-up — if the backend won't start** with *"Unable to establish loopback connection"*: a
-> local loopback-intercepting proxy (seen: `mscopilot_proxy.exe`) breaks Java's NIO selector — it's
-> not a bug in this code. **Fix:** quit that proxy (Task Manager → End task) and re-run, **or** run
-> the backend in Docker/WSL/another host. Until the API is up, the frontend shows a clear
-> "Can't reach the API" screen with Retry. More detail in [`backend/README.md`](backend/README.md).
+### 5. Open the app
+
+Browse to **http://localhost:5173**. Sign in with **"Continue with Google"** (demo user → straight to
+the dashboard) or type a **new email** (→ onboarding wizard → dashboard). No password needed
+(prototype login).
+
+### Troubleshooting
+
+- **Backend stops with `Unable to establish loopback connection`** — a local proxy (seen:
+  `mscopilot_proxy.exe`) intercepts loopback and breaks Java's NIO selector. **Fix:** quit that
+  process (Task Manager → Details → End task) and re-run `.\run.cmd`; or run the backend in Docker/WSL.
+- **`run.cmd` "is not recognized" in PowerShell** — run it as `.\run.cmd` (path prefix required).
+- **`No JDK 21 found`** — install Temurin 21 (step 1) or set `JAVA_HOME` to a JDK 21, then re-run.
+- **Port already in use (8080 or 5173)** — stop whatever is using it, or change the port (backend:
+  `server.port` in `backend/src/main/resources/application.yml`; frontend: `npm run dev -- --port 5174`).
+- **App shows "Can't reach the API"** — the backend isn't up yet. Start it (step 3) and click **Retry**.
+- **Reset the database** — stop the backend and delete `backend/data/fluenta.db`; it re-seeds on next start.
+
+### Run again later (once installed)
+
+Two terminals: `cd backend; .\run.cmd` and, in the repo root, `npm run dev`. Then open
+http://localhost:5173.
+
+## Configuration
+
+- **`VITE_API_URL`** (frontend) — API base URL, default `http://localhost:8080/api`. Copy
+  `.env.example` to `.env` to override (e.g. when the backend is hosted elsewhere).
+- **Backend port** — `server.port` in `backend/src/main/resources/application.yml` (default 8080).
+- **Database** — SQLite at `backend/data/fluenta.db`, created + seeded on first run.
 
 ## Build
 
