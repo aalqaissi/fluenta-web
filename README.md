@@ -33,13 +33,13 @@ Backend (terminal 1):
 
 ```bash
 cd backend
-run.cmd
+.\run.cmd
 ```
 
 `backend/run.cmd` auto-detects a JDK 21 (your PATH `java` may be another version), sets `JAVA_HOME`
 for you, and starts the API on **http://localhost:8080** — open that URL to see a health page. On
-first run it seeds the SQLite database. (Cross-platform / no wrapper script: `mvnw spring-boot:run`
-with `JAVA_HOME` pointing at a JDK 21.)
+first run it seeds the SQLite database. (In PowerShell use `.\run.cmd`; in `cmd.exe` plain `run.cmd`
+works. Cross-platform / no wrapper script: `mvnw spring-boot:run` with `JAVA_HOME` on a JDK 21.)
 
 Frontend (terminal 2):
 
