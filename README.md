@@ -107,12 +107,13 @@ Expected: Git 2.x, Node **v22 or newer** (LTS — e.g. v22 or v24 both work), np
 
 ### 2. Get the code
 
-Open **PowerShell** (or Windows Terminal), pick a folder, and clone:
+Open **PowerShell** (or Windows Terminal) and clone straight into your chosen root folder (this
+example uses `D:\YallaEnglishHub` — use any path you like; everything in the project is relative, so
+nothing needs editing):
 
 ```bash
-cd D:\personal
-git clone https://github.com/aalqaissi/fluenta-web.git
-cd fluenta-web
+git clone https://github.com/aalqaissi/fluenta-web.git D:\YallaEnglishHub
+cd D:\YallaEnglishHub
 ```
 
 (If the repo is private, sign in when Git prompts, or use a GitHub personal access token as the
@@ -134,7 +135,7 @@ cd backend
 ### 4. Start the frontend — terminal 2
 
 ```bash
-cd D:\personal\fluenta-web
+cd D:\YallaEnglishHub
 npm install
 npm run dev
 ```
