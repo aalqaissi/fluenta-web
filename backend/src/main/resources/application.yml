@@ -19,11 +19,17 @@ spring:
         dialect: org.hibernate.community.dialect.SQLiteDialect
         format_sql: false
     open-in-view: false
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 25MB
 
 # CORS origin for the Vite dev server (overridable via FLUENTA_CORS_ORIGINS).
 fluenta:
   cors:
     origins: ${FLUENTA_CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+  media:
+    dir: ${FLUENTA_MEDIA_DIR:./data/media}
 
 logging:
   level:
