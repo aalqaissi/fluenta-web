@@ -25,6 +25,7 @@ export function AudioPlayer({ durationSec, src, playOnce = false }: Props) {
   const ref = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [realDur, setRealDur] = useState(0);
+  const [failed, setFailed] = useState(false);
 
   const total = Math.max(1, src && realDur ? realDur : durationSec);
 
@@ -36,16 +37,19 @@ export function AudioPlayer({ durationSec, src, playOnce = false }: Props) {
     if (!src) return;
     const el = audioRef.current;
     if (!el) return;
-    const onLoaded = () => setRealDur(Math.round(el.duration) || 0);
+    const onLoaded = () => { const d = el.duration; setRealDur(Number.isFinite(d) ? Math.round(d) : 0); };
     const onTime = () => setT(Math.floor(el.currentTime));
     const onEnd = () => { setPlaying(false); setPlays((p) => p + 1); setT(Math.round(el.duration) || total); };
+    const onError = () => { setFailed(true); setPlaying(false); };
     el.addEventListener("loadedmetadata", onLoaded);
     el.addEventListener("timeupdate", onTime);
     el.addEventListener("ended", onEnd);
+    el.addEventListener("error", onError);
     return () => {
       el.removeEventListener("loadedmetadata", onLoaded);
       el.removeEventListener("timeupdate", onTime);
       el.removeEventListener("ended", onEnd);
+      el.removeEventListener("error", onError);
     };
   }, [src, total]);
 
@@ -77,7 +81,10 @@ export function AudioPlayer({ durationSec, src, playOnce = false }: Props) {
       const el = audioRef.current;
       if (!el) return;
       if (playing) { el.pause(); setPlaying(false); }
-      else { if (t >= total) { el.currentTime = 0; setT(0); } el.play(); setPlaying(true); }
+      else {
+        if (t >= total) { el.currentTime = 0; setT(0); }
+        el.play().then(() => setPlaying(true)).catch(() => { setPlaying(false); setFailed(true); });
+      }
       return;
     }
     // starting a fresh play from a locked-but-not-yet state restarts the clock
@@ -96,8 +103,8 @@ export function AudioPlayer({ durationSec, src, playOnce = false }: Props) {
           size="icon"
           className="size-12 shrink-0 rounded-full"
           onClick={toggle}
-          disabled={locked}
-          aria-label={locked ? "Audio already played" : playing ? "Pause" : "Play"}
+          disabled={locked || failed}
+          aria-label={locked ? "Audio already played" : failed ? "Audio unavailable" : playing ? "Pause" : "Play"}
         >
           {locked ? <Lock className="size-5" /> : playing ? <Pause className="size-5" /> : <Play className="size-5" />}
         </Button>
@@ -123,7 +130,9 @@ export function AudioPlayer({ durationSec, src, playOnce = false }: Props) {
         <Volume2 className="size-5 shrink-0 text-muted-foreground" />
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        {playOnce
+        {failed
+          ? "Audio unavailable — you can still answer the questions."
+          : playOnce
           ? `Audio played ${Math.min(plays, 1)} of 1 time${locked ? " — playback is now locked, just like the real test." : src ? "." : ". In the real test it plays once."}`
           : src ? "Section audio." : "Preview player — playback is simulated."}
       </p>
