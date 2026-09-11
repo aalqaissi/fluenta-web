@@ -29,6 +29,8 @@ export interface StudioSection {
   id: string;
   title: string;
   audioName: string | null;
+  audioUrl: string | null;
+  audioDurationSec?: number;
   imageName: string | null;
   transcript: string;
   questionType: QuestionType;
@@ -124,7 +126,7 @@ export function newPassage(n: number): StudioPassage {
   return { id: uid(), title: `Passage ${n}`, inputMode: "type", text: "", imageName: null, questionType: "true-false-notgiven", questions: [] };
 }
 export function newSection(n: number): StudioSection {
-  return { id: uid(), title: `Section ${n}`, audioName: null, imageName: null, transcript: "", questionType: "sentence-completion", questions: [] };
+  return { id: uid(), title: `Section ${n}`, audioName: null, audioUrl: null, imageName: null, transcript: "", questionType: "sentence-completion", questions: [] };
 }
 export function newSpeakingPart(n: 1 | 2 | 3): StudioSpeakingPart {
   return {

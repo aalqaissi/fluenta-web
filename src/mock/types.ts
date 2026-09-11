@@ -160,6 +160,8 @@ export interface ListeningSectionRun {
   difficulty: "Easy" | "Medium" | "Hard";
   /** length of the (simulated) section audio in seconds */
   audioDurationSec: number;
+  /** absolute-or-relative URL of the real section audio; undefined = simulated */
+  audioUrl?: string;
   transcript?: string;
   group: QuestionGroup;
 }

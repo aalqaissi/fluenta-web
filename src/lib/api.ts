@@ -16,6 +16,16 @@ export const API_BASE: string =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
   "http://localhost:8080/api";
 
+/** Server origin for static media (`/media/**`), i.e. API_BASE without the trailing `/api`. */
+export const MEDIA_ORIGIN: string = API_BASE.replace(/\/api\/?$/, "");
+
+/** Resolve a stored relative media path (`/media/x.mp3`) to an absolute URL. */
+export function resolveMedia(path?: string | null): string | undefined {
+  if (!path) return undefined;
+  if (/^https?:\/\//.test(path)) return path;
+  return `${MEDIA_ORIGIN}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 const TOKEN_KEY = "fluenta.token";
 
 export function getToken(): string | null {
@@ -78,6 +88,30 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   if (res.status === 204) return undefined as T;
   const text = await res.text();
   return (text ? JSON.parse(text) : undefined) as T;
+}
+
+async function uploadFile<T>(path: string, file: File): Promise<T> {
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const form = new FormData();
+  form.append("file", file);
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { method: "POST", headers, body: form });
+  } catch {
+    throw new ApiError(0, `Cannot reach the Yalla English Hub API at ${API_BASE}. Is the backend running?`);
+  }
+  if (res.status === 401) {
+    setToken(null);
+    throw new ApiError(401, "Your session has expired. Please sign in again.");
+  }
+  if (!res.ok) {
+    let msg = `Upload failed (${res.status})`;
+    try { const d = await res.json(); if (d?.error) msg = d.error; } catch { /* ignore */ }
+    throw new ApiError(res.status, msg);
+  }
+  return (await res.json()) as T;
 }
 
 // ---- shared DTO shapes (mirror the backend records) ----------------
@@ -288,5 +322,8 @@ export const api = {
     queue: () => request<FeedbackQueue>("GET", "/admin/feedback"),
     update: (id: string, patch: { status?: FeedbackStatus; adminReply?: string }) =>
       request<FeedbackDto>("PATCH", `/admin/feedback/${id}`, patch),
+  },
+  media: {
+    upload: (file: File) => uploadFile<{ url: string }>("/media", file),
   },
 };

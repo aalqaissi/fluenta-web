@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { QUESTION_TYPE_LABEL } from "@/mock/data";
 import type { QuestionType } from "@/mock/types";
 import { MediaDrop, AiButton, Field } from "../components";
+import { AudioUpload } from "../AudioUpload";
 import { QuestionRow, aiQuestions, defaultAnswerFor } from "../QuestionRow";
 import { newSection, newQuestion, type StudioExam, type StudioSection, type StudioQuestion } from "../store";
 
@@ -50,8 +51,12 @@ export function ListeningEditor({ exam, patch }: { exam: StudioExam; patch: (p: 
             </div>
 
             <div className="space-y-4">
-              <Field label="Section audio" hint="You'll be able to upload your own original recordings.">
-                <MediaDrop kind="audio" value={s.audioName} onChange={(name) => setS(idx, { audioName: name })} />
+              <Field label="Section audio" hint="Upload the original recording (MP3 or M4A/AAC).">
+                <AudioUpload
+                  value={s.audioUrl ? { url: s.audioUrl, name: s.audioName ?? "audio" } : null}
+                  onUploaded={(r) => setS(idx, { audioUrl: r.url, audioName: r.name, audioDurationSec: r.durationSec || undefined })}
+                  onRemove={() => setS(idx, { audioUrl: null, audioName: null, audioDurationSec: undefined })}
+                />
               </Field>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Section title">
