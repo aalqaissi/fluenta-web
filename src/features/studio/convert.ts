@@ -122,7 +122,8 @@ export function studioListeningToExam(e: StudioExam): ListeningExam {
       number: si + 1,
       context: s.title || `Section ${si + 1}`,
       difficulty: "Medium",
-      audioDurationSec: 60,
+      audioDurationSec: s.audioDurationSec ?? 60,
+      audioUrl: s.audioUrl ?? undefined,
       group,
     };
   });
