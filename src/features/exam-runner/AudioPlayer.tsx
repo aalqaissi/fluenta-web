@@ -4,28 +4,53 @@ import { Button } from "@/components/ui/button";
 import { pad2, cn } from "@/lib/utils";
 
 interface Props {
-  /** length of the simulated recording in seconds */
+  /** length of the recording in seconds (fallback/label; real audio overrides once loaded) */
   durationSec: number;
+  /** when set, play this real audio file instead of simulating */
+  src?: string;
   /** enforce the real-test rule: the audio may be played only once */
   playOnce?: boolean;
 }
 
 /**
- * Simulated section audio player (frontend-only prototype — no real file).
+ * Section audio player. When `src` is set it plays a real `<audio>` file;
+ * otherwise it simulates playback (frontend-only prototype — no real file).
  * When `playOnce` is set it counts through the recording a single time, then
  * locks, mirroring the IELTS "audio is played once" rule.
  */
-export function AudioPlayer({ durationSec, playOnce = false }: Props) {
-  const total = Math.max(1, durationSec);
+export function AudioPlayer({ durationSec, src, playOnce = false }: Props) {
   const [playing, setPlaying] = useState(false);
   const [t, setT] = useState(0);
   const [plays, setPlays] = useState(0);
   const ref = useRef<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [realDur, setRealDur] = useState(0);
+
+  const total = Math.max(1, src && realDur ? realDur : durationSec);
 
   const finishedOnce = plays >= 1;
   const locked = playOnce && finishedOnce;
 
+  // Real-audio effect: wire element events to the same t/plays/playing state.
   useEffect(() => {
+    if (!src) return;
+    const el = audioRef.current;
+    if (!el) return;
+    const onLoaded = () => setRealDur(Math.round(el.duration) || 0);
+    const onTime = () => setT(Math.floor(el.currentTime));
+    const onEnd = () => { setPlaying(false); setPlays((p) => p + 1); setT(Math.round(el.duration) || total); };
+    el.addEventListener("loadedmetadata", onLoaded);
+    el.addEventListener("timeupdate", onTime);
+    el.addEventListener("ended", onEnd);
+    return () => {
+      el.removeEventListener("loadedmetadata", onLoaded);
+      el.removeEventListener("timeupdate", onTime);
+      el.removeEventListener("ended", onEnd);
+    };
+  }, [src, total]);
+
+  useEffect(() => {
+    if (src) return; // real audio drives its own progress
     if (!playing) {
       if (ref.current) clearInterval(ref.current);
       return;
@@ -44,10 +69,17 @@ export function AudioPlayer({ durationSec, playOnce = false }: Props) {
     return () => {
       if (ref.current) clearInterval(ref.current);
     };
-  }, [playing, total]);
+  }, [playing, total, src]);
 
   function toggle() {
     if (locked) return;
+    if (src) {
+      const el = audioRef.current;
+      if (!el) return;
+      if (playing) { el.pause(); setPlaying(false); }
+      else { if (t >= total) { el.currentTime = 0; setT(0); } el.play(); setPlaying(true); }
+      return;
+    }
     // starting a fresh play from a locked-but-not-yet state restarts the clock
     if (!playing && t >= total) setT(0);
     setPlaying((p) => !p);
@@ -58,6 +90,7 @@ export function AudioPlayer({ durationSec, playOnce = false }: Props) {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+      {src && <audio ref={audioRef} src={src} preload="metadata" className="hidden" />}
       <div className="flex items-center gap-4">
         <Button
           size="icon"
@@ -91,8 +124,8 @@ export function AudioPlayer({ durationSec, playOnce = false }: Props) {
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
         {playOnce
-          ? `Audio played ${Math.min(plays, 1)} of 1 time${locked ? " — playback is now locked, just like the real test." : ". In the real test it plays once."}`
-          : "Preview player — playback is simulated."}
+          ? `Audio played ${Math.min(plays, 1)} of 1 time${locked ? " — playback is now locked, just like the real test." : src ? "." : ". In the real test it plays once."}`
+          : src ? "Section audio." : "Preview player — playback is simulated."}
       </p>
     </div>
   );

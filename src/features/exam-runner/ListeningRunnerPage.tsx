@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, ChevronDown, Clock, Flag, Headphones, Lightbulb } from "lucide-react";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, resolveMedia } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { loadListeningExam } from "./loadExam";
 import { setLastAttempt } from "@/store/attempt-store";
@@ -172,7 +172,7 @@ function ListeningRunner({ exam }: { exam: ListeningExam }) {
 
         {/* audio — remounts per section so play-once state resets */}
         <div className="mb-5">
-          <AudioPlayer key={section.id} durationSec={section.audioDurationSec} playOnce />
+          <AudioPlayer key={section.id} durationSec={section.audioDurationSec} src={resolveMedia(section.audioUrl)} playOnce />
         </div>
 
         {/* questions */}
