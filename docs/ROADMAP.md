@@ -3,7 +3,7 @@
 A living checklist of deferred / held work. **Pick items by priority and I'll build them.**
 Priority column: fill with P0/P1/P2 (or leave blank). Status: ☐ pending · ◐ in progress · ☑ done.
 
-_Last updated 2026-09-05._
+_Last updated 2026-09-12._
 
 ## Held this stage (by decision)
 
@@ -52,3 +52,4 @@ _IELTS Preparation is the active track. The switcher shows the others as "coming
 - ☑ Certificates list (Standard / IELTS Report types, verification numbers, table + row actions).
 - ☑ Feedback domain (student submit + statuses new/under-review/completed; admin Feedback Review).
 - ☑ Track model + switcher (IELTS live).
+- ☑ **Listening audio pipeline** — admin uploads MP3/M4A in the Content Studio (`POST /api/media`, stored under an external `./data/media` dir, served publicly at `/media/**` with range support); listening sections carry an optional `audioUrl`; the web runner plays real audio (play-once) with the simulated player as the fallback. Mobile streams the same clips via `just_audio`. Speaking prompt audio remains held.
