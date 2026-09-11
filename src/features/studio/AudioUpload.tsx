@@ -11,9 +11,22 @@ function readDuration(file: File): Promise<number> {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file);
     const el = document.createElement("audio");
+    let settled = false;
+    // Idempotent: guards against double-revoke/double-resolve if multiple events fire,
+    // and doubles as the leak safety net for the object URL.
+    const finish = (durationSec: number) => {
+      if (settled) return;
+      settled = true;
+      URL.revokeObjectURL(url);
+      resolve(durationSec);
+    };
     el.preload = "metadata";
-    el.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(Math.round(el.duration) || 0); };
-    el.onerror = () => { URL.revokeObjectURL(url); resolve(0); };
+    el.onloadedmetadata = () => {
+      const d = el.duration;
+      finish(Number.isFinite(d) ? Math.round(d) : 0);
+    };
+    el.onerror = () => finish(0);
+    el.onabort = () => finish(0);
     el.src = url;
   });
 }
@@ -32,7 +45,11 @@ export function AudioUpload({
 
   async function pick(file: File | undefined) {
     if (!file) return;
-    if (file.size > MAX_BYTES) { toast.error("Audio exceeds the 20 MB limit"); return; }
+    if (file.size > MAX_BYTES) {
+      toast.error("Audio exceeds the 20 MB limit");
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
     setBusy(true);
     try {
       const durationSec = await readDuration(file);
