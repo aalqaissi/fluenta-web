@@ -29,7 +29,7 @@ class HttpContractTest {
     private String login() throws Exception {
         MvcResult res = mvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"sara.hamzeh@example.com\"}"))
+                        .content("{\"email\":\"sara.hamzeh@example.com\",\"password\":\"yalla-demo\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user.id").value("u1"))
                 .andExpect(jsonPath("$.token").isNotEmpty())

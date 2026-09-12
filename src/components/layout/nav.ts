@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Languages,
   SpellCheck,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -58,6 +59,7 @@ export const secondaryNav: NavItem[] = [
   // { label: "Mock Exam & Self Improvement", to: "/mock-exams", icon: Layers },
   { label: "Content Studio", to: "/studio", icon: Wand2, adminBadge: true },
   { label: "Feedback Review", to: "/studio/feedback", icon: MessageSquare, adminBadge: true },
+  { label: "Users", to: "/studio/users", icon: Users, adminBadge: true },
   { label: "Lessons & Library", to: "/lessons", icon: Library },
   // "Progress" removed — merged into the Overview page (see docs/ROADMAP.md).
   { label: "Achievements", to: "/achievements", icon: Trophy },

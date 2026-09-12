@@ -34,7 +34,10 @@ _IELTS Preparation is the active track. The switcher shows the others as "coming
 | Pri | Status | Item | Notes |
 |----|----|----|----|
 |  | ☐ | **Remove "Mock Exam & Self-Improvement"** page/route/components | Hidden from nav this stage (per request), NOT deleted. Files: `src/features/mock-exams/*`, route `/mock-exams`, `MockExamsPage`, `UploadMockModal`. Decide keep vs delete at end of development. |
-|  | ☐ | Real password auth + registration | Login is a prototype (any email → demo user). |
+|  | ☐ | **Password reset / forgot-password** | Needs email delivery (no transactional email sender wired up yet). |
+|  | ☐ | **Email verification flow** | Sending + confirming a verification email; once live, login can gate on `emailVerified` (it currently doesn't). |
+|  | ☐ | **Google / OAuth sign-in** | Real password auth (Task 1) replaced the old any-email login; social sign-in is a separate follow-up. |
+|  | ☐ | **Roles / admin gating** | Lock down the admin surface (incl. the new admin Users page) behind real roles/permissions — currently no access control beyond being logged in. |
 |  | ☐ | Payments / real checkout | Checkout is a demo (no real charge). |
 |  | ☐ | Real audio capture for Speaking | Recorder is simulated. |
 |  | ☐ | Postgres migration option | SQLite now; JPA makes the swap a config change. |
@@ -53,3 +56,4 @@ _IELTS Preparation is the active track. The switcher shows the others as "coming
 - ☑ Feedback domain (student submit + statuses new/under-review/completed; admin Feedback Review).
 - ☑ Track model + switcher (IELTS live).
 - ☑ **Listening audio pipeline** — admin uploads MP3/M4A in the Content Studio (`POST /api/media`, stored under an external `./data/media` dir, served publicly at `/media/**` with range support); listening sections carry an optional `audioUrl`; the web runner plays real audio (play-once) with the simulated player as the fallback. Mobile streams the same clips via `just_audio`. Speaking prompt audio remains held.
+- ☑ **Real password auth + registration** — register (email/password/name) and login now verify a real BCrypt-hashed password (generic 401 on failure; the old any-email/find-or-create login is gone); plus an admin **Users** page with search, filter, and pagination, and a mark-verified action.

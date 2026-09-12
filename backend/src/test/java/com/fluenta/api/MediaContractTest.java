@@ -25,7 +25,7 @@ class MediaContractTest {
     private String login() throws Exception {
         MvcResult res = mvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"sara.hamzeh@example.com\"}"))
+                        .content("{\"email\":\"sara.hamzeh@example.com\",\"password\":\"yalla-demo\"}"))
                 .andExpect(status().isOk()).andReturn();
         return om.readTree(res.getResponse().getContentAsString()).get("token").asText();
     }

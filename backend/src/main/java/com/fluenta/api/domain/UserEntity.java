@@ -18,6 +18,9 @@ public class UserEntity {
     private String initials;
     private String avatarUrl;
 
+    private String passwordHash;   // BCrypt; null = cannot authenticate
+    private boolean emailVerified;
+
     private String plan;          // "free" | "pro"
     private String planLabel;     // "Pro Monthly" | "Free" | ...
     private int renewsInDays;
@@ -46,6 +49,10 @@ public class UserEntity {
     public void setInitials(String initials) { this.initials = initials; }
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+    public String getPasswordHash() { return passwordHash; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public boolean isEmailVerified() { return emailVerified; }
+    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
     public String getPlan() { return plan; }
     public void setPlan(String plan) { this.plan = plan; }
     public String getPlanLabel() { return planLabel; }

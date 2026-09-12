@@ -26,6 +26,9 @@ export function resolveMedia(path?: string | null): string | undefined {
   return `${MEDIA_ORIGIN}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
+export const DEMO_EMAIL = "sara.hamzeh@example.com";
+export const DEMO_PASSWORD = "yalla-demo";
+
 const TOKEN_KEY = "fluenta.token";
 
 export function getToken(): string | null {
@@ -260,13 +263,46 @@ export interface CreateFeedback {
   rating?: number | null;
 }
 
+// ---- admin: users ----
+export interface AdminUserDto {
+  id: string;
+  name: string;
+  email: string;
+  plan: string;
+  planLabel: string;
+  emailVerified: boolean;
+  onboarded: boolean;
+}
+export interface AdminUsersPage {
+  items: AdminUserDto[];
+  total: number;
+  page: number;
+  size: number;
+}
+
 // ---- endpoint groups ----------------------------------------------
 
 export const api = {
   auth: {
-    login: (email?: string) =>
-      request<{ token: string; user: FluentaUser }>("POST", "/auth/login", { email }),
+    login: (email: string, password: string) =>
+      request<{ token: string; user: FluentaUser }>("POST", "/auth/login", { email, password }),
+    register: (body: { email: string; password: string; name: string }) =>
+      request<{ token: string; user: FluentaUser }>("POST", "/auth/register", body),
     logout: () => request<{ ok: boolean }>("POST", "/auth/logout"),
+  },
+  adminUsers: {
+    list: (params: { query?: string; plan?: string; verified?: boolean; page?: number; size?: number } = {}) => {
+      const q = new URLSearchParams();
+      if (params.query) q.set("query", params.query);
+      if (params.plan) q.set("plan", params.plan);
+      if (params.verified !== undefined) q.set("verified", String(params.verified));
+      if (params.page !== undefined) q.set("page", String(params.page));
+      if (params.size !== undefined) q.set("size", String(params.size));
+      const qs = q.toString();
+      return request<AdminUsersPage>("GET", `/admin/users${qs ? `?${qs}` : ""}`);
+    },
+    setVerified: (id: string, verified: boolean) =>
+      request<AdminUserDto>("PATCH", `/admin/users/${id}`, { emailVerified: verified }),
   },
   me: {
     get: () => request<FluentaUser>("GET", "/me"),

@@ -2,6 +2,7 @@ package com.fluenta.api.web;
 
 import com.fluenta.api.dto.AuthDtos.LoginRequest;
 import com.fluenta.api.dto.AuthDtos.LoginResponse;
+import com.fluenta.api.dto.AuthDtos.RegisterRequest;
 import com.fluenta.api.service.AuthService;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,8 +19,15 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody(required = false) LoginRequest body) {
-        return auth.login(body == null ? null : body.email());
+    public LoginResponse login(@RequestBody LoginRequest body) {
+        return auth.login(body == null ? null : body.email(), body == null ? null : body.password());
+    }
+
+    @PostMapping("/register")
+    public LoginResponse register(@RequestBody RegisterRequest body) {
+        return auth.register(body == null ? null : body.email(),
+                body == null ? null : body.password(),
+                body == null ? null : body.name());
     }
 
     @PostMapping("/logout")

@@ -10,8 +10,8 @@ interface AuthState {
   status: AuthStatus;
   user: FluentaUser | null;
   error: string | null;
-  /** Prototype login — any email; no password. Returns the signed-in user. */
-  login: (email?: string) => Promise<FluentaUser>;
+  login: (email: string, password: string) => Promise<FluentaUser>;
+  register: (body: { email: string; password: string; name: string }) => Promise<FluentaUser>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   /** Update the cached user (after a PATCH). */
@@ -56,8 +56,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refresh();
   }, [refresh]);
 
-  const login = React.useCallback(async (email?: string) => {
-    const { token, user: u } = await api.auth.login(email);
+  const login = React.useCallback(async (email: string, password: string) => {
+    const { token, user: u } = await api.auth.login(email, password);
+    setToken(token);
+    setUser(u);
+    setStatus("authed");
+    return u;
+  }, []);
+
+  const register = React.useCallback(async (body: { email: string; password: string; name: string }) => {
+    const { token, user: u } = await api.auth.register(body);
     setToken(token);
     setUser(u);
     setStatus("authed");
@@ -80,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return <AuthErrorScreen error={error} onRetry={refresh} />;
   }
 
-  const value: AuthState = { status, user, error, login, logout, refresh, setUser };
+  const value: AuthState = { status, user, error, login, register, logout, refresh, setUser };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
