@@ -11,6 +11,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.UUID;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -28,6 +30,16 @@ class MediaContractTest {
                         .content("{\"email\":\"sara.hamzeh@example.com\",\"password\":\"yalla-demo\"}"))
                 .andExpect(status().isOk()).andReturn();
         return om.readTree(res.getResponse().getContentAsString()).get("token").asText();
+    }
+
+    private String studentToken() throws Exception {
+        String email = "stud-" + UUID.randomUUID() + "@example.com";
+        MvcResult r = mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + email + "\",\"password\":\"secret12\",\"name\":\"Stu\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.role").value("student"))
+                .andReturn();
+        return om.readTree(r.getResponse().getContentAsString()).get("token").asText();
     }
 
     @Test
@@ -55,6 +67,15 @@ class MediaContractTest {
         // range request is honored (206 Partial Content)
         mvc.perform(get(url).header("Range", "bytes=0-3"))
                 .andExpect(status().isPartialContent());
+    }
+
+    @Test
+    void uploadForbiddenForStudent() throws Exception {
+        String token = studentToken();
+        mvc.perform(multipart("/api/media")
+                        .file(new MockMultipartFile("file", "c.mp3", "audio/mpeg", new byte[]{1}))
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
     }
 
     @Test
