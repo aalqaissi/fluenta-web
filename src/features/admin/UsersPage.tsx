@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { api, ApiError, type AdminUserDto } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
+import { useAuth } from "@/store/auth-context";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
@@ -15,6 +16,7 @@ type PlanFilter = "all" | "free" | "pro";
 type VerFilter = "all" | "verified" | "unverified";
 
 export function UsersPage() {
+  const meId = useAuth().user?.id;
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [plan, setPlan] = useState<PlanFilter>("all");
@@ -66,6 +68,16 @@ export function UsersPage() {
     }
   }
 
+  async function setRole(u: AdminUserDto, role: "student" | "admin") {
+    try {
+      await api.adminUsers.setRole(u.id, role);
+      toast.success(role === "admin" ? `${u.name} is now an admin` : `${u.name} is now a student`);
+      reload();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Update failed");
+    }
+  }
+
   const total = data?.total ?? 0;
   const from = total === 0 ? 0 : page * PAGE_SIZE + 1;
   const to = Math.min(total, (page + 1) * PAGE_SIZE);
@@ -107,6 +119,7 @@ export function UsersPage() {
                   <th className="px-4 py-3 font-semibold">Full name</th>
                   <th className="px-4 py-3 font-semibold">Email</th>
                   <th className="px-4 py-3 font-semibold">Bundle</th>
+                  <th className="px-4 py-3 font-semibold">Role</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold text-right">Actions</th>
                 </tr>
@@ -118,6 +131,13 @@ export function UsersPage() {
                     <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
                     <td className="px-4 py-3"><Badge variant={u.plan === "pro" ? "success" : "muted"}>{u.planLabel}</Badge></td>
                     <td className="px-4 py-3">
+                      {u.role === "admin" ? (
+                        <Badge variant="secondary">Admin</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">Student</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
                       {u.emailVerified ? (
                         <Badge variant="success"><BadgeCheck className="size-3" /> Verified</Badge>
                       ) : (
@@ -127,6 +147,13 @@ export function UsersPage() {
                     <td className="px-4 py-3 text-right">
                       {!u.emailVerified && (
                         <Button size="sm" variant="outline" onClick={() => verify(u)}><CheckCircle2 className="size-4" /> Mark verified</Button>
+                      )}
+                      {u.id !== meId && (
+                        u.role === "admin" ? (
+                          <Button size="sm" variant="ghost" onClick={() => setRole(u, "student")}>Remove admin</Button>
+                        ) : (
+                          <Button size="sm" variant="outline" onClick={() => setRole(u, "admin")}>Make admin</Button>
+                        )
                       )}
                     </td>
                   </tr>
