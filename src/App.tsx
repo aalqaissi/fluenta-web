@@ -36,6 +36,7 @@ import { OnboardingPage } from "./features/auth/OnboardingPage";
 import { FeedbackListPage } from "./features/feedback/FeedbackListPage";
 import { FeedbackReviewPage } from "./features/feedback/FeedbackReviewPage";
 import { UsersPage } from "./features/admin/UsersPage";
+import { AdminRoute } from "./features/admin/AdminRoute";
 
 export const router = createBrowserRouter([
   {
@@ -52,11 +53,16 @@ export const router = createBrowserRouter([
       { path: "/simulation/speaking/live", element: <LiveInterviewPage /> },
       { path: "/simulation/full-exam", element: <FullExamPage /> },
       { path: "/mock-exams", element: <MockExamsPage /> },
-      { path: "/studio", element: <StudioHome /> },
-      { path: "/studio/feedback", element: <FeedbackReviewPage /> },
-      { path: "/studio/users", element: <UsersPage /> },
-      { path: "/studio/certificate/:id", element: <CertificateEditor /> },
-      { path: "/studio/:skill/:id", element: <StudioEditorPage /> },
+      {
+        element: <AdminRoute />,
+        children: [
+          { path: "/studio", element: <StudioHome /> },
+          { path: "/studio/feedback", element: <FeedbackReviewPage /> },
+          { path: "/studio/users", element: <UsersPage /> },
+          { path: "/studio/certificate/:id", element: <CertificateEditor /> },
+          { path: "/studio/:skill/:id", element: <StudioEditorPage /> },
+        ],
+      },
       // Progress is merged into the Overview page — keep the path as a redirect.
       { path: "/progress", element: <Navigate to="/" replace /> },
       { path: "/feedback", element: <FeedbackListPage /> },

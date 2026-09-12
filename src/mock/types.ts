@@ -25,6 +25,7 @@ export interface FluentaUser {
   purpose?: string; // e.g. "Study Abroad"
   level?: string; // e.g. "upper-intermediate"
   onboarded?: boolean;
+  role: "student" | "admin";
   streak: { current: number; best: number; last30: number[] }; // last30: 0..3 intensity
 }
 
