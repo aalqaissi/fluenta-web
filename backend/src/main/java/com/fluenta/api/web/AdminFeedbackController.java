@@ -6,8 +6,8 @@ import com.fluenta.api.service.FeedbackService;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Admin "Feedback Review" queue. Any authenticated user is treated as admin in this prototype
- * (the Content Studio is the admin surface); harden with real roles later.
+ * Admin "Feedback Review" queue. Part of the Content Studio authoring surface; endpoints
+ * require an admin role (see {@link CurrentUser#requireAdmin()}).
  */
 @RestController
 @RequestMapping("/api/admin/feedback")
@@ -21,13 +21,13 @@ public class AdminFeedbackController {
 
     @GetMapping
     public FeedbackQueue queue() {
-        CurrentUser.require();
+        CurrentUser.requireAdmin();
         return feedback.queue();
     }
 
     @PatchMapping("/{id}")
     public FeedbackDto update(@PathVariable String id, @RequestBody FeedbackUpdate req) {
-        CurrentUser.require();
+        CurrentUser.requireAdmin();
         return feedback.update(id, req);
     }
 }

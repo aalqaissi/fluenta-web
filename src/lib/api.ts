@@ -272,6 +272,7 @@ export interface AdminUserDto {
   planLabel: string;
   emailVerified: boolean;
   onboarded: boolean;
+  role: "student" | "admin";
 }
 export interface AdminUsersPage {
   items: AdminUserDto[];
@@ -303,6 +304,8 @@ export const api = {
     },
     setVerified: (id: string, verified: boolean) =>
       request<AdminUserDto>("PATCH", `/admin/users/${id}`, { emailVerified: verified }),
+    setRole: (id: string, role: "student" | "admin") =>
+      request<AdminUserDto>("PATCH", `/admin/users/${id}`, { role }),
   },
   me: {
     get: () => request<FluentaUser>("GET", "/me"),

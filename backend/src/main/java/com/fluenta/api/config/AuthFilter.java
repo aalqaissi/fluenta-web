@@ -1,6 +1,7 @@
 package com.fluenta.api.config;
 
 import com.fluenta.api.repo.SessionRepository;
+import com.fluenta.api.repo.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,9 +23,11 @@ import java.io.IOException;
 public class AuthFilter extends OncePerRequestFilter {
 
     private final SessionRepository sessions;
+    private final UserRepository users;
 
-    public AuthFilter(SessionRepository sessions) {
+    public AuthFilter(SessionRepository sessions, UserRepository users) {
         this.sessions = sessions;
+        this.users = users;
     }
 
     private static boolean isPublic(HttpServletRequest req) {
@@ -41,7 +44,10 @@ public class AuthFilter extends OncePerRequestFilter {
             String header = req.getHeader("Authorization");
             if (header != null && header.startsWith("Bearer ")) {
                 String token = header.substring(7).trim();
-                sessions.findById(token).ifPresent(s -> CurrentUser.set(s.getUserId()));
+                sessions.findById(token).ifPresent(s -> {
+                    CurrentUser.set(s.getUserId());
+                    users.findById(s.getUserId()).ifPresent(u -> CurrentUser.setRole(u.getRole()));
+                });
             }
 
             if (!isPublic(req) && CurrentUser.get() == null) {

@@ -6,12 +6,15 @@ import { Logo } from "./Logo";
 import { primaryNav, secondaryNav, simulationChildren } from "./nav";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/store/app-context";
+import { useAuth } from "@/store/auth-context";
+import { isAdmin } from "@/lib/auth";
 import { LockChip } from "@/components/common/LockChip";
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const { isLocked } = useApp();
-  const all = [...primaryNav, ...simulationChildren, ...secondaryNav];
+  const admin = isAdmin(useAuth().user);
+  const all = [...primaryNav, ...simulationChildren, ...secondaryNav.filter((i) => !i.adminBadge || admin)];
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>

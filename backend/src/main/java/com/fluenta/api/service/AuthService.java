@@ -67,6 +67,7 @@ public class AuthService {
         u.setInitials(nm.length() >= 2 ? nm.substring(0, 2).toUpperCase() : nm.toUpperCase());
         u.setPasswordHash(encoder.encode(password));
         u.setEmailVerified(false);
+        u.setRole("student");
         u.setPlan("free");
         u.setPlanLabel("Free");
         u.setRenewsInDays(0);

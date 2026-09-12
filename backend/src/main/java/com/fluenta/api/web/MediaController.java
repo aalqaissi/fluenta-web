@@ -20,7 +20,7 @@ public class MediaController {
 
     @PostMapping(consumes = "multipart/form-data")
     public Map<String, String> upload(@RequestParam("file") MultipartFile file) {
-        CurrentUser.require();
+        CurrentUser.requireAdmin();
         return Map.of("url", storage.store(file));
     }
 }

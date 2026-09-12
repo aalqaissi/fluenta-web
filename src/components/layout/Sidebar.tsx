@@ -3,6 +3,8 @@ import { NavLink, useLocation } from "react-router-dom";
 import { ChevronDown, ChevronsLeft, ChevronsRight, LifeBuoy, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/store/app-context";
+import { useAuth } from "@/store/auth-context";
+import { isAdmin } from "@/lib/auth";
 import { Logo } from "./Logo";
 import { LockChip } from "@/components/common/LockChip";
 import { primaryNav, secondaryNav, simulationChildren, simulationNav, type NavItem } from "./nav";
@@ -94,6 +96,7 @@ export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar } = useApp();
   const location = useLocation();
   const [simOpen, setSimOpen] = React.useState(location.pathname.startsWith("/simulation"));
+  const admin = isAdmin(useAuth().user);
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -137,7 +140,7 @@ export function Sidebar() {
 
           <div className="my-2 h-px bg-border" />
 
-          {secondaryNav.map((item) => (
+          {secondaryNav.filter((item) => !item.adminBadge || admin).map((item) => (
             <NavRow key={item.to} item={item} collapsed={sidebarCollapsed} />
           ))}
         </nav>

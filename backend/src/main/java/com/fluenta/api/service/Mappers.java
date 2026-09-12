@@ -25,7 +25,7 @@ public class Mappers {
                 u.getId(), u.getName(), u.getEmail(), u.getInitials(), u.getAvatarUrl(),
                 u.getPlan(), u.getPlanLabel(), u.getRenewsInDays(), u.getTargetBand(),
                 u.getExamDate(), u.isSaveHistory(), u.getTrack(), u.getExamType(), u.getPurpose(),
-                u.getLevel(), u.isOnboarded(), json.parse(u.getStreak()));
+                u.getLevel(), u.isOnboarded(), u.getRole(), json.parse(u.getStreak()));
     }
 
     public ExamDto toDto(ExamEntity e) {

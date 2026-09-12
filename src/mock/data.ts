@@ -26,6 +26,7 @@ export const currentUser: FluentaUser = {
   targetBand: 7,
   examDate: "2026-12-01",
   saveHistory: true,
+  role: "admin",
   streak: {
     current: 4,
     best: 11,
