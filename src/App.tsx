@@ -35,6 +35,7 @@ import { LoginPage } from "./features/auth/LoginPage";
 import { OnboardingPage } from "./features/auth/OnboardingPage";
 import { FeedbackListPage } from "./features/feedback/FeedbackListPage";
 import { FeedbackReviewPage } from "./features/feedback/FeedbackReviewPage";
+import { UsersPage } from "./features/admin/UsersPage";
 
 export const router = createBrowserRouter([
   {
@@ -53,6 +54,7 @@ export const router = createBrowserRouter([
       { path: "/mock-exams", element: <MockExamsPage /> },
       { path: "/studio", element: <StudioHome /> },
       { path: "/studio/feedback", element: <FeedbackReviewPage /> },
+      { path: "/studio/users", element: <UsersPage /> },
       { path: "/studio/certificate/:id", element: <CertificateEditor /> },
       { path: "/studio/:skill/:id", element: <StudioEditorPage /> },
       // Progress is merged into the Overview page — keep the path as a redirect.
