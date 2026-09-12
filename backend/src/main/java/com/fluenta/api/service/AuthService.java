@@ -20,6 +20,13 @@ public class AuthService {
 
     private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
+    /**
+     * A real, valid BCrypt hash of a throwaway string — used only to run a dummy {@code matches}
+     * comparison when there is no real user/hash, so an unknown-email response takes the same time
+     * as a wrong-password response and doesn't leak whether an email is registered.
+     */
+    private static final String DUMMY_HASH = "$2a$10$Z/.tq7cpJsnJVQod9apw9O6fmLdaqld2hgLFont7A0W9Qww4lquQO";
+
     private final UserRepository users;
     private final SessionRepository sessions;
     private final Mappers mappers;
@@ -34,8 +41,11 @@ public class AuthService {
 
     public LoginResponse login(String email, String password) {
         UserEntity user = (email == null ? null : users.findFirstByEmailIgnoreCase(email.trim()).orElse(null));
-        if (user == null || user.getPasswordHash() == null || password == null
-                || !encoder.matches(password, user.getPasswordHash())) {
+        String hash = (user == null || user.getPasswordHash() == null) ? DUMMY_HASH : user.getPasswordHash();
+        // Always run one BCrypt comparison, even for an unknown email or a user with no password set,
+        // so the timing is the same as a wrong-password failure and doesn't leak account existence.
+        boolean matches = encoder.matches(password == null ? "" : password, hash);
+        if (user == null || user.getPasswordHash() == null || !matches) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Incorrect email or password");
         }
         return session(user);

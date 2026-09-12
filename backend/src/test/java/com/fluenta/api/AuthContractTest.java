@@ -1,6 +1,5 @@
 package com.fluenta.api;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -16,7 +15,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthContractTest {
 
     @Autowired MockMvc mvc;
-    @Autowired ObjectMapper om;
+
+    /** A fresh, collision-free email per call so tests stay repeatable against the persistent dev DB. */
+    private String email(String prefix) {
+        return prefix + "-" + java.util.UUID.randomUUID() + "@example.com";
+    }
 
     private String reg(String email) {
         return "{\"email\":\"" + email + "\",\"password\":\"secret12\",\"name\":\"Test User\"}";
@@ -24,7 +27,7 @@ class AuthContractTest {
 
     @Test
     void registerCreatesUnonboardedUnverifiedUser() throws Exception {
-        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(reg("new1@example.com")))
+        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(reg(email("new1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andExpect(jsonPath("$.user.onboarded").value(false))
@@ -33,42 +36,45 @@ class AuthContractTest {
 
     @Test
     void duplicateEmailIsConflict() throws Exception {
-        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(reg("dup@example.com")))
+        String dupEmail = email("dup");
+        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(reg(dupEmail)))
                 .andExpect(status().isOk());
-        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(reg("dup@example.com")))
+        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(reg(dupEmail)))
                 .andExpect(status().isConflict());
     }
 
     @Test
     void shortPasswordIsBadRequest() throws Exception {
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"short@example.com\",\"password\":\"abc\",\"name\":\"X\"}"))
+                        .content("{\"email\":\"" + email("short") + "\",\"password\":\"abc\",\"name\":\"X\"}"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void loginSucceedsWithCorrectPassword() throws Exception {
-        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(reg("login1@example.com")))
+        String loginEmail = email("login1");
+        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(reg(loginEmail)))
                 .andExpect(status().isOk());
         mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"login1@example.com\",\"password\":\"secret12\"}"))
+                        .content("{\"email\":\"" + loginEmail + "\",\"password\":\"secret12\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isNotEmpty());
     }
 
     @Test
     void loginFailsWithWrongPassword() throws Exception {
-        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(reg("login2@example.com")))
+        String loginEmail = email("login2");
+        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(reg(loginEmail)))
                 .andExpect(status().isOk());
         mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"login2@example.com\",\"password\":\"wrongpass\"}"))
+                        .content("{\"email\":\"" + loginEmail + "\",\"password\":\"wrongpass\"}"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void loginFailsForUnknownEmail() throws Exception {
         mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"nobody@example.com\",\"password\":\"secret12\"}"))
+                        .content("{\"email\":\"" + email("nobody") + "\",\"password\":\"secret12\"}"))
                 .andExpect(status().isUnauthorized());
     }
 
