@@ -21,13 +21,13 @@ public class AdminFeedbackController {
 
     @GetMapping
     public FeedbackQueue queue() {
-        CurrentUser.require();
+        CurrentUser.requireAdmin();
         return feedback.queue();
     }
 
     @PatchMapping("/{id}")
     public FeedbackDto update(@PathVariable String id, @RequestBody FeedbackUpdate req) {
-        CurrentUser.require();
+        CurrentUser.requireAdmin();
         return feedback.update(id, req);
     }
 }

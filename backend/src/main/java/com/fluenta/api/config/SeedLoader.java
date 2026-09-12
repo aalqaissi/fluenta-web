@@ -68,11 +68,14 @@ public class SeedLoader implements CommandLineRunner {
     /** Idempotently ensure the demo user u1 can authenticate — backfills the hash on DBs seeded before real-auth existed. */
     void ensureDemoPassword() {
         users.findById("u1").ifPresent(u -> {
+            boolean changed = false;
             if (u.getPasswordHash() == null || u.getPasswordHash().isBlank()) {
                 u.setPasswordHash(encoder.encode(demoPassword));
                 u.setEmailVerified(true);
-                users.save(u);
+                changed = true;
             }
+            if (!"admin".equals(u.getRole())) { u.setRole("admin"); changed = true; }
+            if (changed) users.save(u);
         });
     }
 
@@ -104,6 +107,7 @@ public class SeedLoader implements CommandLineRunner {
         e.setStreak(u.has("streak") ? json.write(u.get("streak")) : null);
         e.setPasswordHash(encoder.encode(demoPassword));
         e.setEmailVerified(true);
+        e.setRole("admin");
         users.save(e);
     }
 

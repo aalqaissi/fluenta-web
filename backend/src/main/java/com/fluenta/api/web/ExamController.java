@@ -1,5 +1,6 @@
 package com.fluenta.api.web;
 
+import com.fluenta.api.config.CurrentUser;
 import com.fluenta.api.dto.ExamDto;
 import com.fluenta.api.service.ExamService;
 import org.springframework.web.bind.annotation.*;
@@ -31,27 +32,32 @@ public class ExamController {
 
     @PostMapping
     public ExamDto create(@RequestBody ExamDto body) {
+        CurrentUser.requireAdmin();
         return exams.create(body);
     }
 
     @PutMapping("/{id}")
     public ExamDto update(@PathVariable String id, @RequestBody ExamDto body) {
+        CurrentUser.requireAdmin();
         return exams.update(id, body);
     }
 
     @DeleteMapping("/{id}")
     public Map<String, Object> delete(@PathVariable String id) {
+        CurrentUser.requireAdmin();
         exams.delete(id);
         return Map.of("ok", true);
     }
 
     @PostMapping("/{id}/duplicate")
     public ExamDto duplicate(@PathVariable String id) {
+        CurrentUser.requireAdmin();
         return exams.duplicate(id);
     }
 
     @PostMapping("/{id}/status")
     public ExamDto setStatus(@PathVariable String id, @RequestBody Map<String, String> body) {
+        CurrentUser.requireAdmin();
         return exams.setStatus(id, body.get("status"));
     }
 }

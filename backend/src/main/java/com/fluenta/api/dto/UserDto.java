@@ -20,5 +20,6 @@ public record UserDto(
         String purpose,
         String level,
         boolean onboarded,
+        String role,
         JsonNode streak
 ) {}

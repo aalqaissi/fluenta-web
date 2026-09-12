@@ -7,5 +7,6 @@ public record UserSummary(
         String plan,
         String planLabel,
         boolean emailVerified,
-        boolean onboarded
+        boolean onboarded,
+        String role
 ) {}

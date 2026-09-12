@@ -32,7 +32,7 @@ public class AdminUserController {
                                     @RequestParam(required = false) Boolean verified,
                                     @RequestParam(defaultValue = "0") int page,
                                     @RequestParam(defaultValue = "20") int size) {
-        CurrentUser.require();
+        CurrentUser.requireAdmin();
         int capped = Math.max(1, Math.min(size, 100));
         String q = (query == null || query.isBlank()) ? null : "%" + query.trim().toLowerCase() + "%";
         String planFilter = (plan == null || plan.isBlank()) ? null : plan;
@@ -44,7 +44,7 @@ public class AdminUserController {
 
     @PatchMapping("/{id}")
     public UserSummary patch(@PathVariable String id, @RequestBody Map<String, Object> body) {
-        CurrentUser.require();
+        CurrentUser.requireAdmin();
         UserEntity u = users.findById(id).orElseThrow(() -> ApiException.notFound("User"));
         Object v = body.get("emailVerified");
         if (v instanceof Boolean b) u.setEmailVerified(b);
@@ -53,6 +53,6 @@ public class AdminUserController {
 
     private UserSummary toSummary(UserEntity u) {
         return new UserSummary(u.getId(), u.getName(), u.getEmail(), u.getPlan(),
-                u.getPlanLabel(), u.isEmailVerified(), u.isOnboarded());
+                u.getPlanLabel(), u.isEmailVerified(), u.isOnboarded(), u.getRole());
     }
 }

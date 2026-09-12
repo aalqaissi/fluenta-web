@@ -20,6 +20,7 @@ public class UserEntity {
 
     private String passwordHash;   // BCrypt; null = cannot authenticate
     private boolean emailVerified;
+    private String role = "student"; // student | admin
 
     private String plan;          // "free" | "pro"
     private String planLabel;     // "Pro Monthly" | "Free" | ...
@@ -53,6 +54,8 @@ public class UserEntity {
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public boolean isEmailVerified() { return emailVerified; }
     public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
     public String getPlan() { return plan; }
     public void setPlan(String plan) { this.plan = plan; }
     public String getPlanLabel() { return planLabel; }

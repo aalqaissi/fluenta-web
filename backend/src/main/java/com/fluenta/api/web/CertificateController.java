@@ -30,16 +30,17 @@ public class CertificateController {
 
     @PostMapping
     public CertificateDto create(@RequestBody CertificateDto body) {
-        return certs.save(CurrentUser.require(), body);
+        return certs.save(CurrentUser.requireAdmin(), body);
     }
 
     @PutMapping("/{id}")
     public CertificateDto update(@PathVariable String id, @RequestBody CertificateDto body) {
-        return certs.update(CurrentUser.require(), id, body);
+        return certs.update(CurrentUser.requireAdmin(), id, body);
     }
 
     @DeleteMapping("/{id}")
     public Map<String, Object> delete(@PathVariable String id) {
+        CurrentUser.requireAdmin();
         certs.delete(id);
         return Map.of("ok", true);
     }
