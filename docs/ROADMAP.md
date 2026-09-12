@@ -37,7 +37,6 @@ _IELTS Preparation is the active track. The switcher shows the others as "coming
 |  | ☐ | **Password reset / forgot-password** | Needs email delivery (no transactional email sender wired up yet). |
 |  | ☐ | **Email verification flow** | Sending + confirming a verification email; once live, login can gate on `emailVerified` (it currently doesn't). |
 |  | ☐ | **Google / OAuth sign-in** | Real password auth (Task 1) replaced the old any-email login; social sign-in is a separate follow-up. |
-|  | ☐ | **Roles / admin gating** | Lock down the admin surface (incl. the new admin Users page) behind real roles/permissions — currently no access control beyond being logged in. |
 |  | ☐ | Payments / real checkout | Checkout is a demo (no real charge). |
 |  | ☐ | Real audio capture for Speaking | Recorder is simulated. |
 |  | ☐ | Postgres migration option | SQLite now; JPA makes the swap a config change. |
@@ -57,3 +56,4 @@ _IELTS Preparation is the active track. The switcher shows the others as "coming
 - ☑ Track model + switcher (IELTS live).
 - ☑ **Listening audio pipeline** — admin uploads MP3/M4A in the Content Studio (`POST /api/media`, stored under an external `./data/media` dir, served publicly at `/media/**` with range support); listening sections carry an optional `audioUrl`; the web runner plays real audio (play-once) with the simulated player as the fallback. Mobile streams the same clips via `just_audio`. Speaking prompt audio remains held.
 - ☑ **Real password auth + registration** — register (email/password/name) and login now verify a real BCrypt-hashed password (generic 401 on failure; the old any-email/find-or-create login is gone); plus an admin **Users** page with search, filter, and pagination, and a mark-verified action.
+- ☑ **Roles / admin gating** — a `role` (student|admin) on the user; `/api/admin/**` and the Content Studio authoring mutations (exam + certificate POST/PUT/DELETE) require admin (403 otherwise); the web hides the admin nav and guards `/studio/*` for non-admins; the Users page can promote/demote (with last-admin + self-demotion guards). Seed `u1` is admin; new registrations are students.
