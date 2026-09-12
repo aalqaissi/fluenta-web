@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { api, ApiError, type AdminUserDto } from "@/lib/api";
+import { useAsync } from "@/lib/useAsync";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
@@ -19,9 +20,6 @@ export function UsersPage() {
   const [plan, setPlan] = useState<PlanFilter>("all");
   const [ver, setVer] = useState<VerFilter>("all");
   const [page, setPage] = useState(0);
-  const [data, setData] = useState<{ items: AdminUserDto[]; total: number } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   // debounce the search box
   useEffect(() => {
@@ -29,34 +27,40 @@ export function UsersPage() {
     return () => clearTimeout(t);
   }, [query]);
 
-  // reset to first page whenever filters change
-  useEffect(() => { setPage(0); }, [debounced, plan, ver]);
-
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await api.adminUsers.list({
+  const { data, loading, error, reload } = useAsync(
+    () =>
+      api.adminUsers.list({
         query: debounced || undefined,
         plan: plan === "all" ? undefined : plan,
         verified: ver === "all" ? undefined : ver === "verified",
         page,
         size: PAGE_SIZE,
-      });
-      setData({ items: res.items, total: res.total });
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not load users. Is the backend running?");
-    } finally {
-      setLoading(false);
-    }
+      }),
+    [debounced, plan, ver, page]
+  );
+
+  // Reset to page 0 together with the filter/search change itself (not via a separate
+  // effect keyed on [debounced, plan, ver]) so a filter change while on page > 0 fires
+  // exactly one request — with page already 0 — instead of one with the stale page
+  // followed by a second once the reset commits.
+  function onSearchChange(value: string) {
+    setQuery(value);
+    setPage(0);
   }
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [debounced, plan, ver, page]);
+  function onPlanChange(p: PlanFilter) {
+    setPlan(p);
+    setPage(0);
+  }
+  function onVerChange(v: VerFilter) {
+    setVer(v);
+    setPage(0);
+  }
 
   async function verify(u: AdminUserDto) {
     try {
       await api.adminUsers.setVerified(u.id, true);
       toast.success(`${u.name} marked verified`);
-      load();
+      reload();
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "Update failed");
     }
@@ -77,14 +81,14 @@ export function UsersPage() {
       <PageHeader title="Users" subtitle="All registered accounts, their plan, and verification status." />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name or email…" className="h-10 max-w-xs" />
+        <Input value={query} onChange={(e) => onSearchChange(e.target.value)} placeholder="Search name or email…" className="h-10 max-w-xs" />
         <span className="mx-1 h-5 w-px bg-border" />
         {(["all", "free", "pro"] as PlanFilter[]).map((p) => (
-          <button key={p} className={chip(plan === p)} onClick={() => setPlan(p)}>{p === "all" ? "All plans" : p === "pro" ? "Pro" : "Free"}</button>
+          <button key={p} className={chip(plan === p)} onClick={() => onPlanChange(p)}>{p === "all" ? "All plans" : p === "pro" ? "Pro" : "Free"}</button>
         ))}
         <span className="mx-1 h-5 w-px bg-border" />
         {(["all", "verified", "unverified"] as VerFilter[]).map((v) => (
-          <button key={v} className={chip(ver === v)} onClick={() => setVer(v)}>{v === "all" ? "All" : v === "verified" ? "Verified" : "Unverified"}</button>
+          <button key={v} className={chip(ver === v)} onClick={() => onVerChange(v)}>{v === "all" ? "All" : v === "verified" ? "Verified" : "Unverified"}</button>
         ))}
       </div>
 
