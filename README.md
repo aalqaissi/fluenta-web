@@ -145,9 +145,12 @@ npm run dev
 
 ### 5. Open the app
 
-Browse to **http://localhost:5173**. Sign in with **"Continue with Google"** (demo user → straight to
-the dashboard) or type a **new email** (→ onboarding wizard → dashboard). No password needed
-(prototype login).
+Browse to **http://localhost:5173**. Log in with email + password, or **Create an account** to
+register (→ onboarding wizard → dashboard).
+
+**Demo account** — email `sara.hamzeh@example.com`, password `yalla-demo` (override on the backend
+via the `FLUENTA_DEMO_PASSWORD` env var). Click **"Fill demo credentials"** on the login screen to
+fill both fields automatically.
 
 ### Troubleshooting
 
@@ -259,5 +262,6 @@ src/
 ```
 
 > Real backend + persistence now exist (Spring Boot + SQLite) with server-side reading/listening
-> scoring. Still prototype-level / held for a later stage: real password auth, payments, audio
+> scoring and real password auth (register + login, BCrypt-hashed). Still prototype-level / held
+> for a later stage: password reset, email verification gating, OAuth sign-in, payments, audio
 > capture, and all AI features (writing & speaking feedback, coach chat, live interview).
