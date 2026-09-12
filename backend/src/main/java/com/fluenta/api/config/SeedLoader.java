@@ -49,6 +49,7 @@ public class SeedLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        ensureDemoPassword();
         if (users.count() > 0) {
             log.info("Seed skipped — {} user(s) already present.", users.count());
             return;
@@ -62,6 +63,17 @@ public class SeedLoader implements CommandLineRunner {
         } catch (Exception e) {
             log.error("Seeding failed", e);
         }
+    }
+
+    /** Idempotently ensure the demo user u1 can authenticate — backfills the hash on DBs seeded before real-auth existed. */
+    void ensureDemoPassword() {
+        users.findById("u1").ifPresent(u -> {
+            if (u.getPasswordHash() == null || u.getPasswordHash().isBlank()) {
+                u.setPasswordHash(encoder.encode(demoPassword));
+                u.setEmailVerified(true);
+                users.save(u);
+            }
+        });
     }
 
     private JsonNode read(String name) throws Exception {
