@@ -30,6 +30,8 @@ fluenta:
     origins: ${FLUENTA_CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
   media:
     dir: ${FLUENTA_MEDIA_DIR:./data/media}
+  demo:
+    password: ${FLUENTA_DEMO_PASSWORD:yalla-demo}
 
 logging:
   level:

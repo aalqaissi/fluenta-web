@@ -10,9 +10,11 @@ import com.fluenta.api.repo.UserRepository;
 import com.fluenta.api.service.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
@@ -32,12 +34,17 @@ public class SeedLoader implements CommandLineRunner {
     private final ExamRepository exams;
     private final CertificateRepository certs;
     private final Json json;
+    private final BCryptPasswordEncoder encoder;
+    private final String demoPassword;
 
-    public SeedLoader(UserRepository users, ExamRepository exams, CertificateRepository certs, Json json) {
+    public SeedLoader(UserRepository users, ExamRepository exams, CertificateRepository certs, Json json,
+                       BCryptPasswordEncoder encoder, @Value("${fluenta.demo.password:yalla-demo}") String demoPassword) {
         this.users = users;
         this.exams = exams;
         this.certs = certs;
         this.json = json;
+        this.encoder = encoder;
+        this.demoPassword = demoPassword;
     }
 
     @Override
@@ -83,6 +90,8 @@ public class SeedLoader implements CommandLineRunner {
         e.setLevel(u.hasNonNull("level") ? u.get("level").asText() : null);
         e.setOnboarded(u.path("onboarded").asBoolean(true));
         e.setStreak(u.has("streak") ? json.write(u.get("streak")) : null);
+        e.setPasswordHash(encoder.encode(demoPassword));
+        e.setEmailVerified(true);
         users.save(e);
     }
 

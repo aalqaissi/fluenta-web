@@ -7,54 +7,56 @@ import com.fluenta.api.repo.SessionRepository;
 import com.fluenta.api.repo.UserRepository;
 import com.fluenta.api.web.ApiException;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
-/**
- * Prototype auth: a login resolves to a user by email, falling back to the seeded default user so
- * the demo login always works. Passwords are not stored or checked at this stage (documented).
- */
+/** Real auth: register hashes a password; login verifies it. Sessions stay opaque bearer tokens. */
 @Service
 public class AuthService {
 
-    static final String DEFAULT_USER_ID = "u1";
+    private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
     private final UserRepository users;
     private final SessionRepository sessions;
     private final Mappers mappers;
+    private final BCryptPasswordEncoder encoder;
 
-    public AuthService(UserRepository users, SessionRepository sessions, Mappers mappers) {
+    public AuthService(UserRepository users, SessionRepository sessions, Mappers mappers, BCryptPasswordEncoder encoder) {
         this.users = users;
         this.sessions = sessions;
         this.mappers = mappers;
+        this.encoder = encoder;
     }
 
-    public LoginResponse login(String email) {
-        UserEntity user;
-        if (email == null || email.isBlank()) {
-            // No email (e.g. the demo "Continue with Google") → the seeded, already-onboarded user.
-            user = users.findById(DEFAULT_USER_ID)
-                    .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "No seeded user"));
-        } else {
-            user = users.findFirstByEmailIgnoreCase(email).orElseGet(() -> createUser(email));
+    public LoginResponse login(String email, String password) {
+        UserEntity user = (email == null ? null : users.findFirstByEmailIgnoreCase(email.trim()).orElse(null));
+        if (user == null || user.getPasswordHash() == null || password == null
+                || !encoder.matches(password, user.getPasswordHash())) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Incorrect email or password");
         }
-        String token = "yalla_" + UUID.randomUUID().toString().replace("-", "");
-        sessions.save(new SessionEntity(token, user.getId(), Instant.now().toString()));
-        return new LoginResponse(token, mappers.toDto(user));
+        return session(user);
     }
 
-    /** Create a fresh, un-onboarded account for a new email (prototype: no password). */
-    private UserEntity createUser(String email) {
+    public LoginResponse register(String email, String password, String name) {
+        String e = email == null ? "" : email.trim();
+        if (!EMAIL.matcher(e).matches()) throw new ApiException(HttpStatus.BAD_REQUEST, "Enter a valid email address");
+        if (password == null || password.length() < 8) throw new ApiException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters");
+        String nm = name == null ? "" : name.trim();
+        if (nm.isBlank()) throw new ApiException(HttpStatus.BAD_REQUEST, "Enter your name");
+        if (users.findFirstByEmailIgnoreCase(e).isPresent())
+            throw new ApiException(HttpStatus.CONFLICT, "That email is already registered.");
+
         UserEntity u = new UserEntity();
         u.setId("u-" + UUID.randomUUID().toString().substring(0, 8));
-        u.setEmail(email);
-        String local = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
-        String name = local.isBlank() ? "New Learner"
-                : Character.toUpperCase(local.charAt(0)) + local.substring(1);
-        u.setName(name);
-        u.setInitials(name.length() >= 2 ? name.substring(0, 2).toUpperCase() : name.toUpperCase());
+        u.setEmail(e);
+        u.setName(nm);
+        u.setInitials(nm.length() >= 2 ? nm.substring(0, 2).toUpperCase() : nm.toUpperCase());
+        u.setPasswordHash(encoder.encode(password));
+        u.setEmailVerified(false);
         u.setPlan("free");
         u.setPlanLabel("Free");
         u.setRenewsInDays(0);
@@ -63,10 +65,16 @@ public class AuthService {
         u.setTrack("ielts");
         u.setOnboarded(false);
         u.setStreak("{\"current\":0,\"best\":0,\"last30\":[]}");
-        return users.save(u);
+        return session(users.save(u));
     }
 
     public void logout(String token) {
         if (token != null) sessions.deleteById(token);
+    }
+
+    private LoginResponse session(UserEntity user) {
+        String token = "yalla_" + UUID.randomUUID().toString().replace("-", "");
+        sessions.save(new SessionEntity(token, user.getId(), Instant.now().toString()));
+        return new LoginResponse(token, mappers.toDto(user));
     }
 }
