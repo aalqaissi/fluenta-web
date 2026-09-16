@@ -12,7 +12,7 @@ _Last updated 2026-09-12._
 |  | ☐ | **Vocabulary practice** — full student runner + Content-Studio authoring + scoring | This stage: dashboard-level only (progress, strengths/weaknesses, Practice-by-Skill card). Practice page is "Coming soon". |
 |  | ☐ | **Grammar practice** — full student runner + Studio authoring + scoring | Same as Vocabulary. |
 |  | ☐ | **AI: Fluenta/Einstein Coach chat** | Held; button disabled, `/api/ai/coach` → 501. Needs real LLM integration. |
-|  | ☐ | **AI: Writing feedback** (band + criteria + inline annotations) | Held; submit disabled, `/api/ai/writing-feedback` → 501. |
+|  | ☑ | **AI: Writing feedback** (band + criteria + inline annotations) | Live with offline fallback + toggleable persistence. |
 |  | ☐ | **AI: Speaking feedback** (band + 4 criteria) | Held; submit disabled, `/api/ai/speaking-feedback` → 501. |
 |  | ☐ | **AI: Live Interview** (real-time examiner) | Held; page is a "coming soon" screen. |
 |  | ☐ | **AI: Studio Generate / Extract / Fill-answers** | Held; buttons disabled centrally in `AiButton`. |

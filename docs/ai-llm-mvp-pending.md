@@ -24,18 +24,19 @@ There is a `claude-api` **skill** available in the session (Anthropic API / mode
 
 ## 1. Foundation (build first — everything else depends on it)
 
-- [ ] **Choose provider + model.** Project default is Claude (latest: Opus 5 / Sonnet 5 / Haiku 4.5). Add the SDK or an HTTP client to the Spring backend. (Load the `claude-api` skill for exact model ids, params, streaming, and token/cost details — don't answer from memory.)
-- [ ] **Config + secrets.** API key via env var (e.g. `ANTHROPIC_API_KEY` / a `fluenta.ai.*` block in `application.yml`), never committed. **Feature flag**: when the key/service is absent, endpoints degrade to the current held behavior (501/`comingSoon`) so demos still work.
-- [ ] **`AiService` abstraction** — one place that builds prompts, calls the model, parses/validates responses; with timeouts, retries, error mapping (LLM error → clean API error), basic rate limiting, and cost/token awareness.
-- [ ] **Replace the placeholder `AiController`** with real per-feature endpoints (below), each `requireAdmin()`-free for student features but gated appropriately (Coach/feedback are student-facing; Studio generate/extract are admin — the role gating already exists via `CurrentUser.requireAdmin()`).
-- [ ] **Response contracts (DTOs)** for each feature so web + mobile consume a stable shape. Writing/Speaking feedback MUST match the existing result shapes (see feature 2/3) so the current result screens can render real data with minimal change.
-- [ ] **Safety:** treat user essays / chat as untrusted (prompt-injection), consider moderation, cap input/output tokens.
+- [x] **Choose provider + model.** Project default is Claude (latest: Opus 5 / Sonnet 5 / Haiku 4.5). Add the SDK or an HTTP client to the Spring backend. (Load the `claude-api` skill for exact model ids, params, streaming, and token/cost details — don't answer from memory.)
+- [x] **Config + secrets.** API key via env var (e.g. `ANTHROPIC_API_KEY` / a `fluenta.ai.*` block in `application.yml`), never committed. **Feature flag**: when the key/service is absent, endpoints degrade to the current held behavior (501/`comingSoon`) so demos still work.
+- [x] **`AiService` abstraction** — one place that builds prompts, calls the model, parses/validates responses; with timeouts, retries, error mapping (LLM error → clean API error), basic rate limiting, and cost/token awareness.
+- [x] **Replace the placeholder `AiController`** with real per-feature endpoints (below), each `requireAdmin()`-free for student features but gated appropriately (Coach/feedback are student-facing; Studio generate/extract are admin — the role gating already exists via `CurrentUser.requireAdmin()`).
+- [x] **Response contracts (DTOs)** for each feature so web + mobile consume a stable shape. Writing/Speaking feedback MUST match the existing result shapes (see feature 2/3) so the current result screens can render real data with minimal change.
+- [x] **Safety:** treat user essays / chat as untrusted (prompt-injection), consider moderation, cap input/output tokens.
 
 ---
 
 ## 2. The five AI features
 
 ### 2a. Writing feedback — `/api/ai/writing-feedback` (RECOMMENDED FIRST)
+**Status: DONE** — Live with Claude grader + offline heuristic fallback; toggleable server-side persistence.
 - **Why first:** highest value + self-contained + text-only (no audio). Makes the just-shipped Writing runner actually graded.
 - **Held today:** submit shows `sampleWritingResult`.
 - **Build:** given the essay text + task prompt/criteria, return **overall band + 4 IELTS criteria** (task response, coherence & cohesion, lexical resource, grammatical range/accuracy) **+ inline annotations** (quoted span → note, per criterion).
