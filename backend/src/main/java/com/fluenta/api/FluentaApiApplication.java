@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * are intentionally stubbed at this stage — see {@code web.AiController}.
  */
 @SpringBootApplication
+@org.springframework.boot.context.properties.EnableConfigurationProperties(com.fluenta.api.config.AiProperties.class)
 public class FluentaApiApplication {
     public static void main(String[] args) {
         // The SQLite driver does not create the parent directory for the DB file, so ensure it

@@ -32,6 +32,14 @@ fluenta:
     dir: ${FLUENTA_MEDIA_DIR:./data/media}
   demo:
     password: ${FLUENTA_DEMO_PASSWORD:yalla-demo}
+  ai:
+    enabled: ${FLUENTA_AI_ENABLED:true}
+    api-key: ${ANTHROPIC_API_KEY:}
+    model: ${FLUENTA_AI_MODEL:claude-sonnet-5}
+    effort: ${FLUENTA_AI_EFFORT:medium}
+    timeout-seconds: ${FLUENTA_AI_TIMEOUT:60}
+    max-essay-chars: ${FLUENTA_AI_MAX_ESSAY_CHARS:12000}
+    persist: ${FLUENTA_AI_PERSIST:true}
 
 logging:
   level:
