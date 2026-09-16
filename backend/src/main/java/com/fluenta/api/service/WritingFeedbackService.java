@@ -11,6 +11,8 @@ import com.fluenta.api.service.grader.WritingGrader;
 import com.fluenta.api.web.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -22,6 +24,8 @@ import java.util.UUID;
 /** Orchestrates writing feedback: picks a grader, runs the validation gate, (later) persists. */
 @Service
 public class WritingFeedbackService {
+
+    private static final Logger log = LoggerFactory.getLogger(WritingFeedbackService.class);
 
     /** Canonical criterion order + labels (must match the web/mobile UI). */
     private static final String[][] CRITERIA = {
@@ -73,7 +77,10 @@ public class WritingFeedbackService {
             e.setCreatedAt(Instant.now().toString());
             repo.save(e);
         } catch (Exception ex) {
-            return withId; // persistence must never block returning feedback
+            // persistence must never block returning feedback — but a non-null id must be retrievable,
+            // so fall back to the original (id == null) result rather than claiming a save that failed.
+            log.warn("Failed to persist writing feedback id={}: {}: {}", id, ex.getClass().getName(), ex.getMessage());
+            return r;
         }
         return withId;
     }
