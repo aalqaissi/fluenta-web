@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.List;
 
 /** Live AiClient backed by the Anthropic Java SDK. SDK client is built lazily (never in offline mode). */
 @Service
@@ -58,6 +59,33 @@ public class AnthropicAiClient implements AiClient {
         } catch (RuntimeException e) {
             throw new ApiException(HttpStatus.BAD_GATEWAY,
                     "The writing grader could not be reached. Please try again.");
+        }
+    }
+
+    @Override
+    public String chat(String systemPrompt, java.util.List<ChatTurn> turns) {
+        try {
+            MessageCreateParams.Builder b = MessageCreateParams.builder()
+                    .model(props.model())
+                    .maxTokens(16000L)
+                    .thinking(ThinkingConfigAdaptive.builder().build())
+                    .outputConfig(OutputConfig.builder().effort(effort()).build())
+                    .system(systemPrompt);
+            for (ChatTurn t : turns) {
+                if ("assistant".equals(t.role())) {
+                    b.addAssistantMessage(t.text());
+                } else {
+                    b.addUserMessage(t.text());
+                }
+            }
+            Message response = client().messages().create(b.build());
+            StringBuilder sb = new StringBuilder();
+            response.content().forEach(block -> block.text().ifPresent(x -> sb.append(x.text())));
+            return sb.toString();
+        } catch (AnthropicServiceException e) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "The coach is temporarily unavailable. Please try again.");
+        } catch (RuntimeException e) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "The coach could not be reached. Please try again.");
         }
     }
 

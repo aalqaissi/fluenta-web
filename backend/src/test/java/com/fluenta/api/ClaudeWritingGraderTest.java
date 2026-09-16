@@ -27,7 +27,12 @@ class ClaudeWritingGraderTest {
               {"key":"lexical","label":"Lexical Resource","band":6,"summary":"ok"},
               {"key":"grammar","label":"Grammatical Range & Accuracy","band":7,"summary":"ok"}],
              "annotations":[{"criterion":"grammar","quote":"is are","note":"agreement"}]}""";
-        AiClient fake = (system, user) -> json;
+        AiClient fake = new AiClient() {
+            @Override public String complete(String system, String user) { return json; }
+            @Override public String chat(String systemPrompt, java.util.List<ChatTurn> turns) {
+                throw new UnsupportedOperationException("not used in this test");
+            }
+        };
         var grader = new ClaudeWritingGrader(fake, om);
 
         var r = grader.grade(req("The cat is are happy."));
@@ -41,7 +46,15 @@ class ClaudeWritingGraderTest {
     @Test
     void retriesOnceThenThrowsOnUnparseable() {
         AtomicInteger calls = new AtomicInteger();
-        AiClient fake = (system, user) -> { calls.incrementAndGet(); return "sorry, not json"; };
+        AiClient fake = new AiClient() {
+            @Override public String complete(String system, String user) {
+                calls.incrementAndGet();
+                return "sorry, not json";
+            }
+            @Override public String chat(String systemPrompt, java.util.List<ChatTurn> turns) {
+                throw new UnsupportedOperationException("not used in this test");
+            }
+        };
         var grader = new ClaudeWritingGrader(fake, om);
 
         assertThatThrownBy(() -> grader.grade(req("essay")))

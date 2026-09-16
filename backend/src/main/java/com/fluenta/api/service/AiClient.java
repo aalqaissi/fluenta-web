@@ -1,6 +1,14 @@
 package com.fluenta.api.service;
 
-/** Minimal seam over the LLM SDK: one prompt in, model text out. Keeps the SDK out of feature code. */
+import java.util.List;
+
+/** Minimal seam over the LLM SDK. Keeps the SDK out of feature code. */
 public interface AiClient {
+    /** Single-turn completion (writing feedback). */
     String complete(String systemPrompt, String userPrompt);
+
+    /** Multi-turn chat (coach). Turns are in order; role is "user" or "assistant". */
+    String chat(String systemPrompt, List<ChatTurn> turns);
+
+    record ChatTurn(String role, String text) {}
 }

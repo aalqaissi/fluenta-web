@@ -48,8 +48,14 @@ class WritingFeedbackServiceTest {
                 List.of(new AiDtos.WritingAnnotation(null, "grammar", "NOT IN ESSAY", "n"),
                         new AiDtos.WritingAnnotation(null, "grammar", "real span", "n")));
         var props = new AiProperties(true, "sk-test", "claude-sonnet-5", "medium", 60, 12000, false);
+        com.fluenta.api.service.AiClient noopAi = new com.fluenta.api.service.AiClient() {
+            @Override public String complete(String system, String user) { return ""; }
+            @Override public String chat(String systemPrompt, List<com.fluenta.api.service.AiClient.ChatTurn> turns) {
+                throw new UnsupportedOperationException("not used in this test");
+            }
+        };
         var service = new WritingFeedbackService(props, new StubWritingGrader(),
-                new com.fluenta.api.service.grader.ClaudeWritingGrader((s, u) -> "", null) {
+                new com.fluenta.api.service.grader.ClaudeWritingGrader(noopAi, null) {
                     @Override public AiDtos.WritingResult grade(AiDtos.WritingFeedbackRequest r) { return bad.grade(r); }
                 }, null, null);
         var r = service.generate("u1", req("this has a real span inside it"));

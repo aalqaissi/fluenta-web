@@ -17,4 +17,8 @@ public final class AiDtos {
     public record WritingResult(
             String id, String source, double overall, int wordCount, String answer,
             List<WritingCriterion> criteria, List<WritingAnnotation> annotations) {}
+
+    public record CoachTurn(String role, String text) {}          // role: "user" | "coach"
+    public record CoachRequest(List<CoachTurn> messages) {}
+    public record CoachReply(String reply) {}
 }
