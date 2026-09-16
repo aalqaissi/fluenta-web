@@ -25,12 +25,12 @@ class WritingFeedbackServiceTest {
     private WritingFeedbackService svc(AiProperties props, com.fluenta.api.service.grader.WritingGrader claude) {
         // ClaudeWritingGrader isn't used in offline mode, but the constructor requires it.
         return new WritingFeedbackService(props, new StubWritingGrader(),
-                (ClaudeWritingGrader) claude);
+                (ClaudeWritingGrader) claude, null, null);
     }
 
     @Test
     void offlineComputesWordCountAndFourCriteria() {
-        var service = new WritingFeedbackService(offline(), new StubWritingGrader(), null);
+        var service = new WritingFeedbackService(offline(), new StubWritingGrader(), null, null, null);
         var r = service.generate("u1", req("word ".repeat(120)));
         assertThat(r.source()).isEqualTo("offline");
         assertThat(r.wordCount()).isEqualTo(120);
@@ -51,7 +51,7 @@ class WritingFeedbackServiceTest {
         var service = new WritingFeedbackService(props, new StubWritingGrader(),
                 new com.fluenta.api.service.grader.ClaudeWritingGrader((s, u) -> "", null) {
                     @Override public AiDtos.WritingResult grade(AiDtos.WritingFeedbackRequest r) { return bad.grade(r); }
-                });
+                }, null, null);
         var r = service.generate("u1", req("this has a real span inside it"));
         assertThat(r.overall()).isLessThanOrEqualTo(9.0);
         assertThat(r.criteria()).extracting(AiDtos.WritingCriterion::key)
@@ -64,10 +64,10 @@ class WritingFeedbackServiceTest {
 
     @Test
     void rejectsBlankAndOversizeEssays() {
-        var service = new WritingFeedbackService(offline(), new StubWritingGrader(), null);
+        var service = new WritingFeedbackService(offline(), new StubWritingGrader(), null, null, null);
         assertThatThrownBy(() -> service.generate("u1", req("   "))).isInstanceOf(ApiException.class);
         var smallCap = new AiProperties(false, "", "claude-sonnet-5", "medium", 60, 10, false);
-        var svc2 = new WritingFeedbackService(smallCap, new StubWritingGrader(), null);
+        var svc2 = new WritingFeedbackService(smallCap, new StubWritingGrader(), null, null, null);
         assertThatThrownBy(() -> svc2.generate("u1", req("this essay is definitely longer than ten characters")))
                 .isInstanceOf(ApiException.class);
     }

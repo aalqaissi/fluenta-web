@@ -25,6 +25,11 @@ public class AiController {
         return writing.generate(CurrentUser.require(), req);
     }
 
+    @GetMapping("/writing-feedback/{id}")
+    public AiDtos.WritingResult getWritingFeedback(@PathVariable String id) {
+        return writing.get(CurrentUser.require(), id);
+    }
+
     /** Held features: coach, studio-*, speaking-feedback, live-interview. */
     @PostMapping("/{feature}")
     @ResponseStatus(HttpStatus.NOT_IMPLEMENTED)

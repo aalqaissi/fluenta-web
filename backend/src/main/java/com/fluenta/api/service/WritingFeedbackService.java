@@ -1,17 +1,23 @@
 package com.fluenta.api.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fluenta.api.config.AiProperties;
+import com.fluenta.api.domain.WritingFeedbackEntity;
 import com.fluenta.api.dto.AiDtos;
+import com.fluenta.api.repo.WritingFeedbackRepository;
 import com.fluenta.api.service.grader.ClaudeWritingGrader;
 import com.fluenta.api.service.grader.StubWritingGrader;
 import com.fluenta.api.service.grader.WritingGrader;
 import com.fluenta.api.web.ApiException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /** Orchestrates writing feedback: picks a grader, runs the validation gate, (later) persists. */
 @Service
@@ -27,11 +33,16 @@ public class WritingFeedbackService {
     private final AiProperties props;
     private final StubWritingGrader stub;
     private final ClaudeWritingGrader claude;
+    private final WritingFeedbackRepository repo;
+    private final ObjectMapper om;
 
-    public WritingFeedbackService(AiProperties props, StubWritingGrader stub, ClaudeWritingGrader claude) {
+    public WritingFeedbackService(AiProperties props, StubWritingGrader stub, ClaudeWritingGrader claude,
+                                  WritingFeedbackRepository repo, ObjectMapper om) {
         this.props = props;
         this.stub = stub;
         this.claude = claude;
+        this.repo = repo;
+        this.om = om;
     }
 
     public AiDtos.WritingResult generate(String userId, AiDtos.WritingFeedbackRequest req) {
@@ -41,7 +52,40 @@ public class WritingFeedbackService {
             throw ApiException.badRequest("Essay is too long (max " + props.maxEssayChars() + " characters)");
         }
         WritingGrader grader = props.live() ? claude : stub;
-        return validate(grader.grade(req), essay);
+        AiDtos.WritingResult result = validate(grader.grade(req), essay);
+        return props.persist() ? persist(userId, req, result) : result;
+    }
+
+    private AiDtos.WritingResult persist(String userId, AiDtos.WritingFeedbackRequest req, AiDtos.WritingResult r) {
+        String id = UUID.randomUUID().toString();
+        AiDtos.WritingResult withId = new AiDtos.WritingResult(id, r.source(), r.overall(),
+                r.wordCount(), r.answer(), r.criteria(), r.annotations());
+        try {
+            WritingFeedbackEntity e = new WritingFeedbackEntity();
+            e.setId(id);
+            e.setUserId(userId);
+            e.setTaskId(req.taskId());
+            e.setTaskNumber(req.taskNumber());
+            e.setEssay(req.essay());
+            e.setResultJson(om.writeValueAsString(withId));
+            e.setModel(props.live() ? props.model() : "offline");
+            e.setSource(r.source());
+            e.setCreatedAt(Instant.now().toString());
+            repo.save(e);
+        } catch (Exception ex) {
+            return withId; // persistence must never block returning feedback
+        }
+        return withId;
+    }
+
+    public AiDtos.WritingResult get(String userId, String id) {
+        WritingFeedbackEntity e = repo.findById(id).orElseThrow(() -> ApiException.notFound("Feedback"));
+        if (!userId.equals(e.getUserId())) throw new ApiException(HttpStatus.FORBIDDEN, "Not your feedback");
+        try {
+            return om.readValue(e.getResultJson(), AiDtos.WritingResult.class);
+        } catch (Exception ex) {
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not read stored feedback");
+        }
     }
 
     /** Validation gate. Public for unit visibility; called on every result before it leaves the server. */
