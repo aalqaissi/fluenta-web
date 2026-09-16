@@ -3,7 +3,8 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Clock, Flag, Sparkles, Check } from "lucide-react";
 import { sampleWritingResult } from "@/mock/data";
 import { resolveWritingTask } from "@/features/studio/convert";
-import { setLastWriting } from "@/store/attempt-store";
+import { setLastWriting, setWritingResult } from "@/store/attempt-store";
+import { api } from "@/lib/api";
 import { fullExamStore } from "@/features/simulation/fullexam-store";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,7 +29,8 @@ export function WritingEditorPage() {
     return task.id === "w-task2" ? sampleWritingResult.answer : "";
   });
   const [timeLeft, setTimeLeft] = useState(task.durationSec);
-  const [grading, setGrading] = useState(false);
+  const [gradeState, setGradeState] = useState<"idle" | "loading" | "error">("idle");
+  const [attempt, setAttempt] = useState(0);
   const [saved, setSaved] = useState(true);
   const saveTimer = useRef<number | null>(null);
 
@@ -51,10 +53,26 @@ export function WritingEditorPage() {
   const words = useMemo(() => text.trim().split(/\s+/).filter(Boolean).length, [text]);
   const enough = words >= task.minWords;
 
-  function submit() {
+  async function submit() {
+    setAttempt((n) => n + 1);
     setLastWriting({ taskId: task.id, answer: text, wordCount: words });
-    try { localStorage.removeItem(storeKey); } catch { /* ignore */ }
-    setGrading(true);
+    setGradeState("loading");
+    try {
+      const res = await api.ai.writingFeedback({
+        taskId: task.id,
+        taskNumber: task.taskNumber,
+        kind: task.kind,
+        module: task.module,
+        prompt: task.prompt,
+        minWords: task.minWords,
+        essay: text,
+      });
+      setWritingResult(res);
+      try { localStorage.removeItem(storeKey); } catch { /* ignore */ }
+      afterGrading();
+    } catch {
+      setGradeState("error");
+    }
   }
 
   function afterGrading() {
@@ -125,7 +143,16 @@ export function WritingEditorPage() {
         </div>
       </div>
 
-      <GradingModal open={grading} onDone={afterGrading} />
+      <GradingModal
+        key={attempt}
+        open={gradeState !== "idle"}
+        onDone={afterGrading}
+        mode="async"
+        state={gradeState === "error" ? "error" : "loading"}
+        errorText="We couldn't grade your essay right now."
+        onRetry={submit}
+        onCancel={() => { setWritingResult(null); afterGrading(); }}
+      />
     </div>
   );
 }

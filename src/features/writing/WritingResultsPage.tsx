@@ -4,6 +4,7 @@ import { ArrowLeft, Bot, Sparkles } from "lucide-react";
 import { sampleWritingResult } from "@/mock/data";
 import { resolveWritingTask } from "@/features/studio/convert";
 import { getLastWriting } from "@/store/attempt-store";
+import type { AiWritingResult } from "@/lib/api";
 import type { WritingCriterionKey } from "@/mock/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -27,8 +28,8 @@ const critBar: Record<WritingCriterionKey, string> = {
 
 export function WritingResultsPage() {
   const navigate = useNavigate();
-  const result = sampleWritingResult;
   const written = getLastWriting();
+  const result = written?.result ?? sampleWritingResult;
   const answer = written?.answer?.trim() ? written.answer : result.answer;
   const wordCount = written?.wordCount ?? result.wordCount;
   const task = resolveWritingTask(written?.taskId);
@@ -55,6 +56,7 @@ export function WritingResultsPage() {
             <div>
               <Badge variant="info" className="mb-1">
                 <Sparkles className="size-3" /> AI feedback · Task {task.taskNumber}
+                {(result as AiWritingResult).source === "offline" && " · offline estimate"}
               </Badge>
               <h1 className="text-2xl font-extrabold">Your writing, reviewed</h1>
               <p className="text-sm text-muted-foreground">{wordCount} words · scored across all four criteria.</p>
