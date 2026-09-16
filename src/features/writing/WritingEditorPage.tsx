@@ -137,7 +137,7 @@ export function WritingEditorPage() {
           <span className={cn("text-sm font-semibold", enough ? "text-success" : "text-muted-foreground")}>
             {words} words {enough ? "· minimum reached" : `· ${task.minWords - words} to go`}
           </span>
-          <Button variant="success" onClick={submit} disabled={words < 5}>
+          <Button variant="success" onClick={submit} disabled={words < 5 || gradeState === "loading"}>
             <Flag className="size-4" /> Submit for AI feedback
           </Button>
         </div>

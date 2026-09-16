@@ -30,8 +30,8 @@ export function WritingResultsPage() {
   const navigate = useNavigate();
   const written = getLastWriting();
   const result = written?.result ?? sampleWritingResult;
-  const answer = written?.answer?.trim() ? written.answer : result.answer;
-  const wordCount = written?.wordCount ?? result.wordCount;
+  const answer = result.answer;
+  const wordCount = result.wordCount;
   const task = resolveWritingTask(written?.taskId);
 
   const [mode, setMode] = useState<"original" | "feedback">("feedback");
