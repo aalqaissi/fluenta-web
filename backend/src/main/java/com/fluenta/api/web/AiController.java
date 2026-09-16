@@ -2,6 +2,7 @@ package com.fluenta.api.web;
 
 import com.fluenta.api.config.CurrentUser;
 import com.fluenta.api.dto.AiDtos;
+import com.fluenta.api.service.CoachService;
 import com.fluenta.api.service.WritingFeedbackService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -9,16 +10,21 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * AI feature endpoints. Writing feedback is live (falls back to an offline heuristic when the AI
- * service is disabled/keyless). Every other feature is still held and returns 501.
+ * AI feature endpoints. Writing feedback and the coach are live (both fall back to an offline
+ * heuristic when the AI service is disabled/keyless). Every other feature is still held and
+ * returns 501.
  */
 @RestController
 @RequestMapping("/api/ai")
 public class AiController {
 
     private final WritingFeedbackService writing;
+    private final CoachService coach;
 
-    public AiController(WritingFeedbackService writing) { this.writing = writing; }
+    public AiController(WritingFeedbackService writing, CoachService coach) {
+        this.writing = writing;
+        this.coach = coach;
+    }
 
     @PostMapping("/writing-feedback")
     public AiDtos.WritingResult writingFeedback(@RequestBody AiDtos.WritingFeedbackRequest req) {
@@ -30,7 +36,12 @@ public class AiController {
         return writing.get(CurrentUser.require(), id);
     }
 
-    /** Held features: coach, studio-*, speaking-feedback, live-interview. */
+    @PostMapping("/coach")
+    public AiDtos.CoachReply coach(@RequestBody AiDtos.CoachRequest req) {
+        return coach.reply(CurrentUser.require(), req);
+    }
+
+    /** Held features: studio-*, speaking-feedback, live-interview. */
     @PostMapping("/{feature}")
     @ResponseStatus(HttpStatus.NOT_IMPLEMENTED)
     public Map<String, Object> notImplemented(@PathVariable String feature) {

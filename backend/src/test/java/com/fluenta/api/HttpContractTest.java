@@ -123,10 +123,20 @@ class HttpContractTest {
     @Test
     void aiEndpointsAreDisabled() throws Exception {
         String token = login();
-        mvc.perform(post("/api/ai/coach").header("Authorization", "Bearer " + token)
+        mvc.perform(post("/api/ai/live-interview").header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isNotImplemented())
                 .andExpect(jsonPath("$.comingSoon").value(true));
+    }
+
+    @Test
+    void coachReturnsReplyOffline() throws Exception {
+        String token = login();
+        String body = "{\"messages\":[{\"role\":\"user\",\"text\":\"give me a true/false not given reading drill\"}]}";
+        mvc.perform(post("/api/ai/coach").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reply").isNotEmpty());
     }
 
     @Test
