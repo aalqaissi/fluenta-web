@@ -42,7 +42,7 @@ public class AnthropicAiClient implements AiClient {
         try {
             MessageCreateParams params = MessageCreateParams.builder()
                     .model(props.model())
-                    .maxTokens(4000L)
+                    .maxTokens(16000L)
                     .thinking(ThinkingConfigAdaptive.builder().build())
                     .outputConfig(OutputConfig.builder().effort(effort()).build())
                     .system(systemPrompt)
