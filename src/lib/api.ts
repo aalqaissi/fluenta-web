@@ -296,6 +296,16 @@ export interface AiWritingResult extends WritingResult {
   id?: string | null;
   source?: "ai" | "offline";
 }
+export interface AiCoachTurn {
+  role: "user" | "coach";
+  text: string;
+}
+export interface AiCoachRequest {
+  messages: AiCoachTurn[];
+}
+export interface AiCoachReply {
+  reply: string;
+}
 
 // ---- endpoint groups ----------------------------------------------
 
@@ -386,5 +396,6 @@ export const api = {
       request<AiWritingResult>("POST", "/ai/writing-feedback", req),
     getWritingFeedback: (id: string) =>
       request<AiWritingResult>("GET", `/ai/writing-feedback/${id}`),
+    coach: (req: AiCoachRequest) => request<AiCoachReply>("POST", "/ai/coach", req),
   },
 };

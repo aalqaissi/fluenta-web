@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { coachSuggestions, initialCoachMessages } from "@/mock/data";
 import type { CoachMessage } from "@/mock/types";
 import { brand } from "@/config/brand";
-import { delay, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
 
 function replyFor(input: string): string {
   const q = input.toLowerCase();
@@ -35,12 +36,19 @@ export function CoachPage() {
   async function send(text: string) {
     if (!text.trim()) return;
     const userMsg: CoachMessage = { id: crypto.randomUUID(), role: "user", text, createdAt: new Date().toISOString() };
-    setMessages((m) => [...m, userMsg]);
+    const history = [...messages, userMsg];
+    setMessages(history);
     setInput("");
     setTyping(true);
-    await delay(900);
+    let replyText: string;
+    try {
+      const res = await api.ai.coach({ messages: history.map((m) => ({ role: m.role, text: m.text })) });
+      replyText = res.reply;
+    } catch {
+      replyText = replyFor(text); // offline / error fallback
+    }
     setTyping(false);
-    setMessages((m) => [...m, { id: crypto.randomUUID(), role: "coach", text: replyFor(text), createdAt: new Date().toISOString() }]);
+    setMessages((m) => [...m, { id: crypto.randomUUID(), role: "coach", text: replyText, createdAt: new Date().toISOString() }]);
   }
 
   return (
