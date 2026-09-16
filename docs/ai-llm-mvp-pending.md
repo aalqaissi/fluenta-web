@@ -44,9 +44,9 @@ There is a `claude-api` **skill** available in the session (Anthropic API / mode
 - **UI:** replace the `sampleWritingResult` path in web `WritingEditorPage.submit` → `GradingModal` → `WritingResultsPage`, and mobile `writing_editor_screen._submit` → `writing_results_screen`. Add loading/error/timeout states; keep the sample as an offline/held fallback.
 
 ### 2b. Coach chat — `/api/ai/coach`
-- **Held today:** placeholder page, input disabled.
-- **Build:** an IELTS/English tutor chat. Decide request/response vs **streaming** (streaming is nicer but more work — SSE from Spring; the web/mobile clients then stream). System prompt = coach persona (brand `coachName`). Conversation history handling (client-sent history vs server session).
-- **UI:** web `src/features/coach/CoachPage.tsx`, mobile `lib/features/coach/coach_screen.dart` — enable input, render streamed/returned messages, errors.
+**Status: DONE** — Live with request/response, server-sourced personalization via OverviewService, offline keyword fallback (never 501), ephemeral (no persistence).
+- **Implementation:** an IELTS/English tutor chat. Request/response model with client-sent history. System prompt = coach persona (brand `coachName`). Personalization via server-sourced student context from OverviewService. Offline keyword responder as fallback.
+- **UI:** web `src/features/coach/CoachPage.tsx`, mobile `lib/features/coach/coach_screen.dart` — input enabled, messages rendered, errors handled.
 
 ### 2c. Studio Generate / Extract / Fill-answers (admin authoring)
 - **Held today:** local heuristics (`aiQuestions`, `defaultAnswerFor`), not a model.
@@ -66,8 +66,8 @@ There is a `claude-api` **skill** available in the session (Anthropic API / mode
 
 ## 3. Cross-cutting work (applies across features)
 
-- [ ] **Web client:** add an `api.ai` group in `src/lib/api.ts` (`coach`, `writingFeedback`, `speakingFeedback`, `studio*`); enable the currently-disabled `AiButton`s / submit actions; replace sample results with real responses + loading/error/timeout UI.
-- [ ] **Mobile client:** matching methods in `lib/services/api_client.dart`; wire coach + writing/speaking results to the real endpoints; keep sample fallback for offline/held.
+- [ ] **Web client:** add an `api.ai` group in `src/lib/api.ts` (`coach`, `writingFeedback`, `speakingFeedback`, `studio*`); enable the currently-disabled `AiButton`s / submit actions; replace sample results with real responses + loading/error/timeout UI. **Coach is now wired.**
+- [ ] **Mobile client:** matching methods in `lib/services/api_client.dart`; wire coach + writing/speaking results to the real endpoints; keep sample fallback for offline/held. **Coach is now wired.**
 - [ ] **Prompt engineering + eval:** IELTS-rubric fidelity for band accuracy; a small eval set to sanity-check bands/criteria before shipping.
 - [ ] **Ops:** cost/latency budgets, token caps, retries/timeouts, optional response caching; observability/logging (without logging PII/essays inappropriately).
 - [ ] **Tests:** backend contract tests with the LLM **mocked** (deterministic); **update `HttpContractTest.aiEndpointsAreDisabled`** once endpoints return real responses.
