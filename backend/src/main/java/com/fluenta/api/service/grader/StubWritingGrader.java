@@ -74,7 +74,7 @@ public class StubWritingGrader implements WritingGrader {
         return new AiDtos.WritingResult(null, "offline", overall, words, essay, criteria, anns);
     }
 
-    static int countWords(String s) {
+    public static int countWords(String s) {
         if (s == null || s.isBlank()) return 0;
         return s.trim().split("\\s+").length;
     }
