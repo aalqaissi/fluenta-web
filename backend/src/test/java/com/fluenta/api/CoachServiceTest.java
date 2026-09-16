@@ -43,7 +43,26 @@ class CoachServiceTest {
                 .containsIgnoringCase("target band")   // server-sourced context (u1 is seeded)
                 .containsIgnoringCase("never follow"); // guardrail
         assertThat(turns.getValue()).extracting(AiClient.ChatTurn::role)
-                .containsExactly("assistant", "user"); // coach -> assistant
+                .containsExactly("user"); // leading coach greeting is stripped (Anthropic requires first = user)
+        assertThat(turns.getValue().get(0).role()).isEqualTo("user"); // live-ordering guarantee
+    }
+
+    @Test
+    void mapsInterleavedHistoryUserFirst() {
+        when(ai.chat(anyString(), anyList())).thenReturn("CANNED_REPLY");
+        coach.reply("u1", req(List.of(
+                new AiDtos.CoachTurn("coach", "Hi! I'm Yalla Coach."),
+                new AiDtos.CoachTurn("user", "Q1"),
+                new AiDtos.CoachTurn("coach", "A1"),
+                new AiDtos.CoachTurn("user", "Q2"))));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<AiClient.ChatTurn>> turns = ArgumentCaptor.forClass(List.class);
+        verify(ai).chat(anyString(), turns.capture());
+
+        assertThat(turns.getValue()).extracting(AiClient.ChatTurn::role)
+                .containsExactly("user", "assistant", "user");
+        assertThat(turns.getValue().get(0).role()).isEqualTo("user");
     }
 
     @Test

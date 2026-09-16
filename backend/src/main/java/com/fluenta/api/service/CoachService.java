@@ -52,9 +52,13 @@ public class CoachService {
 
         List<AiClient.ChatTurn> turns = new ArrayList<>();
         for (AiDtos.CoachTurn t : capped(msgs)) {
+            String text = t.text() == null ? "" : t.text();
+            if (text.isBlank()) continue;                       // Anthropic rejects empty content blocks
             String role = "coach".equals(t.role()) ? "assistant" : "user";
-            turns.add(new AiClient.ChatTurn(role, t.text() == null ? "" : t.text()));
+            if (turns.isEmpty() && "assistant".equals(role)) continue; // first message must be role "user"
+            turns.add(new AiClient.ChatTurn(role, text));
         }
+        if (turns.isEmpty()) throw ApiException.badRequest("Message is empty");
         return new AiDtos.CoachReply(ai.chat(buildSystemPrompt(userId), turns));
     }
 
