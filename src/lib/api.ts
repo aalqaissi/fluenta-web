@@ -10,6 +10,7 @@ import type {
   Plan,
   SectionSummary,
   RecentExam,
+  WritingResult,
 } from "@/mock/types";
 
 export const API_BASE: string =
@@ -281,6 +282,21 @@ export interface AdminUsersPage {
   size: number;
 }
 
+// ---- AI ----
+export interface AiWritingFeedbackRequest {
+  taskId?: string;
+  taskNumber: number;
+  kind: string;
+  module: string;
+  prompt: string;
+  minWords: number;
+  essay: string;
+}
+export interface AiWritingResult extends WritingResult {
+  id?: string | null;
+  source?: "ai" | "offline";
+}
+
 // ---- endpoint groups ----------------------------------------------
 
 export const api = {
@@ -364,5 +380,11 @@ export const api = {
   },
   media: {
     upload: (file: File) => uploadFile<{ url: string }>("/media", file),
+  },
+  ai: {
+    writingFeedback: (req: AiWritingFeedbackRequest) =>
+      request<AiWritingResult>("POST", "/ai/writing-feedback", req),
+    getWritingFeedback: (id: string) =>
+      request<AiWritingResult>("GET", `/ai/writing-feedback/${id}`),
   },
 };
