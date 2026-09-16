@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ListChecks, Check, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 // Honest, deterministic scoring feedback (reading/listening are scored on the server against the
@@ -13,7 +14,23 @@ const scoringSteps = [
   { label: "Done!", atProgress: 100 },
 ];
 
-export function GradingModal({ open, onDone }: { open: boolean; onDone: () => void }) {
+export function GradingModal({
+  open,
+  onDone,
+  mode = "auto",
+  state = "loading",
+  errorText,
+  onRetry,
+  onCancel,
+}: {
+  open: boolean;
+  onDone: () => void;
+  mode?: "auto" | "async";
+  state?: "loading" | "error";
+  errorText?: string;
+  onRetry?: () => void;
+  onCancel?: () => void;
+}) {
   const [pct, setPct] = useState(0);
 
   useEffect(() => {
@@ -21,15 +38,16 @@ export function GradingModal({ open, onDone }: { open: boolean; onDone: () => vo
     setPct(0);
     let value = 0;
     let cancelled = false;
-    const totalMs = 1800;
+    const totalMs = mode === "async" ? 6000 : 1800;
     const ticks = 36;
+    const cap = mode === "async" ? 92 : 100; // async: never "complete" on its own
     const timer = setInterval(() => {
       if (cancelled) return;
-      value = Math.min(100, value + Math.ceil(100 / ticks));
+      value = Math.min(cap, value + Math.ceil(100 / ticks));
       setPct(value);
-      if (value >= 100) {
+      if (value >= cap) {
         clearInterval(timer);
-        setTimeout(() => !cancelled && onDone(), 400);
+        if (mode === "auto") setTimeout(() => !cancelled && onDone(), 400);
       }
     }, totalMs / ticks);
     return () => {
@@ -37,7 +55,9 @@ export function GradingModal({ open, onDone }: { open: boolean; onDone: () => vo
       clearInterval(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, mode]);
+
+  const isError = mode === "async" && state === "error";
 
   const label = [...scoringSteps].reverse().find((s) => pct >= s.atProgress)?.label ?? scoringSteps[0].label;
 
@@ -78,7 +98,25 @@ export function GradingModal({ open, onDone }: { open: boolean; onDone: () => vo
             );
           })}
         </ul>
-        <p className="mt-4 text-xs text-muted-foreground">Your answers are scored on the server. This only takes a moment.</p>
+        {isError ? (
+          <div className="mt-4 space-y-3">
+            <p className="text-sm text-destructive">
+              {errorText ?? "We couldn't grade your essay right now."}
+            </p>
+            <div className="flex justify-center gap-2">
+              {onRetry && <Button onClick={onRetry}>Try again</Button>}
+              {onCancel && (
+                <Button variant="ghost" onClick={onCancel}>
+                  View sample feedback
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="mt-4 text-xs text-muted-foreground">
+            Your answers are scored on the server. This only takes a moment.
+          </p>
+        )}
       </DialogContent>
     </Dialog>
   );

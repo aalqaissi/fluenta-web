@@ -1,6 +1,6 @@
 // Tiny in-memory store to carry a submitted attempt from runner -> results
 // (frontend-only prototype; survives client-side navigation, resets on reload).
-import type { SpeakingFeedback } from "@/mock/types";
+import type { SpeakingFeedback, WritingResult } from "@/mock/types";
 
 export interface Attempt {
   examId: string;
@@ -24,6 +24,7 @@ export interface WritingAttempt {
   taskId: string;
   answer: string;
   wordCount: number;
+  result?: WritingResult | null;
 }
 let lastWriting: WritingAttempt | null = null;
 export function setLastWriting(w: WritingAttempt) {
@@ -31,6 +32,9 @@ export function setLastWriting(w: WritingAttempt) {
 }
 export function getLastWriting() {
   return lastWriting;
+}
+export function setWritingResult(result: WritingResult | null) {
+  if (lastWriting) lastWriting = { ...lastWriting, result };
 }
 
 // Speaking is graded on subjective criteria (no correct answers), so the
