@@ -130,6 +130,22 @@ class HttpContractTest {
     }
 
     @Test
+    void writingFeedbackReturnsResultOffline() throws Exception {
+        String token = login();
+        String body = "{\"taskId\":\"w-task2\",\"taskNumber\":2,\"kind\":\"Opinion Essay\"," +
+                "\"module\":\"academic\",\"prompt\":\"Some prompt\",\"minWords\":250," +
+                "\"essay\":\"On the one hand. On the other hand. In conclusion. " +
+                "This is a demo essay written to be graded by the offline heuristic path. \"}";
+        mvc.perform(post("/api/ai/writing-feedback").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.source").value("offline"))
+                .andExpect(jsonPath("$.criteria.length()").value(4))
+                .andExpect(jsonPath("$.criteria[0].key").value("task"))
+                .andExpect(jsonPath("$.wordCount").value(greaterThan(0)));
+    }
+
+    @Test
     void referenceContentIsServed() throws Exception {
         String token = login();
         mvc.perform(get("/api/lessons").header("Authorization", "Bearer " + token))
