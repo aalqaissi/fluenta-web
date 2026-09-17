@@ -134,7 +134,7 @@ export function ListeningEditor({ exam, patch }: { exam: StudioExam; patch: (p: 
                         try {
                           const res = await api.ai.studioFill({
                             passageText: s.transcript,
-                            questions: s.questions.map((q) => ({ prompt: q.prompt, type: q.type, options: q.options, answer: q.answer, wordLimit: q.wordLimit })),
+                            questions: s.questions.map((q) => ({ prompt: q.prompt, type: q.type ?? s.questionType, options: q.options, answer: q.answer, wordLimit: q.wordLimit })),
                           });
                           const filled = res.questions;
                           setS(idx, {
