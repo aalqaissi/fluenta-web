@@ -15,7 +15,7 @@ _Last updated 2026-09-12._
 |  | ☑ | **AI: Writing feedback** (band + criteria + inline annotations) | Live with offline fallback + toggleable persistence. |
 |  | ☐ | **AI: Speaking feedback** (band + 4 criteria) | Held; submit disabled, `/api/ai/speaking-feedback` → 501. |
 |  | ☐ | **AI: Live Interview** (real-time examiner) | Held; page is a "coming soon" screen. |
-|  | ☐ | **AI: Studio Generate / Extract / Fill-answers** | Held; buttons disabled centrally in `AiButton`. |
+|  | ☑ | **AI: Studio Generate / Extract / Fill-answers** | Live (admin): `/api/ai/studio-generate\|fill\|extract`, vision extract (base64 images), normalization gate, offline heuristic fallback, Reading/Listening wired; web-only. |
 
 ## Future top-level programs (track switcher is live; content not built)
 

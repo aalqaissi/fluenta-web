@@ -49,6 +49,7 @@ There is a `claude-api` **skill** available in the session (Anthropic API / mode
 - **UI:** web `src/features/coach/CoachPage.tsx`, mobile `lib/features/coach/coach_screen.dart` — input enabled, messages rendered, errors handled.
 
 ### 2c. Studio Generate / Extract / Fill-answers (admin authoring)
+**Status: DONE** — Admin-gated `/api/ai/studio-generate|fill|extract`; vision extract via base64 images; structured normalization gate to the `StudioQuestion` shape; offline heuristic fallback (never 501); Reading/Listening editors wired. Web-only.
 - **Held today:** local heuristics (`aiQuestions`, `defaultAnswerFor`), not a model.
 - **Build:** real LLM generation for the Content Studio — generate questions from a passage/topic, extract a passage/questions from pasted text, fill missing answers. Admin-only (already behind the admin role + `/studio` guard).
 - **UI:** `src/features/studio/components.tsx` (`AiButton`), `src/features/studio/QuestionRow.tsx`, and the skill editors (`ListeningEditor`, `ReadingEditor`, etc.). Wire the buttons to `/api/ai/studio-*` endpoints; keep the local heuristic as a fallback.
