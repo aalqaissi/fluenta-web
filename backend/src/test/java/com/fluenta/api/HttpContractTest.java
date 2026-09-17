@@ -37,6 +37,15 @@ class HttpContractTest {
         return om.readTree(res.getResponse().getContentAsString()).get("token").asText();
     }
 
+    private String registerStudent() throws Exception {
+        String email = "stud" + System.nanoTime() + "@example.com";
+        String body = "{\"email\":\"" + email + "\",\"password\":\"pw123456\",\"name\":\"Stud\"}";
+        MvcResult res = mvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk()).andReturn();
+        return om.readTree(res.getResponse().getContentAsString()).get("token").asText();
+    }
+
     @Test
     void loginReturnsTokenAndUser() throws Exception {
         login();
@@ -127,6 +136,26 @@ class HttpContractTest {
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isNotImplemented())
                 .andExpect(jsonPath("$.comingSoon").value(true));
+    }
+
+    @Test
+    void studioGenerateAsAdminReturnsQuestions() throws Exception {
+        String token = login(); // Sara = admin
+        String body = "{\"passageText\":\"The Nile is a river in Africa.\",\"questionType\":\"true-false-notgiven\",\"count\":2}";
+        mvc.perform(post("/api/ai/studio-generate").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.questions").isArray())
+                .andExpect(jsonPath("$.questions[0].prompt").isNotEmpty());
+    }
+
+    @Test
+    void studioRequiresAdmin() throws Exception {
+        String token = registerStudent();
+        mvc.perform(post("/api/ai/studio-generate").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"passageText\":\"x\",\"questionType\":\"short-answer\",\"count\":1}"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

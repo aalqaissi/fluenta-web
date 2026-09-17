@@ -3,6 +3,7 @@ package com.fluenta.api.web;
 import com.fluenta.api.config.CurrentUser;
 import com.fluenta.api.dto.AiDtos;
 import com.fluenta.api.service.CoachService;
+import com.fluenta.api.service.StudioAiService;
 import com.fluenta.api.service.WritingFeedbackService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -20,10 +21,12 @@ public class AiController {
 
     private final WritingFeedbackService writing;
     private final CoachService coach;
+    private final StudioAiService studio;
 
-    public AiController(WritingFeedbackService writing, CoachService coach) {
+    public AiController(WritingFeedbackService writing, CoachService coach, StudioAiService studio) {
         this.writing = writing;
         this.coach = coach;
+        this.studio = studio;
     }
 
     @PostMapping("/writing-feedback")
@@ -39,6 +42,24 @@ public class AiController {
     @PostMapping("/coach")
     public AiDtos.CoachReply coach(@RequestBody AiDtos.CoachRequest req) {
         return coach.reply(CurrentUser.require(), req);
+    }
+
+    @PostMapping("/studio-generate")
+    public AiDtos.StudioQuestionsReply studioGenerate(@RequestBody AiDtos.StudioGenerateRequest req) {
+        CurrentUser.requireAdmin();
+        return studio.generate(req);
+    }
+
+    @PostMapping("/studio-fill")
+    public AiDtos.StudioQuestionsReply studioFill(@RequestBody AiDtos.StudioFillRequest req) {
+        CurrentUser.requireAdmin();
+        return studio.fill(req);
+    }
+
+    @PostMapping("/studio-extract")
+    public AiDtos.StudioExtractResult studioExtract(@RequestBody AiDtos.StudioExtractRequest req) {
+        CurrentUser.requireAdmin();
+        return studio.extract(req);
     }
 
     /** Held features: studio-*, speaking-feedback, live-interview. */
