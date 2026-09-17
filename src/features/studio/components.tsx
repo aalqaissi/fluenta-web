@@ -1,5 +1,5 @@
 import * as React from "react";
-import { UploadCloud, FileAudio, ImageIcon, X, Check, Sparkles } from "lucide-react";
+import { UploadCloud, FileAudio, ImageIcon, X, Check, Sparkles, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { PubStatus } from "./store";
@@ -59,14 +59,14 @@ export function MediaDrop({
   );
 }
 
-export function AiButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled?: boolean }) {
+export function AiButton({ label, onClick, disabled, loading }: { label: string; onClick: () => void; disabled?: boolean; loading?: boolean }) {
   return (
     <button
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || loading}
       className="inline-flex items-center gap-1.5 rounded-lg border border-info/40 bg-info/[0.06] px-2.5 py-1.5 text-xs font-semibold text-info transition-colors hover:bg-info/10 disabled:cursor-not-allowed disabled:opacity-50"
     >
-      <Sparkles className="size-3.5" /> {label}
+      {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />} {label}
     </button>
   );
 }

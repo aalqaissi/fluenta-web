@@ -306,6 +306,19 @@ export interface AiCoachRequest {
 export interface AiCoachReply {
   reply: string;
 }
+export interface AiStudioQuestion {
+  prompt: string;
+  type?: string;
+  options?: string[];
+  answer: string;
+  wordLimit?: number;
+}
+export interface AiStudioGenerateRequest { passageText: string; questionType: string; count: number; }
+export interface AiStudioFillRequest { passageText: string; questions: AiStudioQuestion[]; }
+export interface AiStudioImage { base64: string; mediaType: string; }
+export interface AiStudioExtractRequest { images: AiStudioImage[]; hint?: string; }
+export interface AiStudioQuestionsReply { questions: AiStudioQuestion[]; }
+export interface AiStudioExtractResult { passageText: string; questions: AiStudioQuestion[]; }
 
 // ---- endpoint groups ----------------------------------------------
 
@@ -397,5 +410,8 @@ export const api = {
     getWritingFeedback: (id: string) =>
       request<AiWritingResult>("GET", `/ai/writing-feedback/${id}`),
     coach: (req: AiCoachRequest) => request<AiCoachReply>("POST", "/ai/coach", req),
+    studioGenerate: (req: AiStudioGenerateRequest) => request<AiStudioQuestionsReply>("POST", "/ai/studio-generate", req),
+    studioFill: (req: AiStudioFillRequest) => request<AiStudioQuestionsReply>("POST", "/ai/studio-fill", req),
+    studioExtract: (req: AiStudioExtractRequest) => request<AiStudioExtractResult>("POST", "/ai/studio-extract", req),
   },
 };
