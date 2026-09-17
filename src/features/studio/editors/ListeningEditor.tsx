@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QUESTION_TYPE_LABEL } from "@/mock/data";
 import type { QuestionType } from "@/mock/types";
+import { api, type AiStudioQuestion } from "@/lib/api";
 import { MediaDrop, AiButton, Field } from "../components";
 import { AudioUpload } from "../AudioUpload";
 import { QuestionRow, aiQuestions, defaultAnswerFor } from "../QuestionRow";
@@ -22,8 +24,19 @@ const LISTENING_TYPES: QuestionType[] = [
   "short-answer",
 ];
 
+const withId = (q: AiStudioQuestion): StudioQuestion => ({
+  id: Math.random().toString(36).slice(2, 9),
+  prompt: q.prompt,
+  answer: q.answer,
+  type: q.type as QuestionType | undefined,
+  options: q.options,
+  wordLimit: q.wordLimit,
+});
+
 export function ListeningEditor({ exam, patch }: { exam: StudioExam; patch: (p: Partial<StudioExam>) => void }) {
   const sections = exam.sections ?? [];
+  const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const setB = (k: string, v: boolean) => setBusy((m) => ({ ...m, [k]: v }));
   const setS = (idx: number, ns: Partial<StudioSection>) =>
     patch({ sections: sections.map((s, i) => (i === idx ? { ...s, ...ns } : s)) });
 
@@ -93,11 +106,46 @@ export function ListeningEditor({ exam, patch }: { exam: StudioExam; patch: (p: 
                       onChange={(e) => setCount(Math.max(1, Number(e.target.value) || 1))}
                       aria-label="Number of questions"
                     />
-                    <AiButton label="Generate with AI" onClick={() => setS(idx, { questions: [...s.questions, ...aiQuestions(s.questionType)] })} />
+                    <AiButton
+                      label="Generate with AI"
+                      loading={busy[`gen:${s.id}`]}
+                      onClick={async () => {
+                        setB(`gen:${s.id}`, true);
+                        try {
+                          const res = await api.ai.studioGenerate({
+                            passageText: s.transcript,
+                            questionType: s.questionType,
+                            count: Math.max(1, s.questions.length || 2),
+                          });
+                          setS(idx, { questions: [...s.questions, ...res.questions.map(withId)] });
+                        } catch {
+                          setS(idx, { questions: [...s.questions, ...aiQuestions(s.questionType)] });
+                        } finally {
+                          setB(`gen:${s.id}`, false);
+                        }
+                      }}
+                    />
                     <AiButton
                       label="Fill Missing Answers with AI"
                       disabled={fillDisabled}
-                      onClick={() => setS(idx, { questions: s.questions.map((q) => (q.answer ? q : { ...q, answer: defaultAnswerFor(q.type ?? s.questionType) })) })}
+                      loading={busy[`fill:${s.id}`]}
+                      onClick={async () => {
+                        setB(`fill:${s.id}`, true);
+                        try {
+                          const res = await api.ai.studioFill({
+                            passageText: s.transcript,
+                            questions: s.questions.map((q) => ({ prompt: q.prompt, type: q.type, options: q.options, answer: q.answer, wordLimit: q.wordLimit })),
+                          });
+                          const filled = res.questions;
+                          setS(idx, {
+                            questions: s.questions.map((q, i) => (q.answer ? q : { ...q, answer: filled[i]?.answer ?? defaultAnswerFor(q.type ?? s.questionType) })),
+                          });
+                        } catch {
+                          setS(idx, { questions: s.questions.map((q) => (q.answer ? q : { ...q, answer: defaultAnswerFor(q.type ?? s.questionType) })) });
+                        } finally {
+                          setB(`fill:${s.id}`, false);
+                        }
+                      }}
                     />
                     <Button size="sm" onClick={() => setS(idx, { questions: [...s.questions, newQuestion()] })}>
                       <Plus className="size-4" /> Add question

@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { Plus, Trash2, Type, Image as ImageIcon, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QUESTION_TYPE_LABEL } from "@/mock/data";
 import type { QuestionType } from "@/mock/types";
+import { api, type AiStudioQuestion } from "@/lib/api";
 import { MediaDrop, AiButton, Field } from "../components";
 import { QuestionRow, aiQuestions, defaultAnswerFor } from "../QuestionRow";
 import { newPassage, newQuestion, type StudioExam, type StudioPassage, type StudioQuestion } from "../store";
@@ -13,8 +15,30 @@ import { cn } from "@/lib/utils";
 
 const READING_TYPES = Object.keys(QUESTION_TYPE_LABEL) as QuestionType[];
 
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(",")[1] ?? "");
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+const withId = (q: AiStudioQuestion): StudioQuestion => ({
+  id: Math.random().toString(36).slice(2, 9),
+  prompt: q.prompt,
+  answer: q.answer,
+  type: q.type as QuestionType | undefined,
+  options: q.options,
+  wordLimit: q.wordLimit,
+});
+
 export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Partial<StudioExam>) => void }) {
   const passages = exam.passages ?? [];
+  const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const setB = (k: string, v: boolean) => setBusy((m) => ({ ...m, [k]: v }));
+  // Keyed by passage id so simultaneous "extract" cards each keep their own file input.
+  const extractInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   const setP = (idx: number, np: Partial<StudioPassage>) =>
     patch({ passages: passages.map((p, i) => (i === idx ? { ...p, ...np } : p)) });
@@ -95,12 +119,37 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                 <Field label="Passage photos" hint="Upload photos of the passage and question sheet — AI reads them and fills the form.">
                   <div className="space-y-2">
                     <MediaDrop kind="image" value={p.imageName} onChange={(name) => setP(idx, { imageName: name })} />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      ref={(el) => {
+                        if (el) extractInputRefs.current.set(p.id, el);
+                        else extractInputRefs.current.delete(p.id);
+                      }}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file) return;
+                        setB(`ext:${p.id}`, true);
+                        try {
+                          const base64 = await fileToBase64(file);
+                          const res = await api.ai.studioExtract({ images: [{ base64, mediaType: file.type || "image/jpeg" }] });
+                          setP(idx, { text: res.passageText || p.text, questions: [...p.questions, ...res.questions.map(withId)] });
+                        } catch {
+                          setP(idx, {
+                            text: p.text || "Extracted passage text (offline). Connect the AI service to read photos.",
+                            questions: [...p.questions, newQuestion(), newQuestion()],
+                          });
+                        } finally {
+                          setB(`ext:${p.id}`, false);
+                        }
+                      }}
+                    />
                     <AiButton
                       label="Extract passage & questions"
-                      onClick={() => setP(idx, {
-                        text: p.text || "Extracted passage text (AI). The full reading passage read from your photos would appear here for review.",
-                        questions: [...p.questions, newQuestion(), newQuestion()],
-                      })}
+                      loading={busy[`ext:${p.id}`]}
+                      onClick={() => extractInputRefs.current.get(p.id)?.click()}
                     />
                   </div>
                 </Field>
@@ -126,11 +175,46 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                     onChange={(e) => setCount(Math.max(1, Number(e.target.value) || 1))}
                     aria-label="Number of questions"
                   />
-                  <AiButton label="Generate with AI" onClick={() => setP(idx, { questions: [...p.questions, ...aiQuestions(p.questionType)] })} />
+                  <AiButton
+                    label="Generate with AI"
+                    loading={busy[`gen:${p.id}`]}
+                    onClick={async () => {
+                      setB(`gen:${p.id}`, true);
+                      try {
+                        const res = await api.ai.studioGenerate({
+                          passageText: p.text,
+                          questionType: p.questionType,
+                          count: Math.max(1, p.questions.length || 2),
+                        });
+                        setP(idx, { questions: [...p.questions, ...res.questions.map(withId)] });
+                      } catch {
+                        setP(idx, { questions: [...p.questions, ...aiQuestions(p.questionType)] });
+                      } finally {
+                        setB(`gen:${p.id}`, false);
+                      }
+                    }}
+                  />
                   <AiButton
                     label="Fill Missing Answers with AI"
                     disabled={fillDisabled}
-                    onClick={() => setP(idx, { questions: p.questions.map((q) => (q.answer ? q : { ...q, answer: defaultAnswerFor(q.type ?? p.questionType) })) })}
+                    loading={busy[`fill:${p.id}`]}
+                    onClick={async () => {
+                      setB(`fill:${p.id}`, true);
+                      try {
+                        const res = await api.ai.studioFill({
+                          passageText: p.text,
+                          questions: p.questions.map((q) => ({ prompt: q.prompt, type: q.type, options: q.options, answer: q.answer, wordLimit: q.wordLimit })),
+                        });
+                        const filled = res.questions;
+                        setP(idx, {
+                          questions: p.questions.map((q, i) => (q.answer ? q : { ...q, answer: filled[i]?.answer ?? defaultAnswerFor(q.type ?? p.questionType) })),
+                        });
+                      } catch {
+                        setP(idx, { questions: p.questions.map((q) => (q.answer ? q : { ...q, answer: defaultAnswerFor(q.type ?? p.questionType) })) });
+                      } finally {
+                        setB(`fill:${p.id}`, false);
+                      }
+                    }}
                   />
                   <Button size="sm" onClick={() => setP(idx, { questions: [...p.questions, newQuestion()] })}>
                     <Plus className="size-4" /> Add question
