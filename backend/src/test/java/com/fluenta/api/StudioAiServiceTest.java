@@ -64,4 +64,20 @@ class StudioAiServiceTest {
         assertThatThrownBy(() -> studio.extract(new StudioExtractRequest(
                 List.of(new StudioImage(big, "image/png")), null))).isInstanceOf(com.fluenta.api.web.ApiException.class);
     }
+
+    @Test
+    void generateFallsBackToShortAnswerWhenQuestionTypeIsNull() {
+        when(ai.complete(anyString(), anyString())).thenReturn(
+            "{\"questions\":[{\"prompt\":\"Q\",\"type\":\"short-answer\",\"answer\":\"word\"}]}");
+        var r = studio.generate(new StudioGenerateRequest("passage", null, 2));
+        assertThat(r.questions()).isNotEmpty();
+        assertThat(r.questions().get(0).type()).isEqualTo("short-answer");
+    }
+
+    @Test
+    void fillRejectsOversizePassage() {
+        assertThatThrownBy(() -> studio.fill(new StudioFillRequest("a".repeat(12_001),
+                List.of(new StudioQuestionDto("Q1", "short-answer", null, "", null)))))
+                .isInstanceOf(com.fluenta.api.web.ApiException.class);
+    }
 }

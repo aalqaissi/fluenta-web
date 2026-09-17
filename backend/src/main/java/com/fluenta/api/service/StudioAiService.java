@@ -51,7 +51,7 @@ public class StudioAiService {
     public StudioQuestionsReply generate(StudioGenerateRequest req) {
         String passage = req.passageText() == null ? "" : req.passageText();
         if (passage.length() > props.maxEssayChars()) throw ApiException.badRequest("Passage is too long");
-        String type = TYPES.contains(req.questionType()) ? req.questionType() : "short-answer";
+        String type = (req.questionType() != null && TYPES.contains(req.questionType())) ? req.questionType() : "short-answer";
         int count = clamp(req.count() == null ? 2 : req.count(), 1, 20);
         if (!props.live()) return new StudioQuestionsReply(stub.generate(type, count));
         String user = "QUESTION TYPE: " + type + "\nCOUNT: " + count + "\nPASSAGE:\n" + passage;
@@ -61,10 +61,12 @@ public class StudioAiService {
     public StudioQuestionsReply fill(StudioFillRequest req) {
         List<StudioQuestionDto> qs = req.questions() == null ? List.of() : req.questions();
         if (qs.isEmpty()) throw ApiException.badRequest("No questions to fill");
+        String passage = req.passageText() == null ? "" : req.passageText();
+        if (passage.length() > props.maxEssayChars()) throw ApiException.badRequest("Passage is too long");
         String fallback = qs.get(0).type() != null && TYPES.contains(qs.get(0).type()) ? qs.get(0).type() : "short-answer";
         if (!props.live()) return new StudioQuestionsReply(stub.fill(qs, fallback));
         String user;
-        try { user = "PASSAGE:\n" + (req.passageText() == null ? "" : req.passageText())
+        try { user = "PASSAGE:\n" + passage
                 + "\nQUESTIONS JSON:\n" + om.writeValueAsString(qs); }
         catch (Exception e) { throw ApiException.badRequest("Bad questions payload"); }
         return new StudioQuestionsReply(normalize(readQuestions(parse(ai.complete(FILL_SYSTEM, user))), fallback));
