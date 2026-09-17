@@ -12,6 +12,7 @@ public record AiProperties(
         @DefaultValue("medium") String effort,
         @DefaultValue("60") int timeoutSeconds,
         @DefaultValue("12000") int maxEssayChars,
+        @DefaultValue("5000000") int maxImageBytes,
         @DefaultValue("true") boolean persist) {
 
     /** True when a live model call should be attempted; false → offline heuristic. */
@@ -28,6 +29,7 @@ public record AiProperties(
                 + ", effort=" + effort
                 + ", timeoutSeconds=" + timeoutSeconds
                 + ", maxEssayChars=" + maxEssayChars
+                + ", maxImageBytes=" + maxImageBytes
                 + ", persist=" + persist + "]";
     }
 }

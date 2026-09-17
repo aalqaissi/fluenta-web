@@ -89,6 +89,40 @@ public class AnthropicAiClient implements AiClient {
         }
     }
 
+    @Override
+    public String vision(String systemPrompt, String userText, java.util.List<ImageInput> images) {
+        try {
+            java.util.List<com.anthropic.models.messages.ContentBlockParam> blocks = new java.util.ArrayList<>();
+            for (ImageInput img : images) {
+                var source = com.anthropic.models.messages.Base64ImageSource.builder()
+                        .mediaType(com.anthropic.models.messages.Base64ImageSource.MediaType.of(img.mediaType()))
+                        .data(img.base64())
+                        .build();
+                blocks.add(com.anthropic.models.messages.ContentBlockParam.ofImage(
+                        com.anthropic.models.messages.ImageBlockParam.builder().source(source).build()));
+            }
+            blocks.add(com.anthropic.models.messages.ContentBlockParam.ofText(
+                    com.anthropic.models.messages.TextBlockParam.builder().text(userText).build()));
+
+            MessageCreateParams params = MessageCreateParams.builder()
+                    .model(props.model())
+                    .maxTokens(16000L)
+                    .thinking(ThinkingConfigAdaptive.builder().build())
+                    .outputConfig(OutputConfig.builder().effort(effort()).build())
+                    .system(systemPrompt)
+                    .addUserMessageOfBlockParams(blocks)
+                    .build();
+            Message response = client().messages().create(params);
+            StringBuilder sb = new StringBuilder();
+            response.content().forEach(block -> block.text().ifPresent(x -> sb.append(x.text())));
+            return sb.toString();
+        } catch (AnthropicServiceException e) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "The Studio AI is temporarily unavailable. Please try again.");
+        } catch (RuntimeException e) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "The Studio AI could not be reached. Please try again.");
+        }
+    }
+
     private OutputConfig.Effort effort() {
         // OutputConfig.Effort is an SDK "open enum" (final class with named constants + of(String)),
         // not a java.lang.Enum, so there is no valueOf(String); use of(...) with an explicit blank guard

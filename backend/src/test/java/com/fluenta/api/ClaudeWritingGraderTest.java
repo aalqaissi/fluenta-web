@@ -32,6 +32,9 @@ class ClaudeWritingGraderTest {
             @Override public String chat(String systemPrompt, java.util.List<ChatTurn> turns) {
                 throw new UnsupportedOperationException("not used in this test");
             }
+            @Override public String vision(String systemPrompt, String userText, java.util.List<ImageInput> images) {
+                throw new UnsupportedOperationException("not used in this test");
+            }
         };
         var grader = new ClaudeWritingGrader(fake, om);
 
@@ -52,6 +55,9 @@ class ClaudeWritingGraderTest {
                 return "sorry, not json";
             }
             @Override public String chat(String systemPrompt, java.util.List<ChatTurn> turns) {
+                throw new UnsupportedOperationException("not used in this test");
+            }
+            @Override public String vision(String systemPrompt, String userText, java.util.List<ImageInput> images) {
                 throw new UnsupportedOperationException("not used in this test");
             }
         };

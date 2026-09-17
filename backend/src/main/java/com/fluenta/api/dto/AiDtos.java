@@ -21,4 +21,12 @@ public final class AiDtos {
     public record CoachTurn(String role, String text) {}          // role: "user" | "coach"
     public record CoachRequest(List<CoachTurn> messages) {}
     public record CoachReply(String reply) {}
+
+    public record StudioQuestionDto(String prompt, String type, List<String> options, String answer, Integer wordLimit) {}
+    public record StudioGenerateRequest(String passageText, String questionType, Integer count) {}
+    public record StudioImage(String base64, String mediaType) {}
+    public record StudioFillRequest(String passageText, List<StudioQuestionDto> questions) {}
+    public record StudioExtractRequest(List<StudioImage> images, String hint) {}
+    public record StudioQuestionsReply(List<StudioQuestionDto> questions) {}
+    public record StudioExtractResult(String passageText, List<StudioQuestionDto> questions) {}
 }
