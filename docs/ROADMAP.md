@@ -13,7 +13,7 @@ _Last updated 2026-09-12._
 |  | ☐ | **Grammar practice** — full student runner + Studio authoring + scoring | Same as Vocabulary. |
 |  | ☑ | **AI: Fluenta/Einstein Coach chat** | Live with request/response, server-sourced personalization, offline fallback, ephemeral. |
 |  | ☑ | **AI: Writing feedback** (band + criteria + inline annotations) | Live with offline fallback + toggleable persistence. |
-|  | ☐ | **AI: Speaking feedback** (band + 4 criteria) | Held; submit disabled, `/api/ai/speaking-feedback` → 501. |
+|  | ☑ | **AI: Speaking feedback** (band + 4 criteria) | Live (student): real audio capture (web+mobile) → server-side STT (Whisper) → Claude grading, 4 criteria + overall, normalization gate, offline stub. |
 |  | ☐ | **AI: Live Interview** (real-time examiner) | Held; page is a "coming soon" screen. |
 |  | ☑ | **AI: Studio Generate / Extract / Fill-answers** | Live (admin): `/api/ai/studio-generate\|fill\|extract`, vision extract (base64 images), normalization gate, offline heuristic fallback, Reading/Listening wired; web-only. |
 
@@ -38,7 +38,7 @@ _IELTS Preparation is the active track. The switcher shows the others as "coming
 |  | ☐ | **Email verification flow** | Sending + confirming a verification email; once live, login can gate on `emailVerified` (it currently doesn't). |
 |  | ☐ | **Google / OAuth sign-in** | Real password auth (Task 1) replaced the old any-email login; social sign-in is a separate follow-up. |
 |  | ☐ | Payments / real checkout | Checkout is a demo (no real charge). |
-|  | ☐ | Real audio capture for Speaking | Recorder is simulated. |
+|  | ☑ | Real audio capture for Speaking | Delivered with Speaking feedback: web MediaRecorder, mobile record package. |
 |  | ☐ | Postgres migration option | SQLite now; JPA makes the swap a config change. |
 |  | ☐ | **Backend server can't bind on this machine** — Java NIO loopback blocked by a local proxy | Not a code bug. Verified via MockMvc + verify profile. Run via Docker/WSL/another host or allow `java.exe` loopback. See `backend/README.md`. |
 |  | ☐ | Code-split the FE bundle (currently one >500 kB chunk) | Vite warns; not urgent. |

@@ -55,6 +55,7 @@ There is a `claude-api` **skill** available in the session (Anthropic API / mode
 - **UI:** `src/features/studio/components.tsx` (`AiButton`), `src/features/studio/QuestionRow.tsx`, and the skill editors (`ListeningEditor`, `ReadingEditor`, etc.). Wire the buttons to `/api/ai/studio-*` endpoints; keep the local heuristic as a fallback.
 
 ### 2d. Speaking feedback — `/api/ai/speaking-feedback`
+**Status: DONE** — Student-facing `/api/ai/speaking-feedback`; real audio capture (web `MediaRecorder` + mobile `record`) → server-side STT (Whisper behind a `Transcriber` seam) → Claude grading behind a 4-criteria normalization gate; offline stub (never 501); audio stored gated by persist; pronunciation estimated from the transcript. `/api/media` upload relaxed to authenticated so students can upload. Web + mobile.
 - **Held today:** submit disabled; results sample-based.
 - **Dependency:** the Speaking recorder is **simulated** ("Real audio capture for Speaking" is a separate roadmap item). So either (i) do **real audio capture first** and feed audio/transcript, or (ii) start with a transcript-only version.
 - **Build:** band + 4 speaking criteria (fluency & coherence, lexical resource, grammar, pronunciation). Enables scored Speaking + the **full-exam Speaking band** (currently the full-exam orchestrator holds Speaking).
