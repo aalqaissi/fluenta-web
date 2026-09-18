@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, ChevronDown, Flag, Lightbulb, Mic, RotateCcw, Square } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, Flag, Lightbulb, Loader2, Mic, RotateCcw, Square } from "lucide-react";
 import { getSpeakingExam, getSpeakingFeedback, speakingOverall } from "@/lib/mockApi";
+import { api } from "@/lib/api";
+import type { SpeakingFeedback } from "@/mock/types";
 import { studioStore } from "@/features/studio/store";
 import { studioSpeakingToExam } from "@/features/studio/convert";
 import { setLastSpeaking } from "@/store/attempt-store";
@@ -42,9 +44,58 @@ export function SpeakingRunnerPage() {
   const [showTips, setShowTips] = useState(false);
   const ref = useRef<number | null>(null);
 
+  const streamRef = useRef<MediaStream | null>(null);
+  const recRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+  const [blobs, setBlobs] = useState<Record<string, Blob>>({}); // key = part.id
+  const [submitting, setSubmitting] = useState(false);
+
   const part = exam.parts[pIdx];
   const cap = RECORD_CAP;
   const completed = Object.values(recorded).filter(Boolean).length;
+
+  function pickMime(): string {
+    const c = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
+    return c.find((t) => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(t)) ?? "";
+  }
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      chunksRef.current = [];
+      const mime = pickMime();
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      rec.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
+      rec.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: rec.mimeType || "audio/webm" });
+        setBlobs((m) => ({ ...m, [part.id]: blob }));
+        setRecorded((r) => ({ ...r, [part.id]: true }));
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      };
+      recRef.current = rec;
+      rec.start();
+      setElapsed(0);
+      setRecording(true);
+    } catch {
+      // mic denied/unavailable — mark this part "recorded" so the mock fallback can still grade on submit
+      setRecorded((r) => ({ ...r, [part.id]: true }));
+      setRecording(false);
+    }
+  }
+
+  function stopRecording() {
+    recRef.current?.state === "recording" && recRef.current.stop();
+    setRecording(false);
+  }
+
+  // stop any live stream on unmount, regardless of which part was active
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
 
   useEffect(() => {
     if (!recording) {
@@ -55,8 +106,7 @@ export function SpeakingRunnerPage() {
       setElapsed((v) => {
         if (v + 1 >= cap) {
           if (ref.current) clearInterval(ref.current);
-          setRecording(false);
-          setRecorded((r) => ({ ...r, [part.id]: true }));
+          stopRecording();
           return cap;
         }
         return v + 1;
@@ -69,26 +119,56 @@ export function SpeakingRunnerPage() {
 
   function toggleRecord() {
     if (recording) {
-      setRecording(false);
-      setRecorded((r) => ({ ...r, [part.id]: true }));
+      stopRecording();
     } else {
-      setElapsed(0);
-      setRecording(true);
+      startRecording();
     }
   }
 
   function goToPart(i: number) {
-    setRecording(false);
+    stopRecording();
     setElapsed(0);
     setPIdx(i);
   }
 
-  function submit() {
-    const feedback = getSpeakingFeedback();
-    const overall = speakingOverall(feedback);
+  function extFor(type: string): string {
+    if (type.includes("webm")) return "webm";
+    if (type.includes("mp4")) return "m4a";
+    return "webm";
+  }
+
+  // The examiner prompt sent to the grader: the cue card (+ bullets) or the joined questions.
+  function promptTextFor(p: (typeof exam.parts)[number]): string {
+    if (p.cueCard) return [p.cueCard, ...(p.bullets ?? [])].join(" • ");
+    return p.questions.join(" ");
+  }
+
+  function finishGrading(overall: number, feedback: SpeakingFeedback[]) {
     setGradedBand(overall);
     setLastSpeaking({ examId: exam.id, overall, feedback, partsRecorded: completed });
     setGrading(true);
+  }
+
+  async function submit() {
+    setSubmitting(true);
+    try {
+      const parts: { number: number; prompt: string; audioUrl: string }[] = [];
+      for (let i = 0; i < exam.parts.length; i++) {
+        const p = exam.parts[i];
+        const blob = blobs[p.id];
+        if (!blob) throw new Error("missing recording"); // fall back to the mock below
+        const file = new File([blob], `part-${p.number}.${extFor(blob.type)}`, { type: blob.type || "audio/webm" });
+        const { url } = await api.media.upload(file);
+        parts.push({ number: p.number, prompt: promptTextFor(p), audioUrl: url });
+      }
+      const res = await api.ai.speakingFeedback({ examId: exam.id, parts });
+      finishGrading(res.overall, res.criteria as SpeakingFeedback[]);
+    } catch {
+      const feedback = getSpeakingFeedback();
+      finishGrading(speakingOverall(feedback), feedback);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function afterGrading() {
@@ -195,7 +275,7 @@ export function SpeakingRunnerPage() {
               <RotateCcw className="size-4" /> Re-record
             </Button>
           )}
-          <p className="mt-2 text-xs text-muted-foreground">Microphone is simulated in this preview.</p>
+          <p className="mt-2 text-xs text-muted-foreground">We'll upload your recording to grade it.</p>
         </Card>
 
         {/* footer nav */}
@@ -218,8 +298,9 @@ export function SpeakingRunnerPage() {
               Next part <ArrowRight className="size-4" />
             </Button>
           ) : (
-            <Button variant="success" onClick={submit}>
-              <Flag className="size-4" /> Submit for review
+            <Button variant="success" onClick={submit} disabled={submitting}>
+              {submitting ? <Loader2 className="size-4 animate-spin" /> : <Flag className="size-4" />}
+              {submitting ? "Submitting…" : "Submit for review"}
             </Button>
           )}
         </div>
