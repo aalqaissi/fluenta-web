@@ -3,6 +3,7 @@ package com.fluenta.api.web;
 import com.fluenta.api.config.CurrentUser;
 import com.fluenta.api.dto.AiDtos;
 import com.fluenta.api.service.CoachService;
+import com.fluenta.api.service.SpeakingFeedbackService;
 import com.fluenta.api.service.StudioAiService;
 import com.fluenta.api.service.WritingFeedbackService;
 import org.springframework.http.HttpStatus;
@@ -22,11 +23,14 @@ public class AiController {
     private final WritingFeedbackService writing;
     private final CoachService coach;
     private final StudioAiService studio;
+    private final SpeakingFeedbackService speaking;
 
-    public AiController(WritingFeedbackService writing, CoachService coach, StudioAiService studio) {
+    public AiController(WritingFeedbackService writing, CoachService coach, StudioAiService studio,
+                         SpeakingFeedbackService speaking) {
         this.writing = writing;
         this.coach = coach;
         this.studio = studio;
+        this.speaking = speaking;
     }
 
     @PostMapping("/writing-feedback")
@@ -60,6 +64,16 @@ public class AiController {
     public AiDtos.StudioExtractResult studioExtract(@RequestBody AiDtos.StudioExtractRequest req) {
         CurrentUser.requireAdmin();
         return studio.extract(req);
+    }
+
+    @PostMapping("/speaking-feedback")
+    public AiDtos.SpeakingResult speakingFeedback(@RequestBody AiDtos.SpeakingFeedbackRequest req) {
+        return speaking.generate(CurrentUser.require(), req);
+    }
+
+    @GetMapping("/speaking-feedback/{id}")
+    public AiDtos.SpeakingResult getSpeakingFeedback(@PathVariable String id) {
+        return speaking.get(CurrentUser.require(), id);
     }
 
     /** Held features: studio-*, speaking-feedback, live-interview. */

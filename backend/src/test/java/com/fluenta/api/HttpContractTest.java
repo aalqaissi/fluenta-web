@@ -236,6 +236,26 @@ class HttpContractTest {
     }
 
     @Test
+    void speakingFeedbackAsStudentReturnsCriteria() throws Exception {
+        String token = login(); // any authenticated user is allowed
+        String body = "{\"examId\":\"speak-1\",\"parts\":[{\"number\":1,\"prompt\":\"Where are you from?\",\"audioUrl\":\"/media/x.webm\"}]}";
+        mvc.perform(post("/api/ai/speaking-feedback").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.criteria").isArray())
+                .andExpect(jsonPath("$.criteria[0].key").value("fluency"))
+                .andExpect(jsonPath("$.overall").isNumber());
+    }
+
+    @Test
+    void speakingFeedbackRequiresAuth() throws Exception {
+        mvc.perform(post("/api/ai/speaking-feedback")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"examId\":\"x\",\"parts\":[{\"number\":1,\"prompt\":\"Q\",\"audioUrl\":\"/media/x.webm\"}]}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void feedbackFlowStudentThenAdmin() throws Exception {
         String token = login();
         // student submits
