@@ -12,6 +12,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 /** Live STT via the OpenAI Whisper transcriptions REST endpoint (multipart). The only Transcriber bean. */
 @Component
@@ -36,6 +37,7 @@ public class WhisperTranscriber implements Transcriber {
                     .header("Authorization", "Bearer " + props.apiKey())
                     .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                    .timeout(Duration.ofSeconds(120))
                     .build();
             HttpResponse<String> res = getHttpClient().send(req, HttpResponse.BodyHandlers.ofString());
             if (res.statusCode() / 100 != 2) {
@@ -55,7 +57,7 @@ public class WhisperTranscriber implements Transcriber {
         if (http == null) {
             synchronized (this) {
                 if (http == null) {
-                    http = HttpClient.newHttpClient();
+                    http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
                 }
             }
         }
