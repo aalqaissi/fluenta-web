@@ -70,12 +70,13 @@ class MediaContractTest {
     }
 
     @Test
-    void uploadForbiddenForStudent() throws Exception {
+    void studentCanUploadMedia() throws Exception {
         String token = studentToken();
         mvc.perform(multipart("/api/media")
                         .file(new MockMultipartFile("file", "c.mp3", "audio/mpeg", new byte[]{1}))
                         .header("Authorization", "Bearer " + token))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.emptyOrNullString())));
     }
 
     @Test
