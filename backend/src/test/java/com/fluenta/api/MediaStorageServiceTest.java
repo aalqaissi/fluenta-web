@@ -30,7 +30,7 @@ class MediaStorageServiceTest {
     @Test
     void rejectsDisallowedType(@TempDir Path dir) {
         var svc = svc(dir);
-        var file = new MockMultipartFile("file", "clip.wav", "audio/wav", new byte[]{1});
+        var file = new MockMultipartFile("file", "clip.ogg", "audio/ogg", new byte[]{1});
         var ex = assertThrows(ApiException.class, () -> svc.store(file));
         assertEquals(400, ex.getStatus().value());
     }

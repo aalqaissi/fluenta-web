@@ -22,12 +22,14 @@ import java.util.UUID;
 public class MediaStorageService {
 
     private static final long MAX_BYTES = 20L * 1024 * 1024; // 20 MB
-    // content-type -> extension. Only MP3 and M4A/AAC.
+    // content-type -> extension. MP3, M4A/AAC (listening) plus WEBM/WAV (speaking recordings).
     private static final Map<String, String> ALLOWED = Map.of(
             "audio/mpeg", "mp3",
             "audio/mp4", "m4a",
             "audio/x-m4a", "m4a",
-            "audio/aac", "aac"
+            "audio/aac", "aac",
+            "audio/webm", "webm",
+            "audio/wav", "wav"
     );
 
     private final Path dir;
@@ -73,6 +75,32 @@ public class MediaStorageService {
         if (fn.endsWith(".mp3")) return "mp3";
         if (fn.endsWith(".m4a")) return "m4a";
         if (fn.endsWith(".aac")) return "aac";
-        throw ApiException.badRequest("Only MP3 or M4A/AAC audio is allowed");
+        if (fn.endsWith(".webm")) return "webm";
+        if (fn.endsWith(".wav")) return "wav";
+        throw ApiException.badRequest("Only MP3, M4A/AAC or WEBM/WAV audio is allowed");
+    }
+
+    /** Resolve a stored "/media/<name>" URL to bytes on disk. Rejects path escapes. */
+    public byte[] readAudio(String url) {
+        Path p = resolve(url);
+        try {
+            return Files.readAllBytes(p);
+        } catch (IOException e) {
+            throw ApiException.badRequest("Audio file not found");
+        }
+    }
+
+    /** Best-effort delete of a stored "/media/<name>" file. Never throws. */
+    public void deleteQuietly(String url) {
+        try { Files.deleteIfExists(resolve(url)); } catch (Exception ignored) {}
+    }
+
+    /** Map a "/media/<name>" URL to its on-disk path under the media root; reject traversal. */
+    private Path resolve(String url) {
+        String name = url == null ? "" : url.replaceFirst("^/?media/", "");
+        Path base = this.dir.toAbsolutePath().normalize();
+        Path p = base.resolve(name).normalize();
+        if (!p.startsWith(base)) throw ApiException.badRequest("Invalid media path");
+        return p;
     }
 }

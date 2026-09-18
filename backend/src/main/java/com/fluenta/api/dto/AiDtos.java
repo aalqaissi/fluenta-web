@@ -22,6 +22,13 @@ public final class AiDtos {
     public record CoachRequest(List<CoachTurn> messages) {}
     public record CoachReply(String reply) {}
 
+    public record SpeakingPartInput(Integer number, String prompt, String audioUrl) {}
+    public record SpeakingFeedbackRequest(String examId, List<SpeakingPartInput> parts) {}
+    public record SpeakingCriterionDto(String key, String label, double band, String note) {}
+    public record SpeakingPartResult(Integer number, String transcript, String note) {}
+    public record SpeakingResult(String id, String source, double overall,
+                                 List<SpeakingCriterionDto> criteria, List<SpeakingPartResult> parts) {}
+
     public record StudioQuestionDto(String prompt, String type, List<String> options, String answer, Integer wordLimit) {}
     public record StudioGenerateRequest(String passageText, String questionType, Integer count) {}
     public record StudioImage(String base64, String mediaType) {}

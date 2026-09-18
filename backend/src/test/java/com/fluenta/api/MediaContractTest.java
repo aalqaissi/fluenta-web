@@ -82,7 +82,7 @@ class MediaContractTest {
     void rejectsWrongType() throws Exception {
         String token = login();
         mvc.perform(multipart("/api/media")
-                        .file(new MockMultipartFile("file", "c.wav", "audio/wav", new byte[]{1}))
+                        .file(new MockMultipartFile("file", "c.ogg", "audio/ogg", new byte[]{1}))
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isBadRequest());
     }

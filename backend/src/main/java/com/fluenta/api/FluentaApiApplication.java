@@ -1,6 +1,7 @@
 package com.fluenta.api;
 
 import com.fluenta.api.config.AiProperties;
+import com.fluenta.api.config.TranscribeProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -14,7 +15,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
  * are intentionally stubbed at this stage — see {@code web.AiController}.
  */
 @SpringBootApplication
-@EnableConfigurationProperties(AiProperties.class)
+@EnableConfigurationProperties({AiProperties.class, TranscribeProperties.class})
 public class FluentaApiApplication {
     public static void main(String[] args) {
         // The SQLite driver does not create the parent directory for the DB file, so ensure it

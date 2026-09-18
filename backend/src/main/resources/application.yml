@@ -41,6 +41,13 @@ fluenta:
     max-essay-chars: ${FLUENTA_AI_MAX_ESSAY_CHARS:12000}
     max-image-bytes: ${FLUENTA_AI_MAX_IMAGE_BYTES:5000000}
     persist: ${FLUENTA_AI_PERSIST:true}
+    transcribe:
+      enabled: ${FLUENTA_TRANSCRIBE_ENABLED:true}
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${FLUENTA_TRANSCRIBE_URL:https://api.openai.com/v1/audio/transcriptions}
+      model: ${FLUENTA_TRANSCRIBE_MODEL:whisper-1}
+      max-audio-bytes: ${FLUENTA_TRANSCRIBE_MAX_BYTES:25000000}
+      max-audio-seconds: ${FLUENTA_TRANSCRIBE_MAX_SECONDS:240}
 
 logging:
   level:
