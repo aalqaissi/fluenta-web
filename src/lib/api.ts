@@ -319,6 +319,17 @@ export interface AiStudioImage { base64: string; mediaType: string; }
 export interface AiStudioExtractRequest { images: AiStudioImage[]; hint?: string; }
 export interface AiStudioQuestionsReply { questions: AiStudioQuestion[]; }
 export interface AiStudioExtractResult { passageText: string; questions: AiStudioQuestion[]; }
+export interface AiSpeakingCriterion { key: string; label: string; band: number; note: string; }
+export interface AiSpeakingPartResult { number: number; transcript: string; note?: string; }
+export interface AiSpeakingResult {
+  id: string;
+  source: string;
+  overall: number;
+  criteria: AiSpeakingCriterion[];
+  parts: AiSpeakingPartResult[];
+}
+export interface AiSpeakingPartInput { number: number; prompt: string; audioUrl: string; }
+export interface AiSpeakingFeedbackRequest { examId: string; parts: AiSpeakingPartInput[]; }
 
 // ---- endpoint groups ----------------------------------------------
 
@@ -410,6 +421,10 @@ export const api = {
     getWritingFeedback: (id: string) =>
       request<AiWritingResult>("GET", `/ai/writing-feedback/${id}`),
     coach: (req: AiCoachRequest) => request<AiCoachReply>("POST", "/ai/coach", req),
+    speakingFeedback: (req: AiSpeakingFeedbackRequest) =>
+      request<AiSpeakingResult>("POST", "/ai/speaking-feedback", req),
+    getSpeakingFeedback: (id: string) =>
+      request<AiSpeakingResult>("GET", `/ai/speaking-feedback/${id}`),
     studioGenerate: (req: AiStudioGenerateRequest) => request<AiStudioQuestionsReply>("POST", "/ai/studio-generate", req),
     studioFill: (req: AiStudioFillRequest) => request<AiStudioQuestionsReply>("POST", "/ai/studio-fill", req),
     studioExtract: (req: AiStudioExtractRequest) => request<AiStudioExtractResult>("POST", "/ai/studio-extract", req),
