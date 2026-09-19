@@ -3,6 +3,7 @@ package com.fluenta.api.web;
 import com.fluenta.api.config.CurrentUser;
 import com.fluenta.api.dto.AiDtos;
 import com.fluenta.api.service.CoachService;
+import com.fluenta.api.service.LiveInterviewService;
 import com.fluenta.api.service.SpeakingFeedbackService;
 import com.fluenta.api.service.StudioAiService;
 import com.fluenta.api.service.WritingFeedbackService;
@@ -24,13 +25,15 @@ public class AiController {
     private final CoachService coach;
     private final StudioAiService studio;
     private final SpeakingFeedbackService speaking;
+    private final LiveInterviewService liveInterview;
 
     public AiController(WritingFeedbackService writing, CoachService coach, StudioAiService studio,
-                         SpeakingFeedbackService speaking) {
+                         SpeakingFeedbackService speaking, LiveInterviewService liveInterview) {
         this.writing = writing;
         this.coach = coach;
         this.studio = studio;
         this.speaking = speaking;
+        this.liveInterview = liveInterview;
     }
 
     @PostMapping("/writing-feedback")
@@ -76,7 +79,17 @@ public class AiController {
         return speaking.get(CurrentUser.require(), id);
     }
 
-    /** Held features: studio-*, speaking-feedback, live-interview. */
+    @PostMapping("/live-interview/turn")
+    public AiDtos.LiveInterviewTurnReply liveInterviewTurn(@RequestBody AiDtos.LiveInterviewTurnRequest req) {
+        return liveInterview.turn(CurrentUser.require(), req);
+    }
+
+    @PostMapping("/live-interview/grade")
+    public AiDtos.SpeakingResult liveInterviewGrade(@RequestBody AiDtos.LiveInterviewGradeRequest req) {
+        return liveInterview.grade(CurrentUser.require(), req);
+    }
+
+    /** Held features: studio-*, speaking-feedback. */
     @PostMapping("/{feature}")
     @ResponseStatus(HttpStatus.NOT_IMPLEMENTED)
     public Map<String, Object> notImplemented(@PathVariable String feature) {

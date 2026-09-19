@@ -139,6 +139,37 @@ class HttpContractTest {
     }
 
     @Test
+    void liveInterviewTurnAsStudentReturnsAReply() throws Exception {
+        String token = login();  // any authenticated user is allowed
+        String body = "{\"part\":1,\"history\":[],\"answerAudioUrl\":null}";
+        mvc.perform(post("/api/ai/live-interview/turn").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reply").isString())
+                .andExpect(jsonPath("$.part").value(1))
+                .andExpect(jsonPath("$.done").value(false));
+    }
+
+    @Test
+    void liveInterviewGradeAsStudentReturnsCriteria() throws Exception {
+        String token = login();
+        String body = "{\"examId\":\"live-interview\",\"parts\":[{\"number\":1,\"transcript\":\"I am from a coastal town.\"}]}";
+        mvc.perform(post("/api/ai/live-interview/grade").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.criteria").isArray())
+                .andExpect(jsonPath("$.criteria[0].key").value("fluency"))
+                .andExpect(jsonPath("$.overall").isNumber());
+    }
+
+    @Test
+    void liveInterviewRequiresAuth() throws Exception {
+        mvc.perform(post("/api/ai/live-interview/turn")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"part\":1,\"history\":[]}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void studioGenerateAsAdminReturnsQuestions() throws Exception {
         String token = login(); // Sara = admin
         String body = "{\"passageText\":\"The Nile is a river in Africa.\",\"questionType\":\"true-false-notgiven\",\"count\":2}";
