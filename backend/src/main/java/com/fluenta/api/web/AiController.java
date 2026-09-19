@@ -13,9 +13,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * AI feature endpoints. Writing feedback and the coach are live (both fall back to an offline
- * heuristic when the AI service is disabled/keyless). Every other feature is still held and
- * returns 501.
+ * AI feature endpoints. All AI features are live (writing feedback, the coach, studio, speaking
+ * feedback and the live interview all fall back to an offline heuristic/stub when the AI service
+ * is disabled/keyless). The {@code /{feature}} catch-all only serves genuinely unknown feature
+ * names, returning 501.
  */
 @RestController
 @RequestMapping("/api/ai")

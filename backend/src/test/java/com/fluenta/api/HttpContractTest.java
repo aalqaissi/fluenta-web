@@ -130,9 +130,9 @@ class HttpContractTest {
     }
 
     @Test
-    void aiEndpointsAreDisabled() throws Exception {
+    void unknownAiFeatureReturns501() throws Exception {
         String token = login();
-        mvc.perform(post("/api/ai/live-interview").header("Authorization", "Bearer " + token)
+        mvc.perform(post("/api/ai/not-a-real-feature").header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isNotImplemented())
                 .andExpect(jsonPath("$.comingSoon").value(true));
