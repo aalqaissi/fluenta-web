@@ -29,6 +29,11 @@ public final class AiDtos {
     public record SpeakingResult(String id, String source, double overall,
                                  List<SpeakingCriterionDto> criteria, List<SpeakingPartResult> parts) {}
 
+    public record InterviewTurn(String role, String text) {}   // role: "examiner" | "candidate"
+    public record LiveInterviewTurnRequest(Integer part, List<InterviewTurn> history, String answerAudioUrl) {}
+    public record LiveInterviewTurnReply(String transcript, String reply, Integer part, boolean done) {}
+    public record LiveInterviewGradeRequest(String examId, List<SpeakingPartResult> parts) {}
+
     public record StudioQuestionDto(String prompt, String type, List<String> options, String answer, Integer wordLimit) {}
     public record StudioGenerateRequest(String passageText, String questionType, Integer count) {}
     public record StudioImage(String base64, String mediaType) {}

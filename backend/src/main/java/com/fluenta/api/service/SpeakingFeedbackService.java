@@ -83,6 +83,20 @@ public class SpeakingFeedbackService {
                     .append("\nTRANSCRIPT: ").append(transcript).append("\n\n");
         }
 
+        SpeakingResult result = gradeTranscribedParts(userId, req.examId(), prompt.toString(), partResults, live);
+
+        if (!props.persist() && live) {
+            for (SpeakingPartInput p : parts) media.deleteQuietly(p.audioUrl());  // ephemeral: drop the clips
+        }
+        return result;
+    }
+
+    /**
+     * Grade already-transcribed parts through the shared normalization gate, then persist when enabled.
+     * Shared by §2d Speaking (audio → transcribe → here) and §2e Live Interview (transcripts already collected).
+     */
+    public SpeakingResult gradeTranscribedParts(String userId, String examId, String gradingPrompt,
+                                                List<SpeakingPartResult> parts, boolean live) {
         List<SpeakingCriterionDto> criteria;
         double overall;
         String source;
@@ -91,21 +105,15 @@ public class SpeakingFeedbackService {
             overall = meanBand(criteria);
             source = "offline";
         } else {
-            JsonNode node = parse(ai.complete(GRADE_SYSTEM, prompt.toString()));
+            JsonNode node = parse(ai.complete(GRADE_SYSTEM, gradingPrompt));
             criteria = normalize(readCriteria(node));
             double modelOverall = node.path("overall").asDouble(-1);
             overall = (modelOverall >= 0 && modelOverall <= 9) ? snapBand(modelOverall) : meanBand(criteria);
             source = "claude";
         }
-
         String id = UUID.randomUUID().toString();
-        SpeakingResult result = new SpeakingResult(id, source, overall, criteria, partResults);
-
-        if (props.persist()) {
-            persist(userId, req, result, partResults);
-        } else if (live) {
-            for (SpeakingPartInput p : parts) media.deleteQuietly(p.audioUrl());  // ephemeral: drop the clips
-        }
+        SpeakingResult result = new SpeakingResult(id, source, overall, criteria, parts);
+        if (props.persist()) persist(userId, examId, result, parts);
         return result;
     }
 
@@ -174,13 +182,13 @@ public class SpeakingFeedbackService {
         return "audio/webm";
     }
 
-    private void persist(String userId, SpeakingFeedbackRequest req, SpeakingResult result,
+    private void persist(String userId, String examId, SpeakingResult result,
                          List<SpeakingPartResult> parts) {
         try {
             SpeakingFeedbackEntity e = new SpeakingFeedbackEntity();
             e.setId(result.id());
             e.setUserId(userId);
-            e.setExamId(req.examId());
+            e.setExamId(examId);
             e.setTranscriptsJson(om.writeValueAsString(parts));
             e.setResultJson(om.writeValueAsString(result));
             e.setModel(props.model());
