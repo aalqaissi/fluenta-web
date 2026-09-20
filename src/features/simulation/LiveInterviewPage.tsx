@@ -35,6 +35,7 @@ export function LiveInterviewPage() {
   const historyRef = useRef<{ role: "examiner" | "candidate"; text: string }[]>([]);
   const answersRef = useRef<{ part: number; text: string }[]>([]);
   const doneRef = useRef(false);
+  const gradedRef = useRef(false);
 
   useEffect(() => { mutedRef.current = muted; }, [muted]);
 
@@ -117,6 +118,9 @@ export function LiveInterviewPage() {
         audioUrl = up.url;
       }
     } catch { audioUrl = undefined; }
+    // the interview may already have ended (manual End / a done elsewhere) while the
+    // upload was in flight — stop here so we never overwrite "ended" with "thinking".
+    if (doneRef.current) return;
     // optimistic candidate turn; the server returns the real transcript which we substitute
     historyRef.current = [...historyRef.current, { role: "candidate", text: "(spoken answer)" }];
     setStage("thinking");
@@ -137,6 +141,8 @@ export function LiveInterviewPage() {
   }
 
   async function gradeInterview() {
+    if (gradedRef.current) return; // already graded (or grading) — never run a second round trip
+    gradedRef.current = true;
     doneRef.current = true; // mark the session over before any await, so late turn replies no-op
     setStage("grading");
     // concatenate candidate transcripts per part (1..3), in order
