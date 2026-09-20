@@ -84,6 +84,9 @@ export function LiveInterviewPage() {
   async function startRecording() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // the interview may already have ended (manual End during the permission prompt) —
+      // release the just-granted mic and don't reopen the recording UI.
+      if (doneRef.current) { stream.getTracks().forEach((t) => t.stop()); return; }
       streamRef.current = stream;
       chunksRef.current = [];
       const mime = pickMime();
