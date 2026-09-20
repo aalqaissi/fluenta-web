@@ -1,99 +1,201 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Mic, Square, Sparkles, Bot, Loader2, PhoneOff, Zap } from "lucide-react";
+import { ArrowLeft, Mic, Square, Sparkles, Bot, Loader2, PhoneOff, Volume2, VolumeX } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { speakingParts, sampleSpeakingFeedback } from "@/mock/data";
+import { sampleSpeakingFeedback } from "@/mock/data";
 import { speakingOverall } from "@/lib/mockApi";
+import { api } from "@/lib/api";
+import type { SpeakingFeedback } from "@/mock/types";
 import { brand } from "@/config/brand";
 import { bandTone, cn, formatBand, pad2 } from "@/lib/utils";
 
-type Utt = { part: number; text: string; adaptive?: boolean; cue?: boolean; bullets?: string[] };
-
-// Scripted examiner turns, assembled from the seed parts (+ a couple of
-// "adaptive" follow-ups to convey the real-time, responsive feel).
-const UTTERANCES: Utt[] = [
-  { part: 1, text: `Good morning. I'm ${brand.name}, your examiner today. Could you tell me your full name, please?` },
-  ...speakingParts[0].questions.map((q) => ({ part: 1, text: q })),
-  { part: 1, text: "That's interesting — could you expand on that a little?", adaptive: true },
-  { part: 2, text: speakingParts[1].cueCard ?? "Describe a skill you would like to learn.", cue: true, bullets: speakingParts[1].bullets },
-  { part: 2, text: "Take a moment to prepare, then speak for up to two minutes." },
-  ...speakingParts[2].questions.map((q) => ({ part: 3, text: q })),
-  { part: 3, text: "Why do you think that is?", adaptive: true },
-];
-
-type Line = { who: "examiner" | "you"; text: string; adaptive?: boolean; cue?: boolean; bullets?: string[] };
-type Stage = "connecting" | "asking" | "answer" | "recording" | "thinking" | "ended";
+type Line = { who: "examiner" | "you"; text: string };
+// Note: unlike the scripted mock this replaces, there is no separate "the examiner is
+// speaking" stage — the examiner's line lands in the transcript and is read aloud as
+// soon as a turn/grade reply arrives, so "thinking" covers connecting-to-reply time.
+type Stage = "connecting" | "answer" | "recording" | "thinking" | "grading" | "ended";
 
 export function LiveInterviewPage() {
   const navigate = useNavigate();
   const [stage, setStage] = useState<Stage>("connecting");
-  const [idx, setIdx] = useState(0);
   const [lines, setLines] = useState<Line[]>([]);
+  const [part, setPart] = useState(1);
   const [secs, setSecs] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [result, setResult] = useState<{ overall: number; criteria: SpeakingFeedback[] } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+  const mutedRef = useRef(false);
+  // history is the running transcript sent to the server each turn; answersRef tracks
+  // which part each candidate answer belongs to, for grouping at grade time.
+  const historyRef = useRef<{ role: "examiner" | "candidate"; text: string }[]>([]);
+  const answersRef = useRef<{ part: number; text: string }[]>([]);
+  const doneRef = useRef(false);
 
-  const overall = speakingOverall(sampleSpeakingFeedback);
-  const current = UTTERANCES[idx];
+  useEffect(() => { mutedRef.current = muted; }, [muted]);
 
-  // exam clock (counts up while the interview is live)
+  function speak(text: string) {
+    if (mutedRef.current) return;
+    try {
+      const synth = window.speechSynthesis;
+      if (!synth) return;
+      synth.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "en-GB";
+      synth.speak(u);
+    } catch { /* unsupported — text is authoritative */ }
+  }
+
+  // Opening turn only: no candidate audio yet, so there's nothing to record/upload.
+  async function sendTurn(audioUrl?: string) {
+    setStage("thinking");
+    try {
+      const reply = await api.ai.liveInterview.turn({
+        part,
+        history: historyRef.current,
+        answerAudioUrl: audioUrl ?? null,
+      });
+      historyRef.current = [...historyRef.current, { role: "examiner", text: reply.reply }];
+      setLines((l) => [...l, { who: "examiner", text: reply.reply }]);
+      setPart(reply.part);
+      speak(reply.reply);
+      if (reply.done) { doneRef.current = true; setStage("grading"); await gradeInterview(); }
+      else setStage("answer");
+    } catch {
+      // API/offline error — degrade to a short scripted close so the demo never dead-ends.
+      fallbackClose();
+    }
+  }
+
+  function pickMime(): string {
+    const c = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
+    return c.find((t) => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(t)) ?? "";
+  }
+  function extFor(type: string): string { return type.includes("mp4") ? "m4a" : "webm"; }
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      chunksRef.current = [];
+      const mime = pickMime();
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      rec.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
+      rec.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: rec.mimeType || "audio/webm" });
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+        void uploadAnswer(blob);
+      };
+      recRef.current = rec;
+      rec.start();
+      setStage("recording");
+    } catch {
+      // mic denied — record a placeholder "you" turn and continue the loop
+      void uploadAnswer(null);
+    }
+  }
+  function stopRecording() {
+    if (recRef.current?.state === "recording") recRef.current.stop();
+  }
+
+  async function uploadAnswer(blob: Blob | null) {
+    const answeredPart = part;
+    setLines((l) => [...l, { who: "you", text: "🎙️ (your spoken response)" }]);
+    let audioUrl: string | undefined;
+    try {
+      if (blob) {
+        const file = new File([blob], `turn-${Date.now()}.${extFor(blob.type)}`, { type: blob.type || "audio/webm" });
+        const up = await api.media.upload(file);
+        audioUrl = up.url;
+      }
+    } catch { audioUrl = undefined; }
+    // optimistic candidate turn; the server returns the real transcript which we substitute
+    historyRef.current = [...historyRef.current, { role: "candidate", text: "(spoken answer)" }];
+    setStage("thinking");
+    try {
+      const reply = await api.ai.liveInterview.turn({ part: answeredPart, history: historyRef.current.slice(0, -1), answerAudioUrl: audioUrl ?? null });
+      // record the transcript for grading + replace the optimistic placeholder
+      historyRef.current[historyRef.current.length - 1] = { role: "candidate", text: reply.transcript || "(spoken answer)" };
+      answersRef.current = [...answersRef.current, { part: answeredPart, text: reply.transcript || "" }];
+      historyRef.current = [...historyRef.current, { role: "examiner", text: reply.reply }];
+      setLines((l) => [...l, { who: "examiner", text: reply.reply }]);
+      setPart(reply.part);
+      speak(reply.reply);
+      if (reply.done) { doneRef.current = true; await gradeInterview(); } else setStage("answer");
+    } catch { fallbackClose(); }
+  }
+
+  async function gradeInterview() {
+    setStage("grading");
+    // concatenate candidate transcripts per part (1..3), in order
+    const byPart = new Map<number, string[]>();
+    for (const a of answersRef.current) {
+      if (!a.text) continue;
+      byPart.set(a.part, [...(byPart.get(a.part) ?? []), a.text]);
+    }
+    const parts = [...byPart.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([number, texts]) => ({ number, transcript: texts.join(" "), note: "" }));
+    try {
+      if (parts.length === 0) throw new Error("no answers");
+      const res = await api.ai.liveInterview.grade({ examId: "live-interview", parts });
+      setResult({ overall: res.overall, criteria: res.criteria as SpeakingFeedback[] });
+    } catch {
+      setResult({ overall: speakingOverall(sampleSpeakingFeedback), criteria: sampleSpeakingFeedback });
+    }
+    setStage("ended");
+  }
+
+  function fallbackClose() {
+    setLines((l) => [...l, { who: "examiner", text: "Thank you, that's the end of the speaking interview." }]);
+    doneRef.current = true;
+    void gradeInterview();
+  }
+
+  function endInterview() {
+    stopRecording();
+    try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
+    void gradeInterview();
+  }
+
+  // exam clock
   useEffect(() => {
     if (stage === "connecting" || stage === "ended") return;
     const t = setInterval(() => setSecs((s) => s + 1), 1000);
     return () => clearInterval(t);
   }, [stage]);
 
-  // connecting -> first question
+  // open the interview: fetch the examiner's first question
   useEffect(() => {
-    if (stage !== "connecting") return;
-    const t = setTimeout(() => setStage("asking"), 1600);
-    return () => clearTimeout(t);
-  }, [stage]);
-
-  // examiner "speaks" the current utterance, then hands over to the candidate
-  useEffect(() => {
-    if (stage !== "asking") return;
-    setLines((l) => [...l, { who: "examiner", text: current.text, adaptive: current.adaptive, cue: current.cue, bullets: current.bullets }]);
-    const t = setTimeout(() => setStage("answer"), 1800);
-    return () => clearTimeout(t);
+    void sendTurn(undefined);
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage, idx]);
-
-  // examiner "thinks", then asks the next question (or ends)
-  useEffect(() => {
-    if (stage !== "thinking") return;
-    const t = setTimeout(() => {
-      if (idx + 1 < UTTERANCES.length) {
-        setIdx((i) => i + 1);
-        setStage("asking");
-      } else {
-        setLines((l) => [...l, { who: "examiner", text: "Thank you, that's the end of the speaking interview." }]);
-        setStage("ended");
-      }
-    }, 1200);
-    return () => clearTimeout(t);
-  }, [stage, idx]);
+  }, []);
 
   // autoscroll transcript
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [lines]);
 
-  function finishAnswer() {
-    setLines((l) => [...l, { who: "you", text: "🎙️ (your spoken response)" }]);
-    setStage("thinking");
-  }
-
-  const examinerActive = stage === "asking";
+  const examinerActive = stage === "thinking";
   const listening = stage === "recording";
   const statusLabel =
     stage === "connecting" ? "Connecting…" :
-    stage === "asking" ? "Examiner speaking" :
     stage === "answer" ? "Your turn — tap to answer" :
     stage === "recording" ? "Listening…" :
-    stage === "thinking" ? "Thinking…" :
+    stage === "thinking" || stage === "grading" ? "Thinking…" :
     "Interview complete";
+
+  const overall = result?.overall ?? speakingOverall(sampleSpeakingFeedback);
+  const criteria = result?.criteria ?? sampleSpeakingFeedback;
 
   return (
     <div>
@@ -108,7 +210,15 @@ export function LiveInterviewPage() {
             </Badge>
           )}
           <span className="text-sm font-bold tabular-nums text-muted-foreground">{pad2(Math.floor(secs / 60))}:{pad2(secs % 60)}</span>
-          {current && stage !== "ended" && <Badge variant="muted">Part {current.part} of 3</Badge>}
+          {stage !== "ended" && <Badge variant="muted">Part {part} of 3</Badge>}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setMuted((m) => !m)}
+            aria-label={muted ? "Unmute examiner" : "Mute examiner"}
+          >
+            {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+          </Button>
         </div>
       </div>
 
@@ -119,13 +229,13 @@ export function LiveInterviewPage() {
           examinerActive ? "bg-warm-gradient scale-105 shadow-glow" : "bg-warm-gradient"
         )}>
           {examinerActive && <span className="absolute inset-0 animate-ping rounded-full bg-primary/30" />}
-          {stage === "connecting" || stage === "thinking" ? <Loader2 className="size-8 animate-spin" /> : <Bot className="size-9" />}
+          {stage === "connecting" || stage === "thinking" || stage === "grading" ? <Loader2 className="size-8 animate-spin" /> : <Bot className="size-9" />}
         </div>
         <div className="text-center">
           <p className="font-extrabold">{brand.name} Interviewer</p>
           <p className="text-sm text-muted-foreground">{statusLabel}</p>
         </div>
-        <p className="mt-1 text-[11px] text-muted-foreground">Simulated live interview — voice is not captured in this preview.</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">Live IELTS interview — your answers are transcribed to grade your speaking.</p>
       </Card>
 
       {/* transcript */}
@@ -143,14 +253,7 @@ export function LiveInterviewPage() {
               "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm",
               ln.who === "examiner" ? "bg-muted" : "bg-primary/[0.08]"
             )}>
-              {ln.adaptive && <Badge variant="info" className="mb-1 gap-1"><Zap className="size-3" /> adaptive follow-up</Badge>}
-              {ln.cue && <Badge variant="secondary" className="mb-1">Cue card</Badge>}
               <p>{ln.text}</p>
-              {ln.bullets && (
-                <ul className="mt-1 list-inside list-disc text-[13px] text-muted-foreground">
-                  {ln.bullets.map((b) => <li key={b}>{b}</li>)}
-                </ul>
-              )}
             </div>
           </div>
         ))}
@@ -163,7 +266,7 @@ export function LiveInterviewPage() {
             <Sparkles className="size-4 text-primary" /> Interview feedback · overall band {formatBand(overall)}
           </h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {sampleSpeakingFeedback.map((f) => (
+            {criteria.map((f) => (
               <div key={f.key} className="rounded-xl border border-border p-3.5">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold">{f.label}</span>
@@ -174,7 +277,7 @@ export function LiveInterviewPage() {
             ))}
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button onClick={() => navigate("/simulation/speaking/live")}><Bot className="size-4" /> New interview</Button>
+            <Button onClick={() => navigate(0)}><Bot className="size-4" /> New interview</Button>
             <Button variant="outline" onClick={() => navigate("/coach")}>Discuss with Coach</Button>
           </div>
         </Card>
@@ -182,8 +285,8 @@ export function LiveInterviewPage() {
         <Card className="flex flex-col items-center gap-3 p-6">
           <button
             onClick={() => {
-              if (stage === "answer") setStage("recording");
-              else if (stage === "recording") finishAnswer();
+              if (stage === "answer") startRecording();
+              else if (stage === "recording") stopRecording();
             }}
             disabled={stage !== "answer" && stage !== "recording"}
             className={cn(
@@ -198,7 +301,7 @@ export function LiveInterviewPage() {
           <p className="text-sm font-semibold">
             {stage === "answer" ? "Tap to answer" : stage === "recording" ? "Tap when you've finished" : statusLabel}
           </p>
-          <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setStage("ended")}>
+          <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={endInterview}>
             <PhoneOff className="size-4" /> End interview
           </Button>
         </Card>
