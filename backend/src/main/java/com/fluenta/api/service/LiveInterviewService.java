@@ -102,7 +102,9 @@ public class LiveInterviewService {
                     .append("\nTRANSCRIPT: ").append(p.transcript() == null ? "" : p.transcript()).append("\n\n");
         }
         String examId = req.examId() == null ? "live-interview" : req.examId();
-        return speaking.gradeTranscribedParts(userId, examId, prompt.toString(), parts, props.live());
+        int max = props.maxEssayChars();
+        String gradingPrompt = prompt.length() > max ? prompt.substring(0, max) : prompt.toString();
+        return speaking.gradeTranscribedParts(userId, examId, gradingPrompt, parts, props.live());
     }
 
     // --- helpers ---
@@ -116,9 +118,17 @@ public class LiveInterviewService {
         return clampPart(p);
     }
 
-    /** Keep the last MAX_TURNS entries. */
+    /** Keep the last MAX_TURNS entries, then cap the total characters to the generic input cap (trim oldest first). */
     private List<InterviewTurn> cap(List<InterviewTurn> msgs) {
-        return msgs.size() > MAX_TURNS ? msgs.subList(msgs.size() - MAX_TURNS, msgs.size()) : msgs;
+        List<InterviewTurn> tail = msgs.size() > MAX_TURNS ? msgs.subList(msgs.size() - MAX_TURNS, msgs.size()) : msgs;
+        int max = props.maxEssayChars();
+        int total = tail.stream().mapToInt(t -> t.text() == null ? 0 : t.text().length()).sum();
+        int start = 0;
+        while (total > max && start < tail.size() - 1) {
+            total -= tail.get(start).text() == null ? 0 : tail.get(start).text().length();
+            start++;
+        }
+        return tail.subList(start, tail.size());
     }
 
     /** Map interview turns to chat turns (candidate->user, examiner->assistant); drop blanks; first must be user. */
