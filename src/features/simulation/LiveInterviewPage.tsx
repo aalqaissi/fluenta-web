@@ -59,6 +59,9 @@ export function LiveInterviewPage() {
         history: historyRef.current,
         answerAudioUrl: audioUrl ?? null,
       });
+      // the interview may already have been ended (manual End / a done elsewhere) while
+      // this request was in flight — treat this reply as stale and drop it.
+      if (doneRef.current) return;
       historyRef.current = [...historyRef.current, { role: "examiner", text: reply.reply }];
       setLines((l) => [...l, { who: "examiner", text: reply.reply }]);
       setPart(reply.part);
@@ -119,6 +122,9 @@ export function LiveInterviewPage() {
     setStage("thinking");
     try {
       const reply = await api.ai.liveInterview.turn({ part: answeredPart, history: historyRef.current.slice(0, -1), answerAudioUrl: audioUrl ?? null });
+      // the interview may already have been ended (manual End / a done elsewhere) while
+      // this request was in flight — treat this reply as stale and drop it.
+      if (doneRef.current) return;
       // record the transcript for grading + replace the optimistic placeholder
       historyRef.current[historyRef.current.length - 1] = { role: "candidate", text: reply.transcript || "(spoken answer)" };
       answersRef.current = [...answersRef.current, { part: answeredPart, text: reply.transcript || "" }];
@@ -131,6 +137,7 @@ export function LiveInterviewPage() {
   }
 
   async function gradeInterview() {
+    doneRef.current = true; // mark the session over before any await, so late turn replies no-op
     setStage("grading");
     // concatenate candidate transcripts per part (1..3), in order
     const byPart = new Map<number, string[]>();
@@ -152,12 +159,14 @@ export function LiveInterviewPage() {
   }
 
   function fallbackClose() {
+    if (doneRef.current) return; // already ending/ended elsewhere — don't re-grade
     setLines((l) => [...l, { who: "examiner", text: "Thank you, that's the end of the speaking interview." }]);
     doneRef.current = true;
     void gradeInterview();
   }
 
   function endInterview() {
+    doneRef.current = true; // set before any await so in-flight turn replies see the session as over
     stopRecording();
     try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
     void gradeInterview();
@@ -301,7 +310,13 @@ export function LiveInterviewPage() {
           <p className="text-sm font-semibold">
             {stage === "answer" ? "Tap to answer" : stage === "recording" ? "Tap when you've finished" : statusLabel}
           </p>
-          <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={endInterview}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground"
+            onClick={endInterview}
+            disabled={stage === "grading"}
+          >
             <PhoneOff className="size-4" /> End interview
           </Button>
         </Card>
