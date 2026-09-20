@@ -330,6 +330,19 @@ export interface AiSpeakingResult {
 }
 export interface AiSpeakingPartInput { number: number; prompt: string; audioUrl: string; }
 export interface AiSpeakingFeedbackRequest { examId: string; parts: AiSpeakingPartInput[]; }
+export interface AiInterviewTurn { role: "examiner" | "candidate"; text: string; }
+export interface AiLiveInterviewTurnRequest {
+  part: number;
+  history: AiInterviewTurn[];
+  answerAudioUrl?: string | null;
+}
+export interface AiLiveInterviewTurnReply {
+  transcript: string;
+  reply: string;
+  part: number;
+  done: boolean;
+}
+export interface AiLiveInterviewGradeRequest { examId: string; parts: AiSpeakingPartResult[]; }
 
 // ---- endpoint groups ----------------------------------------------
 
@@ -425,6 +438,12 @@ export const api = {
       request<AiSpeakingResult>("POST", "/ai/speaking-feedback", req),
     getSpeakingFeedback: (id: string) =>
       request<AiSpeakingResult>("GET", `/ai/speaking-feedback/${id}`),
+    liveInterview: {
+      turn: (req: AiLiveInterviewTurnRequest) =>
+        request<AiLiveInterviewTurnReply>("POST", "/ai/live-interview/turn", req),
+      grade: (req: AiLiveInterviewGradeRequest) =>
+        request<AiSpeakingResult>("POST", "/ai/live-interview/grade", req),
+    },
     studioGenerate: (req: AiStudioGenerateRequest) => request<AiStudioQuestionsReply>("POST", "/ai/studio-generate", req),
     studioFill: (req: AiStudioFillRequest) => request<AiStudioQuestionsReply>("POST", "/ai/studio-fill", req),
     studioExtract: (req: AiStudioExtractRequest) => request<AiStudioExtractResult>("POST", "/ai/studio-extract", req),
