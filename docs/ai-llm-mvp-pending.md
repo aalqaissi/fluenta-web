@@ -61,6 +61,7 @@ There is a `claude-api` **skill** available in the session (Anthropic API / mode
 - **Build:** band + 4 speaking criteria (fluency & coherence, lexical resource, grammar, pronunciation). Enables scored Speaking + the **full-exam Speaking band** (currently the full-exam orchestrator holds Speaking).
 
 ### 2e. Live Interview — real-time examiner (MOST COMPLEX, do LAST)
+**Status: DONE** — Student-facing `POST /api/ai/live-interview/turn` + `/grade`; turn-based push-to-talk (voice-in via the §2d capture→Whisper `Transcriber` seam, text-out examiner via `AiClient.chat` behind an `Interviewer` seam); real IELTS 3-part examiner-led structure with a server-guarded `{reply,part,done}` control signal; graded ending reusing the §2d 4-criteria gate (`gradeTranscribedParts`); offline stub examiner/transcriber/grader (never 501); web read-aloud via `SpeechSynthesis`, mobile text-only. The AI/LLM MVP is now **5 of 5** done.
 - **Held today:** "coming soon" screen (`src/features/simulation/LiveInterviewPage.tsx`).
 - **Build:** real-time examiner — turn-taking, likely **voice** (STT + LLM + TTS) and streaming. Its own sub-phase; scope separately.
 

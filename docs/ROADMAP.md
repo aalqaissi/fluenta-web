@@ -14,7 +14,7 @@ _Last updated 2026-09-12._
 |  | ☑ | **AI: Fluenta/Einstein Coach chat** | Live with request/response, server-sourced personalization, offline fallback, ephemeral. |
 |  | ☑ | **AI: Writing feedback** (band + criteria + inline annotations) | Live with offline fallback + toggleable persistence. |
 |  | ☑ | **AI: Speaking feedback** (band + 4 criteria) | Live (student): real audio capture (web+mobile) → server-side STT (Whisper) → Claude grading, 4 criteria + overall, normalization gate, offline stub. |
-|  | ☐ | **AI: Live Interview** (real-time examiner) | Held; page is a "coming soon" screen. |
+|  | ☑ | **AI: Live Interview** (real-time examiner) | Live (student): `/api/ai/live-interview/turn` + `/grade` — push-to-talk turns (Whisper transcription in, Claude examiner out), real IELTS 3-part structure with a server-guarded reply/part/done signal, graded ending via the Speaking 4-criteria gate, offline stub; web adds SpeechSynthesis read-aloud, mobile is text-only. |
 |  | ☑ | **AI: Studio Generate / Extract / Fill-answers** | Live (admin): `/api/ai/studio-generate\|fill\|extract`, vision extract (base64 images), normalization gate, offline heuristic fallback, Reading/Listening wired; web-only. |
 
 ## Future top-level programs (track switcher is live; content not built)
