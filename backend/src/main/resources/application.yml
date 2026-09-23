@@ -34,8 +34,11 @@ fluenta:
     password: ${FLUENTA_DEMO_PASSWORD:yalla-demo}
   ai:
     enabled: ${FLUENTA_AI_ENABLED:true}
-    api-key: ${ANTHROPIC_API_KEY:}
-    model: ${FLUENTA_AI_MODEL:claude-sonnet-5}
+    provider: ${FLUENTA_AI_PROVIDER:anthropic}
+    api-key: ${FLUENTA_AI_API_KEY:${ANTHROPIC_API_KEY:}}
+    base-url: ${FLUENTA_AI_BASE_URL:}
+    model: ${FLUENTA_AI_MODEL:}
+    max-tokens: ${FLUENTA_AI_MAX_TOKENS:8192}
     effort: ${FLUENTA_AI_EFFORT:medium}
     timeout-seconds: ${FLUENTA_AI_TIMEOUT:60}
     max-essay-chars: ${FLUENTA_AI_MAX_ESSAY_CHARS:12000}

@@ -13,7 +13,10 @@ class AiPropertiesTest {
 
     @Test
     void bindsDefaults() {
-        assertThat(props.model()).isEqualTo("claude-sonnet-5");
+        // model is blank by default now (MP2: resolved via provider preset, not hardcoded).
+        assertThat(props.model()).isBlank();
+        assertThat(props.providerOrDefault()).isEqualTo("anthropic");
+        assertThat(props.effectiveModel()).isEqualTo("claude-sonnet-5");
         assertThat(props.persist()).isTrue();
         assertThat(props.maxEssayChars()).isEqualTo(12000);
         // No ANTHROPIC_API_KEY in the test env → offline mode.

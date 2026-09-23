@@ -42,7 +42,7 @@ public class AnthropicAiClient implements AiClient {
     public String complete(String systemPrompt, String userPrompt) {
         try {
             MessageCreateParams params = MessageCreateParams.builder()
-                    .model(props.model())
+                    .model(props.effectiveModel())
                     .maxTokens(16000L)
                     .thinking(ThinkingConfigAdaptive.builder().build())
                     .outputConfig(OutputConfig.builder().effort(effort()).build())
@@ -66,7 +66,7 @@ public class AnthropicAiClient implements AiClient {
     public String chat(String systemPrompt, java.util.List<ChatTurn> turns) {
         try {
             MessageCreateParams.Builder b = MessageCreateParams.builder()
-                    .model(props.model())
+                    .model(props.effectiveModel())
                     .maxTokens(16000L)
                     .thinking(ThinkingConfigAdaptive.builder().build())
                     .outputConfig(OutputConfig.builder().effort(effort()).build())
@@ -105,7 +105,7 @@ public class AnthropicAiClient implements AiClient {
                     com.anthropic.models.messages.TextBlockParam.builder().text(userText).build()));
 
             MessageCreateParams params = MessageCreateParams.builder()
-                    .model(props.model())
+                    .model(props.effectiveModel())
                     .maxTokens(16000L)
                     .thinking(ThinkingConfigAdaptive.builder().build())
                     .outputConfig(OutputConfig.builder().effort(effort()).build())

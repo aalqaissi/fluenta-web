@@ -13,11 +13,26 @@ public record AiProperties(
         @DefaultValue("60") int timeoutSeconds,
         @DefaultValue("12000") int maxEssayChars,
         @DefaultValue("5000000") int maxImageBytes,
-        @DefaultValue("true") boolean persist) {
+        @DefaultValue("true") boolean persist,
+        @DefaultValue("anthropic") String provider,
+        @DefaultValue("") String baseUrl,
+        @DefaultValue("8192") int maxTokens) {
 
     /** True when a live model call should be attempted; false → offline heuristic. */
     public boolean live() {
         return enabled && apiKey != null && !apiKey.isBlank();
+    }
+
+    public String providerOrDefault() {
+        return provider == null || provider.isBlank() ? "anthropic" : provider.trim().toLowerCase();
+    }
+
+    public String effectiveModel() {
+        return model != null && !model.isBlank() ? model : LlmProviders.model(providerOrDefault());
+    }
+
+    public String effectiveBaseUrl() {
+        return baseUrl != null && !baseUrl.isBlank() ? baseUrl : LlmProviders.baseUrl(providerOrDefault());
     }
 
     /** Never expose the raw API key via the auto-generated record toString(). */
@@ -25,11 +40,9 @@ public record AiProperties(
     public String toString() {
         return "AiProperties[enabled=" + enabled
                 + ", apiKey=" + (apiKey == null || apiKey.isBlank() ? "<blank>" : "<set>")
-                + ", model=" + model
-                + ", effort=" + effort
-                + ", timeoutSeconds=" + timeoutSeconds
-                + ", maxEssayChars=" + maxEssayChars
-                + ", maxImageBytes=" + maxImageBytes
-                + ", persist=" + persist + "]";
+                + ", provider=" + provider + ", model=" + model + ", baseUrl=" + baseUrl
+                + ", effort=" + effort + ", timeoutSeconds=" + timeoutSeconds
+                + ", maxEssayChars=" + maxEssayChars + ", maxImageBytes=" + maxImageBytes
+                + ", maxTokens=" + maxTokens + ", persist=" + persist + "]";
     }
 }

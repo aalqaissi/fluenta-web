@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.*;
 class WritingFeedbackServiceTest {
 
     private AiProperties offline() {
-        return new AiProperties(false, "", "claude-sonnet-5", "medium", 60, 12000, 5000000, false);
+        return new AiProperties(false, "", "claude-sonnet-5", "medium", 60, 12000, 5000000, false, "anthropic", "", 8192);
     }
 
     private AiDtos.WritingFeedbackRequest req(String essay) {
@@ -47,7 +47,7 @@ class WritingFeedbackServiceTest {
                 List.of(new AiDtos.WritingCriterion("task", "Task Achievement", 11, "x")),
                 List.of(new AiDtos.WritingAnnotation(null, "grammar", "NOT IN ESSAY", "n"),
                         new AiDtos.WritingAnnotation(null, "grammar", "real span", "n")));
-        var props = new AiProperties(true, "sk-test", "claude-sonnet-5", "medium", 60, 12000, 5000000, false);
+        var props = new AiProperties(true, "sk-test", "claude-sonnet-5", "medium", 60, 12000, 5000000, false, "anthropic", "", 8192);
         com.fluenta.api.service.AiClient noopAi = new com.fluenta.api.service.AiClient() {
             @Override public String complete(String system, String user) { return ""; }
             @Override public String chat(String systemPrompt, List<com.fluenta.api.service.AiClient.ChatTurn> turns) {
@@ -75,7 +75,7 @@ class WritingFeedbackServiceTest {
     void rejectsBlankAndOversizeEssays() {
         var service = new WritingFeedbackService(offline(), new StubWritingGrader(), null, null, null);
         assertThatThrownBy(() -> service.generate("u1", req("   "))).isInstanceOf(ApiException.class);
-        var smallCap = new AiProperties(false, "", "claude-sonnet-5", "medium", 60, 10, 5000000, false);
+        var smallCap = new AiProperties(false, "", "claude-sonnet-5", "medium", 60, 10, 5000000, false, "anthropic", "", 8192);
         var svc2 = new WritingFeedbackService(smallCap, new StubWritingGrader(), null, null, null);
         assertThatThrownBy(() -> svc2.generate("u1", req("this essay is definitely longer than ten characters")))
                 .isInstanceOf(ApiException.class);
