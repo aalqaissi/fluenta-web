@@ -10,13 +10,12 @@ import com.anthropic.models.messages.ThinkingConfigAdaptive;
 import com.fluenta.api.config.AiProperties;
 import com.fluenta.api.web.ApiException;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.List;
 
-/** Live AiClient backed by the Anthropic Java SDK. SDK client is built lazily (never in offline mode). */
-@Service
+/** Live AiClient backed by the Anthropic Java SDK. SDK client is built lazily (never in offline mode).
+ *  Instantiated only by AiClientConfig when fluenta.ai.provider is "anthropic" (or blank/default). */
 public class AnthropicAiClient implements AiClient {
 
     private final AiProperties props;
