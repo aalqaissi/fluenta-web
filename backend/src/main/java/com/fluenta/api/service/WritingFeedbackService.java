@@ -72,7 +72,7 @@ public class WritingFeedbackService {
             e.setTaskNumber(req.taskNumber());
             e.setEssay(req.essay());
             e.setResultJson(om.writeValueAsString(withId));
-            e.setModel(props.live() ? props.model() : "offline");
+            e.setModel(props.live() ? props.effectiveModel() : "offline");
             e.setSource(r.source());
             e.setCreatedAt(Instant.now().toString());
             repo.save(e);

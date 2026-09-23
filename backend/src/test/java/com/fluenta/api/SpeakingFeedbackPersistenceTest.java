@@ -3,6 +3,7 @@ package com.fluenta.api;
 import com.fluenta.api.dto.AiDtos.*;
 import com.fluenta.api.service.AiClient;
 import com.fluenta.api.service.MediaStorageService;
+import com.fluenta.api.repo.SpeakingFeedbackRepository;
 import com.fluenta.api.service.SpeakingFeedbackService;
 import com.fluenta.api.service.Transcriber;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,7 @@ class SpeakingFeedbackPersistenceTest {
     // readAudio(...) is still stubbable per test.
     @SpyBean MediaStorageService media;
     @Autowired SpeakingFeedbackService svc;
+    @Autowired SpeakingFeedbackRepository repo;
 
     private SpeakingResult generate() {
         doReturn(new byte[]{1, 2, 3}).when(media).readAudio(anyString());
@@ -54,6 +56,9 @@ class SpeakingFeedbackPersistenceTest {
     void persistsAndFetchesByIdForTheOwner() {
         var result = generate();
         assertThat(result.id()).isNotBlank();
+        // Regression guard: fluenta.ai.model is blank by default (MP2), so the persisted "model"
+        // audit field must come from effectiveModel() (provider preset), not the raw blank field.
+        assertThat(repo.findById(result.id()).orElseThrow().getModel()).isEqualTo("claude-sonnet-5");
 
         var fetched = svc.get("u1", result.id());
 

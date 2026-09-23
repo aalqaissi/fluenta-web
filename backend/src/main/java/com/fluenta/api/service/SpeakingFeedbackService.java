@@ -191,7 +191,7 @@ public class SpeakingFeedbackService {
             e.setExamId(examId);
             e.setTranscriptsJson(om.writeValueAsString(parts));
             e.setResultJson(om.writeValueAsString(result));
-            e.setModel(props.model());
+            e.setModel(props.effectiveModel());
             e.setSource(result.source());
             e.setCreatedAt(Instant.now().toString());
             repo.save(e);
