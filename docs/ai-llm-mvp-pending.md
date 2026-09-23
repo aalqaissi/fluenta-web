@@ -30,6 +30,7 @@ There is a `claude-api` **skill** available in the session (Anthropic API / mode
 - [x] **Replace the placeholder `AiController`** with real per-feature endpoints (below), each `requireAdmin()`-free for student features but gated appropriately (Coach/feedback are student-facing; Studio generate/extract are admin — the role gating already exists via `CurrentUser.requireAdmin()`).
 - [x] **Response contracts (DTOs)** for each feature so web + mobile consume a stable shape. Writing/Speaking feedback MUST match the existing result shapes (see feature 2/3) so the current result screens can render real data with minimal change.
 - [x] **Safety:** treat user essays / chat as untrusted (prompt-injection), consider moderation, cap input/output tokens.
+- [x] **Provider-selectable LLM + STT** (post-MVP hardening, branch `feat/multi-provider-ai`). Both the LLM (`fluenta.ai.provider`) and the transcriber (`fluenta.ai.transcribe.provider`) are now config-selectable via env var, with generic key names (`FLUENTA_AI_API_KEY`, `FLUENTA_TRANSCRIBE_API_KEY`) instead of provider-specific ones. Two supported pairs: Claude + OpenAI Whisper (default, unchanged behavior) and Gemini + Groq (free). Anthropic still uses its native SDK; every other LLM provider (OpenAI, Gemini, Groq, DeepSeek, OpenRouter, ...) goes through one generic OpenAI-compatible `AiClient`, so adding a future provider is a config alias, not new code. Models overridable via `FLUENTA_AI_MODEL` / `FLUENTA_TRANSCRIBE_MODEL`. No keys = offline stub AI, same as before.
 
 ---
 

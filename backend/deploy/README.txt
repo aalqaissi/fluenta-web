@@ -15,6 +15,23 @@ Run
 - Then open  http://localhost:8080  in your browser.
 - Sign in with "Continue with Google" (demo user) or a new email (starts onboarding).
 
+AI providers
+------------
+- Without any keys set, the app runs with offline stub AI (Coach/Writing/Speaking/Studio/
+  Live-Interview all work, never error) -- nothing to configure to try it out.
+- To enable real AI, set one pair of environment variables before running start.cmd (see the
+  commented examples in start.cmd):
+    Pair A: Claude + OpenAI Whisper (default providers)
+      FLUENTA_AI_API_KEY=sk-ant-...
+      FLUENTA_TRANSCRIBE_API_KEY=sk-...
+    Pair B: Gemini + Groq (free)
+      FLUENTA_AI_PROVIDER=gemini
+      FLUENTA_AI_API_KEY=...gemini-key...
+      FLUENTA_TRANSCRIBE_PROVIDER=groq
+      FLUENTA_TRANSCRIBE_API_KEY=...groq-key...
+- Models are overridable via  FLUENTA_AI_MODEL  and  FLUENTA_TRANSCRIBE_MODEL  if you want a
+  different model than the provider's default.
+
 Notes
 -----
 - A local database file is created next to the JAR at  data\fluenta.db  on first run.

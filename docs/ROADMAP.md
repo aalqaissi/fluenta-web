@@ -42,6 +42,7 @@ _IELTS Preparation is the active track. The switcher shows the others as "coming
 |  | ☐ | Postgres migration option | SQLite now; JPA makes the swap a config change. |
 |  | ☐ | **Backend server can't bind on this machine** — Java NIO loopback blocked by a local proxy | Not a code bug. Verified via MockMvc + verify profile. Run via Docker/WSL/another host or allow `java.exe` loopback. See `backend/README.md`. |
 |  | ☐ | Code-split the FE bundle (currently one >500 kB chunk) | Vite warns; not urgent. |
+|  | ☑ | **Pluggable AI providers** | Config-selectable LLM (Anthropic, or any OpenAI-compatible provider incl. Gemini) and STT (OpenAI or Groq); generic key names; default (Claude + OpenAI Whisper) unchanged. |
 
 ## Done (recent)
 

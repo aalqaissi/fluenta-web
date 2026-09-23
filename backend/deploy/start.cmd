@@ -21,6 +21,16 @@ if not defined JAVACMD (
   exit /b 1
 )
 
+rem --- AI provider keys (uncomment + fill in one pair) ---
+rem  Pair A: Claude + OpenAI Whisper (default providers)
+rem set "FLUENTA_AI_API_KEY=sk-ant-..."
+rem set "FLUENTA_TRANSCRIBE_API_KEY=sk-..."
+rem  Pair B: Gemini + Groq (free)
+rem set "FLUENTA_AI_PROVIDER=gemini"
+rem set "FLUENTA_AI_API_KEY=...gemini-key..."
+rem set "FLUENTA_TRANSCRIBE_PROVIDER=groq"
+rem set "FLUENTA_TRANSCRIBE_API_KEY=...groq-key..."
+
 echo Starting Yalla English Hub ...  open  http://localhost:8080  in your browser.
 echo (Press Ctrl+C in this window to stop.)
 "%JAVACMD%" -jar "%~dp0yalla-english-hub.jar"
