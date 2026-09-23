@@ -43,9 +43,10 @@ fluenta:
     persist: ${FLUENTA_AI_PERSIST:true}
     transcribe:
       enabled: ${FLUENTA_TRANSCRIBE_ENABLED:true}
-      api-key: ${OPENAI_API_KEY:}
-      base-url: ${FLUENTA_TRANSCRIBE_URL:https://api.openai.com/v1/audio/transcriptions}
-      model: ${FLUENTA_TRANSCRIBE_MODEL:whisper-1}
+      provider: ${FLUENTA_TRANSCRIBE_PROVIDER:openai}
+      api-key: ${FLUENTA_TRANSCRIBE_API_KEY:${OPENAI_API_KEY:}}
+      base-url: ${FLUENTA_TRANSCRIBE_URL:}
+      model: ${FLUENTA_TRANSCRIBE_MODEL:}
       max-audio-bytes: ${FLUENTA_TRANSCRIBE_MAX_BYTES:25000000}
       max-audio-seconds: ${FLUENTA_TRANSCRIBE_MAX_SECONDS:240}
 

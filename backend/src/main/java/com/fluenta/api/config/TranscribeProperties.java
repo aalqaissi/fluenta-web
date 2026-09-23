@@ -8,14 +8,30 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 public record TranscribeProperties(
         @DefaultValue("true") boolean enabled,
         @DefaultValue("") String apiKey,
-        @DefaultValue("https://api.openai.com/v1/audio/transcriptions") String baseUrl,
-        @DefaultValue("whisper-1") String model,
+        @DefaultValue("") String baseUrl,      // blank -> resolved from provider preset
+        @DefaultValue("") String model,        // blank -> resolved from provider preset
         @DefaultValue("25000000") long maxAudioBytes,
-        @DefaultValue("240") int maxAudioSeconds) {
+        @DefaultValue("240") int maxAudioSeconds,
+        @DefaultValue("openai") String provider) {
 
     /** True when a live STT call should be attempted; false → offline stub transcript. */
     public boolean live() {
         return enabled && apiKey != null && !apiKey.isBlank();
+    }
+
+    /** Normalized provider alias, defaulting to "openai" when blank. */
+    public String providerOrDefault() {
+        return provider == null || provider.isBlank() ? "openai" : provider.trim().toLowerCase();
+    }
+
+    /** Explicit {@code baseUrl} wins; otherwise resolved from the provider preset. */
+    public String effectiveBaseUrl() {
+        return baseUrl != null && !baseUrl.isBlank() ? baseUrl : SttProviders.baseUrl(providerOrDefault());
+    }
+
+    /** Explicit {@code model} wins; otherwise resolved from the provider preset. */
+    public String effectiveModel() {
+        return model != null && !model.isBlank() ? model : SttProviders.model(providerOrDefault());
     }
 
     /** Never expose the raw API key. */
@@ -23,7 +39,7 @@ public record TranscribeProperties(
     public String toString() {
         return "TranscribeProperties[enabled=" + enabled
                 + ", apiKey=" + (apiKey == null || apiKey.isBlank() ? "<blank>" : "<set>")
-                + ", baseUrl=" + baseUrl + ", model=" + model
+                + ", provider=" + provider + ", baseUrl=" + baseUrl + ", model=" + model
                 + ", maxAudioBytes=" + maxAudioBytes + ", maxAudioSeconds=" + maxAudioSeconds + "]";
     }
 }

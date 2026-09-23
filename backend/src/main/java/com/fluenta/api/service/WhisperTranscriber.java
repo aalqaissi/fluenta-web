@@ -33,7 +33,7 @@ public class WhisperTranscriber implements Transcriber {
         String filename = "audio." + ext(mediaType);
         try {
             byte[] body = multipart(boundary, audio, mediaType, filename);
-            HttpRequest req = HttpRequest.newBuilder(URI.create(props.baseUrl()))
+            HttpRequest req = HttpRequest.newBuilder(URI.create(props.effectiveBaseUrl()))
                     .header("Authorization", "Bearer " + props.apiKey())
                     .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body))
@@ -66,7 +66,7 @@ public class WhisperTranscriber implements Transcriber {
 
     private byte[] multipart(String boundary, byte[] audio, String mediaType, String filename) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        writeField(out, boundary, "model", props.model());
+        writeField(out, boundary, "model", props.effectiveModel());
         writeField(out, boundary, "language", "en");
         writeField(out, boundary, "response_format", "json");
         // file part
