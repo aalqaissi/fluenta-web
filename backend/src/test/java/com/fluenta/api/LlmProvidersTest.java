@@ -16,14 +16,14 @@ class LlmProvidersTest {
     void aliasesResolveToPresets() {
         assertThat(LlmProviders.model("anthropic")).isEqualTo("claude-sonnet-5");
         assertThat(LlmProviders.baseUrl("gemini")).isEqualTo("https://generativelanguage.googleapis.com/v1beta/openai");
-        assertThat(LlmProviders.model("gemini")).isEqualTo("gemini-2.0-flash");
+        assertThat(LlmProviders.model("gemini")).isEqualTo("gemini-3.6-flash");
         assertThat(LlmProviders.baseUrl("unknown")).isEmpty();
     }
 
     @Test
     void effectiveModelAndBaseUrlUsePresetThenOverride() {
         assertThat(props("anthropic", "", "").effectiveModel()).isEqualTo("claude-sonnet-5");   // default unchanged
-        assertThat(props("gemini", "", "").effectiveModel()).isEqualTo("gemini-2.0-flash");
+        assertThat(props("gemini", "", "").effectiveModel()).isEqualTo("gemini-3.6-flash");
         assertThat(props("gemini", "", "").effectiveBaseUrl())
                 .isEqualTo("https://generativelanguage.googleapis.com/v1beta/openai");
         assertThat(props("gemini", "https://x/y", "custom-model").effectiveModel()).isEqualTo("custom-model");

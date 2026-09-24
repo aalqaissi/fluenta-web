@@ -11,7 +11,7 @@ public final class LlmProviders {
     private static final Map<String, Preset> PRESETS = Map.of(
             "anthropic",  new Preset("", "claude-sonnet-5"),
             "openai",     new Preset("https://api.openai.com/v1", "gpt-4o-mini"),
-            "gemini",     new Preset("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.0-flash"),
+            "gemini",     new Preset("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.6-flash"),
             "groq",       new Preset("https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
             "deepseek",   new Preset("https://api.deepseek.com", "deepseek-chat"),
             "openrouter", new Preset("https://openrouter.ai/api/v1", ""));

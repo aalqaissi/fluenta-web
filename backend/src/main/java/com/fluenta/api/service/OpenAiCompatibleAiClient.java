@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fluenta.api.config.AiProperties;
 import com.fluenta.api.web.ApiException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
 import java.net.URI;
@@ -18,6 +20,8 @@ import java.util.List;
 /** Generic AiClient over any OpenAI-compatible /chat/completions endpoint (Gemini, OpenAI, Groq, DeepSeek,
  *  OpenRouter, local). Instantiated by AiClientConfig when fluenta.ai.provider != "anthropic". */
 public class OpenAiCompatibleAiClient implements AiClient {
+
+    private static final Logger log = LoggerFactory.getLogger(OpenAiCompatibleAiClient.class);
 
     private final AiProperties props;
     private final ObjectMapper om;
@@ -128,6 +132,10 @@ public class OpenAiCompatibleAiClient implements AiClient {
                     .build();
             HttpResponse<String> res = getHttpClient().send(req, HttpResponse.BodyHandlers.ofString());
             if (res.statusCode() / 100 != 2) {
+                // Log the provider's actual status + error body (never the request/key) so failures like a
+                // retired model id are diagnosable from the server log instead of a silent generic 502.
+                log.warn("AI provider '{}' returned HTTP {} for model '{}' at {} — {}",
+                        props.providerOrDefault(), res.statusCode(), props.effectiveModel(), url, truncate(res.body()));
                 throw new ApiException(HttpStatus.BAD_GATEWAY,
                         "The AI service is temporarily unavailable. Please try again.");
             }
@@ -135,8 +143,16 @@ public class OpenAiCompatibleAiClient implements AiClient {
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
+            log.warn("AI provider '{}' call to {} failed: {}", props.providerOrDefault(), url, e.toString());
             throw new ApiException(HttpStatus.BAD_GATEWAY, "The AI service could not be reached. Please try again.");
         }
+    }
+
+    /** First ~500 chars of a provider response body, for diagnostic logging. */
+    private static String truncate(String s) {
+        if (s == null) return "";
+        String t = s.replaceAll("\\s+", " ").trim();
+        return t.length() <= 500 ? t : t.substring(0, 500) + "…";
     }
 
     private HttpClient getHttpClient() {
