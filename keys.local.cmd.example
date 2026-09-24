@@ -1,0 +1,20 @@
+@echo off
+rem  Local AI provider keys for the Yalla English Hub standalone app.
+rem
+rem  SETUP (once): copy this file to  keys.local.cmd  (same folder), fill in ONE pair of keys
+rem  below, and save. keys.local.cmd is git-ignored and is copied into dist-app by package.cmd
+rem  WITHOUT being overwritten on later builds — so your keys survive re-packaging and are never
+rem  committed to the repo or baked into the shared jar. (On a copied dist-app folder, keep
+rem  keys.local.cmd next to start.cmd and edit it there.)
+rem
+rem  The model is baked in per provider, so FLUENTA_AI_MODEL is optional (set it only to override).
+rem
+rem  --- Pair A: Claude + OpenAI Whisper (default providers) ---
+rem  set "FLUENTA_AI_API_KEY=sk-ant-..."
+rem  set "FLUENTA_TRANSCRIBE_API_KEY=sk-..."
+rem
+rem  --- Pair B: Gemini + Groq (free) ---
+set "FLUENTA_AI_PROVIDER=gemini"
+set "FLUENTA_AI_API_KEY=PASTE-YOUR-GEMINI-KEY-HERE"
+set "FLUENTA_TRANSCRIBE_PROVIDER=groq"
+set "FLUENTA_TRANSCRIBE_API_KEY=PASTE-YOUR-GROQ-KEY-HERE"

@@ -21,15 +21,12 @@ if not defined JAVACMD (
   exit /b 1
 )
 
-rem --- AI provider keys (uncomment + fill in one pair) ---
-rem  Pair A: Claude + OpenAI Whisper (default providers)
-rem set "FLUENTA_AI_API_KEY=sk-ant-..."
-rem set "FLUENTA_TRANSCRIBE_API_KEY=sk-..."
-rem  Pair B: Gemini + Groq (free)
-rem set "FLUENTA_AI_PROVIDER=gemini"
-rem set "FLUENTA_AI_API_KEY=...gemini-key..."
-rem set "FLUENTA_TRANSCRIBE_PROVIDER=groq"
-rem set "FLUENTA_TRANSCRIBE_API_KEY=...groq-key..."
+rem --- AI provider keys ---
+rem Put your keys in a local file named  keys.local.cmd  in this folder (copy keys.local.cmd.example
+rem and fill it in). It is git-ignored and is preserved across package.cmd runs, so your keys survive
+rem re-packaging and never enter the repo or the shared jar. Alternatively set them as Windows
+rem environment variables (setx FLUENTA_AI_API_KEY ...). Without keys the app runs with offline stubs.
+if exist "%~dp0keys.local.cmd" call "%~dp0keys.local.cmd"
 
 echo Starting Yalla English Hub ...  open  http://localhost:8080  in your browser.
 echo (Press Ctrl+C in this window to stop.)

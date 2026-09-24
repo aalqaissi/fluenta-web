@@ -29,3 +29,5 @@ backend/.mvn/wrapper/maven-wrapper.jar
 backend/src/main/resources/static/
 # single-binary deploy bundle (produced by package.cmd)
 dist-app/
+# local API keys for the standalone app (never commit real keys; the .example is committed)
+keys.local.cmd
