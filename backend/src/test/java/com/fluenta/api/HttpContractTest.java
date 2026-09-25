@@ -234,17 +234,64 @@ class HttpContractTest {
     }
 
     @Test
-    void overviewComputesAggregatesForSixSkills() throws Exception {
-        String token = login();
+    void overviewStartsEmptyForANewStudent() throws Exception {
+        String token = registerStudent();
         mvc.perform(get("/api/overview").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.skills.length()").value(6))
-                .andExpect(jsonPath("$.targetBand").value(greaterThan(0.0)))
-                .andExpect(jsonPath("$.currentAverage").value(greaterThan(0.0)))
-                .andExpect(jsonPath("$.strongest.key").isNotEmpty())
-                .andExpect(jsonPath("$.weakest.key").isNotEmpty())
-                .andExpect(jsonPath("$.series.overall").isArray())
-                .andExpect(jsonPath("$.recentActivity").isArray());
+                .andExpect(jsonPath("$.skills[*].band", everyItem(nullValue())))
+                .andExpect(jsonPath("$.skills[*].tests", everyItem(is(0))))
+                .andExpect(jsonPath("$.testsCompleted").value(0))
+                .andExpect(jsonPath("$.currentAverage").value(0.0))
+                .andExpect(jsonPath("$.strongest").value(nullValue()))
+                .andExpect(jsonPath("$.series.overall.length()").value(0))
+                .andExpect(jsonPath("$.series.reading.length()").value(0));
+    }
+
+    @Test
+    void overviewAggregatesTheStudentsOwnAttempts() throws Exception {
+        String token = registerStudent();
+        MvcResult res = mvc.perform(post("/api/attempts")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"examId\":\"read-languages\",\"skill\":\"reading\",\"answers\":{},\"durationUsedSec\":60}"))
+                .andExpect(status().isOk()).andReturn();
+        double band = om.readTree(res.getResponse().getContentAsString()).get("band").asDouble();
+
+        mvc.perform(get("/api/overview").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.skills[?(@.key=='reading')].tests").value(contains(1)))
+                .andExpect(jsonPath("$.skills[?(@.key=='reading')].band").value(contains(band)))
+                .andExpect(jsonPath("$.skills[?(@.key=='listening')].band").value(contains(nullValue())))
+                .andExpect(jsonPath("$.testsCompleted").value(1))
+                .andExpect(jsonPath("$.currentAverage").value(band))
+                .andExpect(jsonPath("$.strongest.key").value("reading"))
+                .andExpect(jsonPath("$.series.reading.length()").value(1))
+                .andExpect(jsonPath("$.series.reading[0].band").value(band))
+                .andExpect(jsonPath("$.series.overall.length()").value(1))
+                .andExpect(jsonPath("$.series.listening.length()").value(0));
+    }
+
+    @Test
+    void recentActivityReflectsTheUsersOwnAttempts() throws Exception {
+        String token = registerStudent();
+        mvc.perform(get("/api/overview").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recentActivity.length()").value(0));
+
+        mvc.perform(post("/api/attempts")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"examId\":\"read-languages\",\"skill\":\"reading\",\"answers\":{},\"durationUsedSec\":60}"))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/api/overview").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recentActivity.length()").value(1))
+                .andExpect(jsonPath("$.recentActivity[0].type").value("completed"))
+                .andExpect(jsonPath("$.recentActivity[0].skill").value("reading"))
+                .andExpect(jsonPath("$.recentActivity[0].date").value(matchesPattern("\\d{4}-\\d{2}-\\d{2}")))
+                .andExpect(jsonPath("$.recentActivity[0].band").isNumber());
     }
 
     @Test

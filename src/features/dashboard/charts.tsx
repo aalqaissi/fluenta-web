@@ -30,6 +30,14 @@ export function ProgressLineChart({ points }: { points: SeriesPoint[] }) {
     return { path, dots, xLabels };
   }, [points]);
 
+  if (points.length === 0) {
+    return (
+      <div className="grid h-56 place-items-center rounded-2xl border border-dashed text-center text-sm text-muted-foreground">
+        No scored results yet — complete a practice test to start your progress graph.
+      </div>
+    );
+  }
+
   return (
     <div className="w-full overflow-x-auto">
       <svg viewBox={`0 0 ${W} ${H}`} className="h-56 w-full min-w-[420px]" role="img" aria-label="Band score over time">
