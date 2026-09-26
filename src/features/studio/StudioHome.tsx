@@ -13,6 +13,8 @@ import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import { StatusBadge } from "./components";
 import { studioStore, useStudioExamsState, type StudioSkill, type StudioExam } from "./store";
 import { cn, prettyDate } from "@/lib/utils";
+import { api, ApiError, type ExamDto } from "@/lib/api";
+import { useAsync } from "@/lib/useAsync";
 
 const SKILLS: { key: StudioSkill; label: string; icon: typeof BookOpen; tint: string }[] = [
   { key: "reading", label: "Reading", icon: BookOpen, tint: "bg-success/12 text-success" },
@@ -138,6 +140,8 @@ export function StudioHome() {
         </div>
       )}
 
+      <BuiltInExams filter={filter} />
+
       <ConfirmDialog
         open={!!toDelete}
         onOpenChange={(v) => !v && setToDelete(null)}
@@ -151,6 +155,60 @@ export function StudioHome() {
           }
         }}
       />
+    </div>
+  );
+}
+
+/**
+ * Exams that ship with the app ("runner" format). They can't be edited in the Studio, but they
+ * join the student pools only while published — so admins can take them out of rotation.
+ */
+function BuiltInExams({ filter }: { filter: StudioSkill | "all" }) {
+  const { data, reload } = useAsync(() => api.exams.list(), []);
+  const [busy, setBusy] = useState<string | null>(null);
+  const list = (data ?? []).filter((e) => e.format === "runner" && (filter === "all" || e.skill === filter));
+  if (list.length === 0) return null;
+
+  async function toggle(e: ExamDto) {
+    const next = e.status === "published" ? "draft" : "published";
+    setBusy(e.id);
+    try {
+      await api.exams.setStatus(e.id, next);
+      toast.success(next === "published" ? "Published" : "Unpublished");
+      reload();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Couldn't update this exam");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="mt-8">
+      <h2 className="mb-1 text-lg font-bold">Built-in exams</h2>
+      <p className="mb-3 text-sm text-muted-foreground">Ship with the app. Students only get them while they're published.</p>
+      <div className="space-y-3">
+        {list.map((e) => {
+          const meta = SKILLS.find((s) => s.key === e.skill) ?? SKILLS[0];
+          return (
+            <Card key={e.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+              <span className={cn("grid size-11 shrink-0 place-items-center rounded-xl", meta.tint)}>
+                <meta.icon className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-bold">{e.title}</h3>
+                  <StatusBadge status={e.status} />
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">Built-in · {meta.label}</span>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" disabled={busy === e.id} onClick={() => toggle(e)}>
+                {e.status === "published" ? <><CloudOff className="size-4" /> Unpublish</> : <><Upload className="size-4" /> Publish</>}
+              </Button>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }

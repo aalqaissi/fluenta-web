@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Bot, Mic, RefreshCw, Sparkles, Trophy } from "lucide-react";
-import { getSpeakingExam } from "@/lib/mockApi";
-import { studioStore } from "@/features/studio/store";
-import { studioSpeakingToExam } from "@/features/studio/convert";
+import { useAsync } from "@/lib/useAsync";
+import { loadSpeakingExam } from "./loadExam";
 import { getLastSpeaking } from "@/store/attempt-store";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,8 +13,7 @@ import { bandTone, cn, formatBand } from "@/lib/utils";
 export function SpeakingResultsPage() {
   const navigate = useNavigate();
   const attempt = getLastSpeaking();
-  const authored = attempt ? studioStore.get().find((e) => e.id === attempt.examId && e.skill === "speaking") : undefined;
-  const exam = authored && (authored.parts?.length ?? 0) > 0 ? studioSpeakingToExam(authored) : getSpeakingExam();
+  const { data: exam } = useAsync(() => (attempt ? loadSpeakingExam(attempt.examId) : Promise.resolve(undefined)), [attempt?.examId]);
 
   if (!attempt) {
     return (
@@ -47,7 +45,7 @@ export function SpeakingResultsPage() {
               </Badge>
               <h1 className="text-2xl font-extrabold">Your speaking, reviewed</h1>
               <p className="text-sm text-muted-foreground">
-                {exam.parts.length} parts · {attempt.partsRecorded} recorded · scored across all four criteria.
+                {exam?.parts.length ?? 3} parts · {attempt.partsRecorded} recorded · scored across all four criteria.
               </p>
             </div>
           </div>
