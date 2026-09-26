@@ -43,7 +43,6 @@ mkdir "%OUT%"
 for %%F in (backend\target\fluenta-api-*.jar) do copy /y "%%F" "%OUT%\yalla-english-hub.jar" >nul
 copy /y "backend\deploy\start.cmd" "%OUT%\start.cmd" >nul
 copy /y "backend\deploy\README.txt" "%OUT%\README.txt" >nul
-copy /y "%~dp0keys.local.cmd.example" "%OUT%\keys.local.cmd.example" >nul
 rem Carry the local (git-ignored) keys into the bundle if present, so re-packaging keeps them.
 if exist "%~dp0keys.local.cmd" copy /y "%~dp0keys.local.cmd" "%OUT%\keys.local.cmd" >nul
 

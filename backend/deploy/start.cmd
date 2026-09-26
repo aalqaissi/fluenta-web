@@ -22,8 +22,8 @@ if not defined JAVACMD (
 )
 
 rem --- AI provider keys ---
-rem Put your keys in a local file named  keys.local.cmd  in this folder (copy keys.local.cmd.example
-rem and fill it in). It is git-ignored and is preserved across package.cmd runs, so your keys survive
+rem Put your keys in a local file named  keys.local.cmd  in this folder (set NAME=value
+rem lines -- see README.txt). It is git-ignored and is preserved across package.cmd runs, so your keys survive
 rem re-packaging and never enter the repo or the shared jar. Alternatively set them as Windows
 rem environment variables (setx FLUENTA_AI_API_KEY ...). Without keys the app runs with offline stubs.
 if exist "%~dp0keys.local.cmd" call "%~dp0keys.local.cmd"
