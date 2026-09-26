@@ -19,8 +19,8 @@ AI providers
 ------------
 - Without any keys set, the app runs with offline stub AI (Coach/Writing/Speaking/Studio/
   Live-Interview all work, never error) -- nothing to configure to try it out.
-- To enable real AI, put your keys in a local file  keys.local.cmd  next to start.cmd: copy
-  keys.local.cmd.example  to  keys.local.cmd  and fill in ONE pair below. start.cmd loads it
+- To enable real AI, put your keys in a local file  keys.local.cmd  next to start.cmd with
+  ONE pair below, as  set NAME=value  lines. start.cmd loads it
   automatically; it is git-ignored and is preserved across package.cmd rebuilds, so your keys
   are never committed or baked into the shared jar. (Alternatively set the same names as Windows
   environment variables via  setx .)

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, ChevronDown, Flag, Lightbulb, Loader2, Mic, RotateCcw, Square } from "lucide-react";
-import { getSpeakingExam, getSpeakingFeedback, speakingOverall } from "@/lib/mockApi";
+import { getSpeakingFeedback, speakingOverall } from "@/lib/mockApi";
 import { api } from "@/lib/api";
-import type { SpeakingFeedback } from "@/mock/types";
-import { studioStore } from "@/features/studio/store";
-import { studioSpeakingToExam } from "@/features/studio/convert";
+import type { SpeakingExam, SpeakingFeedback } from "@/mock/types";
+import { useAsync } from "@/lib/useAsync";
+import { loadSpeakingExam } from "./loadExam";
+import { RunnerLoading, RunnerError } from "./RunnerStates";
 import { setLastSpeaking } from "@/store/attempt-store";
 import { fullExamStore } from "@/features/simulation/fullexam-store";
 import { Button } from "@/components/ui/button";
@@ -28,10 +29,15 @@ const TIPS = [
 export function SpeakingRunnerPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const exam = useMemo(() => {
-    const authored = id ? studioStore.get().find((e) => e.id === id && e.skill === "speaking") : undefined;
-    return authored && (authored.parts?.length ?? 0) > 0 ? studioSpeakingToExam(authored) : getSpeakingExam();
-  }, [id]);
+  const { data: exam, loading, error, reload } = useAsync(() => loadSpeakingExam(id!), [id]);
+
+  if (loading) return <RunnerLoading />;
+  if (error || !exam) return <RunnerError message={error ?? "Exam not found"} onRetry={reload} onBack={() => navigate(-1)} />;
+  return <SpeakingRunner exam={exam} />;
+}
+
+function SpeakingRunner({ exam }: { exam: SpeakingExam }) {
+  const navigate = useNavigate();
 
   const [sp] = useSearchParams();
   const full = sp.get("full");

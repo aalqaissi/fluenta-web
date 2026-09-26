@@ -4,7 +4,8 @@ import { ArrowLeft, Clock, Sparkles, CheckCircle2, Loader2, BadgeCheck, Trending
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { getSpeakingExam } from "@/lib/mockApi";
+import { useAsync } from "@/lib/useAsync";
+import { fetchPublished, pickRandom } from "@/features/exam-runner/publishedExams";
 import { cn } from "@/lib/utils";
 
 type Step = "intro" | "generating";
@@ -24,6 +25,17 @@ export function SpeakingStandardPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("intro");
   const [progress, setProgress] = useState(0);
+  // A random published speaking test, chosen when the student starts.
+  const pool = useAsync(() => fetchPublished("speaking"), []);
+  const [examId, setExamId] = useState<string | undefined>();
+  const available = pool.data?.length ?? 0;
+
+  function start() {
+    const pick = pickRandom(pool.data ?? []);
+    if (!pick) return;
+    setExamId(pick.id);
+    setStep("generating");
+  }
 
   // simulate AI generating unique content for each of the 3 sections
   useEffect(() => {
@@ -33,7 +45,7 @@ export function SpeakingStandardPage() {
       setProgress((p) => {
         if (p >= 100) {
           clearInterval(t);
-          setTimeout(() => navigate(`/exam/speaking/${getSpeakingExam().id}`), 400);
+          setTimeout(() => navigate(`/exam/speaking/${examId}`), 400);
           return 100;
         }
         return Math.min(100, p + 4);
@@ -136,8 +148,14 @@ export function SpeakingStandardPage() {
           </p>
         </div>
 
+        {!pool.loading && available === 0 && (
+          <p className="mt-6 rounded-xl bg-muted/50 p-3 text-sm text-muted-foreground">
+            {pool.error ?? "No speaking tests are published yet — check back soon."}
+          </p>
+        )}
+
         <div className="mt-6 flex flex-wrap gap-2">
-          <Button size="lg" onClick={() => setStep("generating")}>
+          <Button size="lg" onClick={start} disabled={available === 0}>
             <Play className="size-4" /> Start exam
           </Button>
           <Button variant="outline" size="lg" onClick={() => navigate("/simulation/speaking")}>
