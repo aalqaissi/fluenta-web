@@ -36,7 +36,7 @@ export function QuestionRenderer({ group, answers, setAnswer, review }: Props) {
   return (
     <div className="space-y-5">
       {/* shared reference box for matching types */}
-      {SELECT_TYPES.has(group.type) && group.sharedOptions && (
+      {SELECT_TYPES.has(group.type) && group.sharedOptions?.some((o) => o.text) && (
         <div className="rounded-xl border border-border bg-muted/40 p-4">
           <ul className="space-y-1.5 text-sm">
             {group.sharedOptions.map((o) => (
@@ -100,9 +100,9 @@ export function QuestionRenderer({ group, answers, setAnswer, review }: Props) {
                             <SelectValue placeholder="Choose…" />
                           </SelectTrigger>
                           <SelectContent>
-                            {(group.sharedOptions ?? []).map((o) => (
+                            {(q.options ?? group.sharedOptions ?? []).map((o) => (
                               <SelectItem key={o.key} value={o.key}>
-                                {o.key} — {o.text.length > 40 ? o.text.slice(0, 40) + "…" : o.text}
+                                {o.text ? `${o.key} — ${o.text.length > 40 ? o.text.slice(0, 40) + "…" : o.text}` : o.key}
                               </SelectItem>
                             ))}
                           </SelectContent>

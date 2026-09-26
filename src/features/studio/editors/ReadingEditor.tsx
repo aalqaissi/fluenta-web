@@ -9,9 +9,90 @@ import { QUESTION_TYPE_LABEL } from "@/mock/data";
 import type { QuestionType } from "@/mock/types";
 import { api, type AiStudioQuestion } from "@/lib/api";
 import { MediaDrop, AiButton, Field } from "../components";
-import { QuestionRow, aiQuestions, defaultAnswerFor } from "../QuestionRow";
+import { QuestionRow, aiQuestions, defaultAnswerFor, GenerateCountInput, GENERATE_DEFAULT } from "../QuestionRow";
 import { newPassage, newQuestion, type StudioExam, type StudioPassage, type StudioQuestion } from "../store";
 import { cn } from "@/lib/utils";
+import {
+  AUTHORED_OPTION_TYPES,
+  LETTERS,
+  PARAGRAPH_OPTION_TYPES,
+  matchingOptionsFor,
+  paragraphOptions,
+  parsePassageText,
+} from "../passageText";
+
+const OPTIONS_HELP: Partial<Record<QuestionType, string>> = {
+  "matching-headings": "The list of headings students choose from",
+  "matching-features": "The list of features (e.g. people, places, dates) students choose from",
+  "matching-sentence-endings": "The list of sentence endings students choose from",
+};
+
+/**
+ * The lettered answer list for a passage's matching questions: editable for Headings / Features /
+ * Sentence Endings, and read-only (the detected paragraph letters) for Matching Information.
+ * Shown whenever the passage or any of its questions uses one of those types.
+ */
+function MatchingLegend({ passage: p, onOptions }: { passage: StudioPassage; onOptions: (options: string[]) => void }) {
+  const types = new Set<QuestionType>([p.questionType, ...p.questions.map((q) => q.type).filter((t): t is QuestionType => !!t)]);
+  const authoredType = [...types].find((t) => AUTHORED_OPTION_TYPES.has(t));
+  const needsParagraphs = [...types].some((t) => PARAGRAPH_OPTION_TYPES.has(t));
+  if (!authoredType && !needsParagraphs) return null;
+
+  const options = p.options?.length ? p.options : ["", "", ""];
+  const set = (i: number, v: string) => onOptions(options.map((o, j) => (j === i ? v : o)));
+  const parsed = parsePassageText(p.text);
+  const paragraphs = paragraphOptions(parsed);
+
+  return (
+    <div className="mt-5 space-y-4">
+      {authoredType && (
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+          <p className="text-sm font-bold">Answer options</p>
+          <p className="mb-3 text-xs text-muted-foreground">
+            {OPTIONS_HELP[authoredType]}. Each question's correct answer is one of these letters; students see this list in the exam.
+          </p>
+          <div className="space-y-2">
+            {options.map((o, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="w-5 shrink-0 text-sm font-bold text-primary">{LETTERS[i]}</span>
+                <Input value={o} onChange={(e) => set(i, e.target.value)} placeholder={`Option ${LETTERS[i]}`} />
+                {options.length > 1 && (
+                  <Button variant="ghost" size="icon-sm" title="Remove option" onClick={() => onOptions(options.filter((_, j) => j !== i))}>
+                    <Trash2 className="size-4 text-muted-foreground" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+          {options.length < LETTERS.length && (
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => onOptions([...options, ""])}>
+              <Plus className="size-4" /> Add option
+            </Button>
+          )}
+        </div>
+      )}
+      {needsParagraphs && (
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+          <p className="text-sm font-bold">Paragraphs (Matching Information answers)</p>
+          {parsed.labels?.some(Boolean) ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {paragraphs.map((o, i) => (
+                <span key={o.key} className="rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary" title={parsed.paragraphs[i]}>
+                  {o.key} · {parsed.paragraphs[i]?.slice(0, 28) ?? ""}…
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-1 text-xs text-muted-foreground">
+              No paragraph letters found — students will see paragraphs lettered A–{paragraphs.at(-1)?.key ?? "A"} in order. To set them
+              yourself, put each letter on its own line above its paragraph.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const READING_TYPES = Object.keys(QUESTION_TYPE_LABEL) as QuestionType[];
 
@@ -37,6 +118,8 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
   const passages = exam.passages ?? [];
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const setB = (k: string, v: boolean) => setBusy((m) => ({ ...m, [k]: v }));
+  // Per passage: how many questions the next "Generate with AI" adds (not saved with the exam).
+  const [genCount, setGenCount] = useState<Record<string, number>>({});
   // Keyed by passage id so simultaneous "extract" cards each keep their own file input.
   const extractInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
@@ -48,11 +131,7 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
       {passages.map((p, idx) => {
         const patchQ = (qid: string, np: Partial<StudioQuestion>) =>
           setP(idx, { questions: p.questions.map((q) => (q.id === qid ? { ...q, ...np } : q)) });
-        const setCount = (target: number) => {
-          const cur = p.questions.length;
-          if (target > cur) setP(idx, { questions: [...p.questions, ...Array.from({ length: target - cur }, () => newQuestion())] });
-          else if (target < cur && target >= 1) setP(idx, { questions: p.questions.slice(0, target) });
-        };
+        const toGenerate = genCount[p.id] ?? GENERATE_DEFAULT;
         const fillDisabled = p.questionType === "multi-select";
 
         return (
@@ -108,8 +187,11 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
 
             <div className="mt-4">
               {p.inputMode === "type" ? (
-                <Field label="Passage text">
-                  <Textarea value={p.text} onChange={(e) => setP(idx, { text: e.target.value })} rows={6} placeholder="Paste or type the full reading passage here…" />
+                <Field
+                  label="Passage text"
+                  hint="Put a paragraph letter (A, B, C…) on its own line above each paragraph to label it — students see the letters, and Matching Information uses them as the answers."
+                >
+                  <Textarea value={p.text} onChange={(e) => setP(idx, { text: e.target.value })} rows={12} placeholder="Paste or type the full reading passage here…" />
                 </Field>
               ) : p.inputMode === "upload" ? (
                 <Field label="Passage image">
@@ -162,19 +244,14 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
               </Field>
             </div>
 
+            <MatchingLegend passage={p} onOptions={(options) => setP(idx, { options })} />
+
             {/* questions */}
             <div className="mt-5">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-bold">Questions ({p.questions.length})</p>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Input
-                    type="number"
-                    min={1}
-                    className="w-16"
-                    value={p.questions.length}
-                    onChange={(e) => setCount(Math.max(1, Number(e.target.value) || 1))}
-                    aria-label="Number of questions"
-                  />
+                  <GenerateCountInput value={toGenerate} onChange={(n) => setGenCount((m) => ({ ...m, [p.id]: n }))} />
                   <AiButton
                     label="Generate with AI"
                     loading={busy[`gen:${p.id}`]}
@@ -184,11 +261,11 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                         const res = await api.ai.studioGenerate({
                           passageText: p.text,
                           questionType: p.questionType,
-                          count: Math.max(1, p.questions.length || 2),
+                          count: toGenerate,
                         });
                         setP(idx, { questions: [...p.questions, ...res.questions.map(withId)] });
                       } catch {
-                        setP(idx, { questions: [...p.questions, ...aiQuestions(p.questionType)] });
+                        setP(idx, { questions: [...p.questions, ...aiQuestions(p.questionType, toGenerate)] });
                       } finally {
                         setB(`gen:${p.id}`, false);
                       }
@@ -232,6 +309,7 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                       n={qi + 1}
                       inheritType={p.questionType}
                       typeOptions={READING_TYPES}
+                      matchOptionsFor={(t) => matchingOptionsFor(t, p)}
                       onChange={(np) => patchQ(q.id, np)}
                       onDelete={() => setP(idx, { questions: p.questions.filter((x) => x.id !== q.id) })}
                     />

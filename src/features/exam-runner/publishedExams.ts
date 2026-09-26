@@ -32,9 +32,14 @@ export interface ExamPool<T> {
  * Published exams for a skill, converted for display, with one chosen at random as the
  * featured exam. The pick is stable for the visit and re-rolled by `shuffle`.
  */
-export function useExamPool<T extends { id: string }>(skill: PoolSkill, convert: (dto: ExamDto) => T): ExamPool<T> {
+export function useExamPool<T extends { id: string }>(
+  skill: PoolSkill,
+  convert: (dto: ExamDto) => T,
+  /** Optional narrowing (e.g. by the student's module); `filterKey` must change whenever it does. */
+  filter?: { key: string; keep: (dto: ExamDto) => boolean },
+): ExamPool<T> {
   const { data, loading, error, reload } = useAsync(() => fetchPublished(skill), [skill]);
-  const all = useMemo(() => (data ?? []).map(convert), [data]); // eslint-disable-line react-hooks/exhaustive-deps
+  const all = useMemo(() => (data ?? []).filter((d) => !filter || filter.keep(d)).map(convert), [data, filter?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   // The pick lives in state (re-rolled only when a new list loads or on shuffle) so it stays
   // stable across re-renders; picking during render keeps the first paint from flashing.
   const [pick, setPick] = useState<{ from: T[]; id?: string }>({ from: [] });

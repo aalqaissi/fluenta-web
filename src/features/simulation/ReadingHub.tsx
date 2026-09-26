@@ -11,6 +11,7 @@ import { getReadingExam } from "@/lib/mockApi";
 import type { ExamDto } from "@/lib/api";
 import { QUESTION_TYPE_LABEL } from "@/mock/data";
 import type { ReadingExam } from "@/mock/types";
+import { useApp } from "@/store/app-context";
 import { PracticeByTypeGrid } from "@/features/practice/PracticeByTypeGrid";
 import { useExamPool } from "@/features/exam-runner/publishedExams";
 import { readingFromDto } from "@/features/exam-runner/loadExam";
@@ -29,7 +30,9 @@ const questionCount = (e: ReadingExam) => e.passages.reduce((n, p) => n + p.grou
 export function ReadingHub() {
   const navigate = useNavigate();
   const [mode, setMode] = useState("full");
-  const pool = useExamPool("reading", toItem);
+  const { module } = useApp();
+  // Only tests for the chosen module (Academic / General Training) — "both" suits either.
+  const pool = useExamPool("reading", toItem, { key: module, keep: (d) => d.module === "both" || d.module === module });
   const featured = pool.featured;
 
   return (
@@ -51,7 +54,7 @@ export function ReadingHub() {
         </TabsList>
 
         <TabsContent value="full">
-          {PoolState({ loading: pool.loading, error: pool.error, count: pool.all.length, reload: pool.reload, icon: BookOpen, skillLabel: "reading" }) ?? (
+          {PoolState({ loading: pool.loading, error: pool.error, count: pool.all.length, reload: pool.reload, icon: BookOpen, skillLabel: module === "general" ? "General Training reading" : "Academic reading" }) ?? (
             featured && (
               <>
                 <Card className="mb-6 overflow-hidden">

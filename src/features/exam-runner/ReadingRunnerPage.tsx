@@ -158,6 +158,7 @@ function ReadingRunner({ exam }: { exam: ReadingExam }) {
             <h2 className="mb-3 text-xl font-extrabold tracking-tight">{passage.headline}</h2>
             <HighlightableText
               paragraphs={passage.paragraphs}
+              labels={passage.paragraphLabels}
               highlights={highlights.filter((h) => h.para < passage.paragraphs.length)}
               find={find}
               activeColor={activeColor}

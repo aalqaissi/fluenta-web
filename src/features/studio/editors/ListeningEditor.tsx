@@ -10,7 +10,7 @@ import type { QuestionType } from "@/mock/types";
 import { api, type AiStudioQuestion } from "@/lib/api";
 import { MediaDrop, AiButton, Field } from "../components";
 import { AudioUpload } from "../AudioUpload";
-import { QuestionRow, aiQuestions, defaultAnswerFor } from "../QuestionRow";
+import { QuestionRow, aiQuestions, defaultAnswerFor, GenerateCountInput, GENERATE_DEFAULT } from "../QuestionRow";
 import { newSection, newQuestion, type StudioExam, type StudioSection, type StudioQuestion } from "../store";
 
 const LISTENING_TYPES: QuestionType[] = [
@@ -37,6 +37,8 @@ export function ListeningEditor({ exam, patch }: { exam: StudioExam; patch: (p: 
   const sections = exam.sections ?? [];
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const setB = (k: string, v: boolean) => setBusy((m) => ({ ...m, [k]: v }));
+  // Per section: how many questions the next "Generate with AI" adds (not saved with the exam).
+  const [genCount, setGenCount] = useState<Record<string, number>>({});
   const setS = (idx: number, ns: Partial<StudioSection>) =>
     patch({ sections: sections.map((s, i) => (i === idx ? { ...s, ...ns } : s)) });
 
@@ -45,11 +47,7 @@ export function ListeningEditor({ exam, patch }: { exam: StudioExam; patch: (p: 
       {sections.map((s, idx) => {
         const patchQ = (qid: string, np: Partial<StudioQuestion>) =>
           setS(idx, { questions: s.questions.map((q) => (q.id === qid ? { ...q, ...np } : q)) });
-        const setCount = (target: number) => {
-          const cur = s.questions.length;
-          if (target > cur) setS(idx, { questions: [...s.questions, ...Array.from({ length: target - cur }, () => newQuestion())] });
-          else if (target < cur && target >= 1) setS(idx, { questions: s.questions.slice(0, target) });
-        };
+        const toGenerate = genCount[s.id] ?? GENERATE_DEFAULT;
         const fillDisabled = s.questionType === "multi-select";
 
         return (
@@ -98,14 +96,7 @@ export function ListeningEditor({ exam, patch }: { exam: StudioExam; patch: (p: 
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-bold">Questions ({s.questions.length})</p>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      className="w-16"
-                      value={s.questions.length}
-                      onChange={(e) => setCount(Math.max(1, Number(e.target.value) || 1))}
-                      aria-label="Number of questions"
-                    />
+                    <GenerateCountInput value={toGenerate} onChange={(n) => setGenCount((m) => ({ ...m, [s.id]: n }))} />
                     <AiButton
                       label="Generate with AI"
                       loading={busy[`gen:${s.id}`]}
@@ -115,11 +106,11 @@ export function ListeningEditor({ exam, patch }: { exam: StudioExam; patch: (p: 
                           const res = await api.ai.studioGenerate({
                             passageText: s.transcript,
                             questionType: s.questionType,
-                            count: Math.max(1, s.questions.length || 2),
+                            count: toGenerate,
                           });
                           setS(idx, { questions: [...s.questions, ...res.questions.map(withId)] });
                         } catch {
-                          setS(idx, { questions: [...s.questions, ...aiQuestions(s.questionType)] });
+                          setS(idx, { questions: [...s.questions, ...aiQuestions(s.questionType, toGenerate)] });
                         } finally {
                           setB(`gen:${s.id}`, false);
                         }

@@ -14,6 +14,7 @@ import type {
 } from "@/mock/types";
 import { QUESTION_TYPE_LABEL, writingTasks } from "@/mock/data";
 import { studioStore, type StudioExam, type ChartType, type Formality } from "./store";
+import { parsePassageText, studentOptionsFor, paragraphOptions, PARAGRAPH_OPTION_TYPES } from "./passageText";
 
 /**
  * Convert an admin-authored Studio reading exam into the shape the student
@@ -40,6 +41,14 @@ function readingInstructions(type: QuestionType): string {
       return "Complete each sentence. Write no more than the stated number of words.";
     case "short-answer":
       return "Answer the questions. Write no more than the stated number of words.";
+    case "matching-information":
+      return "Which paragraph contains the following information? Choose the correct letter. You may use any letter more than once.";
+    case "matching-headings":
+      return "Choose the correct heading for each paragraph from the list of headings.";
+    case "matching-features":
+      return "Match each statement with the correct option from the list. You may use any letter more than once.";
+    case "matching-sentence-endings":
+      return "Complete each sentence with the correct ending from the list.";
     default:
       return `Answer the questions below (${QUESTION_TYPE_LABEL[type]}).`;
   }
@@ -49,23 +58,41 @@ export function studioReadingToExam(e: StudioExam): ReadingExam {
   const passages = e.passages ?? [];
   let counter = 1;
   const converted: Passage[] = passages.map((p, pi) => {
-    const questions: Question[] = p.questions.map((q) => {
+    const parsed = parsePassageText(p.text || "This passage was authored in the Content Studio.");
+    // One group per run of consecutive same-type questions, like a real paper ("Questions 1–5 …
+    // Questions 6–9 …"), so each run gets its own instructions and — for matching types — the
+    // lettered list students choose from.
+    const groups: QuestionGroup[] = [];
+    for (const q of p.questions) {
       const qType: QuestionType = q.type ?? p.questionType;
       const isList = qType === "multiple-choice" || qType === "multi-select";
       const options: QuestionOption[] | undefined = isList
         ? (q.options ?? []).map((t, i) => ({ key: LETTERS[i], text: t || `Option ${LETTERS[i]}` }))
         : undefined;
       const wordLimit = TEXT_TYPES.has(qType) && q.wordLimit ? `Max ${q.wordLimit} word${q.wordLimit === 1 ? "" : "s"}` : undefined;
-      return { id: q.id, number: counter++, prompt: q.prompt, correct: q.answer, type: qType, options, wordLimit };
-    });
+      const question: Question = { id: q.id, number: counter++, prompt: q.prompt, correct: q.answer, type: qType, options, wordLimit };
 
-    const group: QuestionGroup = {
-      id: p.id + "-g",
-      type: p.questionType,
-      rangeLabel: `Questions (${QUESTION_TYPE_LABEL[p.questionType]})`,
-      instructions: readingInstructions(p.questionType),
-      questions,
-    };
+      const last = groups.at(-1);
+      if (last && last.type === qType) last.questions.push(question);
+      else
+        groups.push({
+          id: `${p.id}-g${groups.length + 1}`,
+          type: qType,
+          rangeLabel: "",
+          instructions: readingInstructions(qType),
+          sharedOptions: studentOptionsFor(
+            qType,
+            p,
+            p.questions.filter((x) => (x.type ?? p.questionType) === qType).map((x) => x.answer),
+          ),
+          questions: [question],
+        });
+    }
+    for (const g of groups) {
+      const first = g.questions[0].number;
+      const lastN = g.questions[g.questions.length - 1].number;
+      g.rangeLabel = first === lastN ? `Question ${first}` : `Questions ${first}–${lastN}`;
+    }
 
     return {
       id: p.id,
@@ -74,8 +101,14 @@ export function studioReadingToExam(e: StudioExam): ReadingExam {
       label: e.module === "general" ? "General Training" : "Academic",
       passageNumber: pi + 1,
       totalPassages: passages.length,
-      paragraphs: (p.text || "This passage was authored in the Content Studio.").split(/\n{2,}/).filter(Boolean),
-      groups: [group],
+      paragraphs: parsed.paragraphs,
+      // Unlabelled passages get A, B, C… when a question asks "which paragraph", so students can answer.
+      paragraphLabels:
+        parsed.labels ??
+        ([p.questionType, ...p.questions.map((q) => q.type)].some((t) => t && PARAGRAPH_OPTION_TYPES.has(t))
+          ? paragraphOptions(parsed).map((o) => o.key)
+          : undefined),
+      groups,
     };
   });
 
@@ -85,7 +118,7 @@ export function studioReadingToExam(e: StudioExam): ReadingExam {
     scope: "user",
     passages: converted.length ? converted : [],
     durationSec: (e.timeLimit || 60) * 60,
-    questionTypes: Array.from(new Set(passages.map((p) => p.questionType))),
+    questionTypes: Array.from(new Set(converted.flatMap((p) => p.groups.map((g) => g.type)))),
     attempts: 0,
   };
 }

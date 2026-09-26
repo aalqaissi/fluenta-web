@@ -23,6 +23,8 @@ export interface StudioPassage {
   text: string;
   imageName: string | null; // diagram/map/process
   questionType: QuestionType;
+  /** lettered answer list (A, B, C…) for Matching Headings / Features / Sentence Endings */
+  options?: string[];
   questions: StudioQuestion[];
 }
 export interface StudioSection {

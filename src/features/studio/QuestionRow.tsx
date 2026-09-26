@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QUESTION_TYPE_LABEL } from "@/mock/data";
-import type { QuestionType } from "@/mock/types";
+import type { QuestionOption, QuestionType } from "@/mock/types";
 import type { StudioQuestion } from "./store";
 
 const LETTERS = ["A", "B", "C", "D", "E"];
@@ -26,6 +26,7 @@ export function QuestionRow({
   typeOptions,
   onChange,
   onDelete,
+  matchOptionsFor,
 }: {
   q: StudioQuestion;
   n: number;
@@ -33,8 +34,11 @@ export function QuestionRow({
   typeOptions: QuestionType[];
   onChange: (patch: Partial<StudioQuestion>) => void;
   onDelete: () => void;
+  /** lettered choices for matching types (from the passage), so the answer is picked from a legend */
+  matchOptionsFor?: (type: QuestionType) => QuestionOption[] | undefined;
 }) {
   const type = q.type ?? inheritType;
+  const matchOptions = matchOptionsFor?.(type);
   const isMC = type === "multiple-choice";
   const isMS = type === "multi-select";
   const isChoice = type === "true-false-notgiven" || type === "yes-no-notgiven";
@@ -99,6 +103,27 @@ export function QuestionRow({
               ))}
             </SelectContent>
           </Select>
+        ) : matchOptions ? (
+          matchOptions.length ? (
+            <Select value={q.answer || undefined} onValueChange={(v) => onChange({ answer: v })}>
+              <SelectTrigger className="h-9 min-w-40 max-w-md flex-1"><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                {/* keep an answer that no longer matches the list visible instead of silently blank */}
+                {q.answer && !matchOptions.some((o) => o.key === q.answer) && (
+                  <SelectItem value={q.answer}>{q.answer} — not in the answer options</SelectItem>
+                )}
+                {matchOptions.map((o) => (
+                  <SelectItem key={o.key} value={o.key}>
+                    {o.key} — {o.text.length > 60 ? o.text.slice(0, 60) + "…" : o.text}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <span className="text-sm text-muted-foreground">
+              {q.answer ? <b className="mr-1 text-foreground">{q.answer}</b> : null}Add the answer options for this passage first.
+            </span>
+          )
         ) : isChoice ? (
           <Select value={q.answer || undefined} onValueChange={(v) => onChange({ answer: v })}>
             <SelectTrigger className="h-9 w-40"><SelectValue placeholder="Select" /></SelectTrigger>
@@ -130,6 +155,29 @@ export function QuestionRow({
   );
 }
 
+/** How many questions "Generate with AI" adds per click — the backend accepts 1–20. */
+export const GENERATE_DEFAULT = 5;
+export const GENERATE_MAX = 20;
+
+/**
+ * The "how many to generate" box beside "Generate with AI". It only sets the size of the next
+ * generation (appended to the existing questions) — it never adds or removes questions itself.
+ */
+export function GenerateCountInput({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  return (
+    <Input
+      type="number"
+      min={1}
+      max={GENERATE_MAX}
+      className="w-16"
+      value={value}
+      onChange={(e) => onChange(Math.min(GENERATE_MAX, Math.max(1, Math.floor(Number(e.target.value)) || 1)))}
+      aria-label="Number of questions to generate with AI"
+      title="Number of new questions “Generate with AI” adds"
+    />
+  );
+}
+
 export function defaultAnswerFor(type: QuestionType): string {
   if (type === "true-false-notgiven") return "TRUE";
   if (type === "yes-no-notgiven") return "YES";
@@ -137,11 +185,15 @@ export function defaultAnswerFor(type: QuestionType): string {
   return "sample";
 }
 
-export function aiQuestions(type: QuestionType): StudioQuestion[] {
+/** Offline placeholder questions (used when the AI service can't be reached). */
+export function aiQuestions(type: QuestionType, count = 2): StudioQuestion[] {
   const uid = () => Math.random().toString(36).slice(2, 9);
   const opts = type === "multi-select" ? ["", "", "", "", ""] : type === "multiple-choice" ? ["", "", "", ""] : undefined;
-  return [
-    { id: uid(), prompt: "AI-generated question about the content.", answer: defaultAnswerFor(type), options: opts, wordLimit: 2 },
-    { id: uid(), prompt: "Another AI-generated question.", answer: defaultAnswerFor(type), options: opts, wordLimit: 2 },
-  ];
+  return Array.from({ length: count }, (_, i) => ({
+    id: uid(),
+    prompt: i === 0 ? "AI-generated question about the content." : "Another AI-generated question.",
+    answer: defaultAnswerFor(type),
+    options: opts && [...opts],
+    wordLimit: 2,
+  }));
 }

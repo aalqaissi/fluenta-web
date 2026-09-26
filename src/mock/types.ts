@@ -88,6 +88,8 @@ export interface Passage {
   passageNumber: number;
   totalPassages: number;
   paragraphs: string[];
+  /** IELTS paragraph letters ("A", "B", …) aligned with `paragraphs`, when the passage is labelled */
+  paragraphLabels?: string[];
   groups: QuestionGroup[];
 }
 

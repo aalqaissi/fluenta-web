@@ -67,8 +67,11 @@ export function HighlightableText({
   find,
   activeColor,
   onHighlight,
+  labels,
 }: {
   paragraphs: string[];
+  /** IELTS paragraph letters, shown beside each paragraph (outside the highlightable text) */
+  labels?: string[];
   highlights: Highlight[];
   find: string;
   activeColor: string | null;
@@ -86,11 +89,23 @@ export function HighlightableText({
 
   return (
     <div className="space-y-4 text-[15px] leading-[1.75] text-foreground/90">
-      {paragraphs.map((p, i) => (
-        <p key={i} onMouseUp={() => handleMouseUp(i)} className={activeColor ? "cursor-text" : undefined}>
-          {renderParagraph(p, i, highlights, find)}
-        </p>
-      ))}
+      {paragraphs.map((p, i) => {
+        const para = (
+          <p key={i} onMouseUp={() => handleMouseUp(i)} className={activeColor ? "cursor-text" : undefined}>
+            {renderParagraph(p, i, highlights, find)}
+          </p>
+        );
+        const label = labels?.[i];
+        if (!label) return para;
+        return (
+          <div key={i} className="flex gap-3">
+            <span className="mt-0.5 grid size-6 shrink-0 select-none place-items-center rounded-md bg-primary/10 text-xs font-extrabold text-primary">
+              {label}
+            </span>
+            <div className="min-w-0 flex-1">{para}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
