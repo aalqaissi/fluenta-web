@@ -61,8 +61,10 @@ public class StubWritingGrader implements WritingGrader {
             }
         }
 
+        WritingRubric.Variant variant = WritingRubric.of(req.taskNumber(), req.module(), req.kind());
+        String essayType = variant == WritingRubric.Variant.TASK2 ? EssayTypeClassifier.classify(req.prompt()) : null;
         List<AiDtos.WritingCriterion> criteria = List.of(
-                new AiDtos.WritingCriterion("task", "Task Achievement", task,
+                new AiDtos.WritingCriterion("task", WritingRubric.taskLabel(variant), task,
                         "Offline estimate from length and structure — connect to the internet for a full AI assessment."),
                 new AiDtos.WritingCriterion("coherence", "Coherence & Cohesion", coherence,
                         "Offline estimate based on paragraphing and linking words."),
@@ -71,7 +73,13 @@ public class StubWritingGrader implements WritingGrader {
                 new AiDtos.WritingCriterion("grammar", "Grammatical Range & Accuracy", grammar,
                         "Offline estimate — a live model gives specific grammar feedback."));
 
-        return new AiDtos.WritingResult(null, "offline", overall, words, essay, criteria, anns);
+        return new AiDtos.WritingResult(null, "offline", overall, words, essay, criteria, anns,
+                variant.key(), essayType, coaching(variant, req, essayType));
+    }
+
+    /** The offline Yalla coaching layer (also the gate's fallback for live results). */
+    public static List<AiDtos.CoachingNote> coaching(WritingRubric.Variant v, AiDtos.WritingFeedbackRequest req, String essayType) {
+        return YallaCoachingHeuristics.notes(v, req, essayType);
     }
 
     public static int countWords(String s) {

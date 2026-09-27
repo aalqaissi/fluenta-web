@@ -43,4 +43,31 @@ class StubWritingGraderTest {
         var longR = grader.grade(req("word ".repeat(260), 250));
         assertThat(a.overall()).isLessThanOrEqualTo(longR.overall());
     }
+
+    @Test
+    void task2CoachingFlagsShoppingListAndOpinionStructure() {
+        String essay = String.join("\n\n",
+                "Some people think cars should be banned. I agree.",
+                "Firstly cars pollute. Secondly they are noisy. Also they are dangerous. Moreover they are expensive.",
+                "Public transport is better because it moves more people. For example, buses in London carry millions. Therefore cities benefit.",
+                "In conclusion, cars should be limited.");
+        var r = grader.grade(new AiDtos.WritingFeedbackRequest("w", 2, "Essay", "academic",
+                "Cars should be banned from city centres. Do you agree or disagree?", 250, essay));
+        assertThat(r.taskType()).isEqualTo("task2");
+        assertThat(r.essayType()).isEqualTo("opinion");
+        assertThat(r.criteria().get(0).label()).isEqualTo("Task Response");
+        assertThat(r.coaching()).extracting(AiDtos.CoachingNote::key).contains("essay-structure", "peel", "shopping-list");
+        assertThat(r.coaching()).filteredOn(n -> n.key().equals("essay-structure"))
+                .singleElement().satisfies(n -> assertThat(n.note()).contains("ONE clear position"));
+    }
+
+    @Test
+    void generalTask1CoachingCoversBulletsAndRegister() {
+        var r = grader.grade(new AiDtos.WritingFeedbackRequest("w", 1, "Formal letter", "general",
+                "Write to your manager...", 150, "Dear Sir, I am writing to complain."));
+        assertThat(r.taskType()).isEqualTo("general-t1");
+        assertThat(r.essayType()).isNull();
+        assertThat(r.criteria().get(0).label()).isEqualTo("Task Achievement");
+        assertThat(r.coaching()).extracting(AiDtos.CoachingNote::key).contains("bullets", "register");
+    }
 }

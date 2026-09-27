@@ -14,9 +14,25 @@ public final class AiDtos {
 
     public record WritingAnnotation(String id, String criterion, String quote, String note) {}
 
+    /**
+     * A Yalla English Hub teaching-strategy note (PEEL, overview, shopping-list trap…). Kept SEPARATE
+     * from the IELTS criteria — it never changes a band. {@code status}: good | improve | tip.
+     */
+    public record CoachingNote(String key, String title, String status, String note) {}
+
+    /**
+     * An ESTIMATED IELTS writing result. {@code taskType}: academic-t1 | general-t1 | task2;
+     * {@code essayType}: Task 2 only (see EssayTypeClassifier); {@code coaching}: the Yalla layer.
+     */
     public record WritingResult(
             String id, String source, double overall, int wordCount, String answer,
-            List<WritingCriterion> criteria, List<WritingAnnotation> annotations) {}
+            List<WritingCriterion> criteria, List<WritingAnnotation> annotations,
+            String taskType, String essayType, List<CoachingNote> coaching) {
+        public WritingResult(String id, String source, double overall, int wordCount, String answer,
+                             List<WritingCriterion> criteria, List<WritingAnnotation> annotations) {
+            this(id, source, overall, wordCount, answer, criteria, annotations, null, null, null);
+        }
+    }
 
     public record CoachTurn(String role, String text) {}          // role: "user" | "coach"
     public record CoachRequest(List<CoachTurn> messages) {}

@@ -6,8 +6,10 @@ import com.fluenta.api.domain.WritingFeedbackEntity;
 import com.fluenta.api.dto.AiDtos;
 import com.fluenta.api.repo.WritingFeedbackRepository;
 import com.fluenta.api.service.grader.ClaudeWritingGrader;
+import com.fluenta.api.service.grader.EssayTypeClassifier;
 import com.fluenta.api.service.grader.StubWritingGrader;
 import com.fluenta.api.service.grader.WritingGrader;
+import com.fluenta.api.service.grader.WritingRubric;
 import com.fluenta.api.web.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -27,7 +29,7 @@ public class WritingFeedbackService {
 
     private static final Logger log = LoggerFactory.getLogger(WritingFeedbackService.class);
 
-    /** Canonical criterion order + labels (must match the web/mobile UI). */
+    /** Canonical criterion order + labels (must match the web/mobile UI); "task" is labelled per variant. */
     private static final String[][] CRITERIA = {
             {"task", "Task Achievement"},
             {"coherence", "Coherence & Cohesion"},
@@ -56,14 +58,14 @@ public class WritingFeedbackService {
             throw ApiException.badRequest("Essay is too long (max " + props.maxEssayChars() + " characters)");
         }
         WritingGrader grader = props.live() ? claude : stub;
-        AiDtos.WritingResult result = validate(grader.grade(req), essay);
+        AiDtos.WritingResult result = validate(grader.grade(req), req);
         return props.persist() ? persist(userId, req, result) : result;
     }
 
     private AiDtos.WritingResult persist(String userId, AiDtos.WritingFeedbackRequest req, AiDtos.WritingResult r) {
         String id = UUID.randomUUID().toString();
         AiDtos.WritingResult withId = new AiDtos.WritingResult(id, r.source(), r.overall(),
-                r.wordCount(), r.answer(), r.criteria(), r.annotations());
+                r.wordCount(), r.answer(), r.criteria(), r.annotations(), r.taskType(), r.essayType(), r.coaching());
         try {
             WritingFeedbackEntity e = new WritingFeedbackEntity();
             e.setId(id);
@@ -96,7 +98,9 @@ public class WritingFeedbackService {
     }
 
     /** Validation gate. Public for unit visibility; called on every result before it leaves the server. */
-    AiDtos.WritingResult validate(AiDtos.WritingResult raw, String essay) {
+    AiDtos.WritingResult validate(AiDtos.WritingResult raw, AiDtos.WritingFeedbackRequest req) {
+        String essay = req.essay();
+        WritingRubric.Variant variant = WritingRubric.of(req.taskNumber(), req.module(), req.kind());
         Map<String, AiDtos.WritingCriterion> byKey = new LinkedHashMap<>();
         if (raw.criteria() != null) {
             for (AiDtos.WritingCriterion c : raw.criteria()) byKey.put(c.key(), c);
@@ -106,7 +110,8 @@ public class WritingFeedbackService {
             AiDtos.WritingCriterion c = byKey.get(spec[0]);
             double band = c == null ? clampHalf(raw.overall()) : clampHalf(c.band());
             String summary = c == null ? "Not enough information to assess this criterion." : c.summary();
-            criteria.add(new AiDtos.WritingCriterion(spec[0], spec[1], band, summary));
+            String label = "task".equals(spec[0]) ? WritingRubric.taskLabel(variant) : spec[1];
+            criteria.add(new AiDtos.WritingCriterion(spec[0], label, band, summary));
         }
 
         List<AiDtos.WritingAnnotation> anns = new ArrayList<>();
@@ -119,8 +124,38 @@ public class WritingFeedbackService {
             }
         }
 
-        return new AiDtos.WritingResult(raw.id(), raw.source(), clampHalf(raw.overall()),
-                StubWritingGrader.countWords(essay), essay, criteria, anns);
+        // Estimated overall = the four equally weighted criteria, rounded to the nearest half band —
+        // derived from the criteria, never a free-floating model number.
+        double overall = clampHalf(criteria.stream().mapToDouble(AiDtos.WritingCriterion::band).average().orElse(0));
+
+        String essayType = null;
+        if (variant == WritingRubric.Variant.TASK2) {
+            essayType = EssayTypeClassifier.isKnown(raw.essayType()) ? raw.essayType()
+                    : EssayTypeClassifier.classify(req.prompt());
+        }
+
+        return new AiDtos.WritingResult(raw.id(), raw.source(), overall,
+                StubWritingGrader.countWords(essay), essay, criteria, anns,
+                variant.key(), essayType, coaching(raw.coaching(), variant, req, essayType));
+    }
+
+    private static final java.util.Set<String> STATUSES = java.util.Set.of("good", "improve", "tip");
+
+    /** Keep only well-formed notes for this variant (≤6); fall back to the offline heuristics when none survive. */
+    private static List<AiDtos.CoachingNote> coaching(List<AiDtos.CoachingNote> raw, WritingRubric.Variant variant,
+                                                      AiDtos.WritingFeedbackRequest req, String essayType) {
+        Map<String, String> titles = WritingRubric.coaching(variant);
+        List<AiDtos.CoachingNote> out = new ArrayList<>();
+        if (raw != null) {
+            for (AiDtos.CoachingNote n : raw) {
+                if (n == null || !titles.containsKey(n.key()) || !STATUSES.contains(n.status())) continue;
+                if (n.note() == null || n.note().isBlank()) continue;
+                if (out.stream().anyMatch(o -> o.key().equals(n.key()))) continue;
+                out.add(new AiDtos.CoachingNote(n.key(), titles.get(n.key()), n.status(), n.note().trim()));
+                if (out.size() == 6) break;
+            }
+        }
+        return out.isEmpty() ? StubWritingGrader.coaching(variant, req, essayType) : out;
     }
 
     private static boolean byKeyMissing(String criterion) {
