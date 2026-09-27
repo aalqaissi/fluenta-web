@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { FullMockCheck, READING_FULL, WritePassageWithAi, generationModule, passageBrief } from "../ContentRules";
 import { Plus, Trash2, Type, Image as ImageIcon, Sparkles, ClipboardPaste } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -205,7 +206,8 @@ function questionRuns(p: StudioPassage): { type: QuestionType; items: { q: Studi
   return runs;
 }
 
-const READING_TYPES = Object.keys(QUESTION_TYPE_LABEL) as QuestionType[];
+// form completion is a Listening task type; everything else is valid for Reading
+const READING_TYPES = (Object.keys(QUESTION_TYPE_LABEL) as QuestionType[]).filter((t) => t !== "form-completion");
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -240,6 +242,13 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
 
   return (
     <div className="space-y-5">
+      <FullMockCheck counts={passages.map((p) => p.questions.length)} target={READING_FULL} unit="Passage" />
+      {exam.module === "both" && (
+        <p className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+          Academic and General Training reading are written and stored separately — set the exam's module to Academic or General
+          Training. AI writing uses the Academic rules until you do.
+        </p>
+      )}
       {passages.map((p, idx) => {
         const patchQ = (qid: string, np: Partial<StudioQuestion>) =>
           setP(idx, { questions: p.questions.map((q) => (q.id === qid ? { ...q, ...np } : q)) });
@@ -305,6 +314,14 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                   label="Passage text"
                   hint="Put a paragraph letter (A, B, C…) on its own line above each paragraph to label it — students see the letters, and Matching Information uses them as the answers."
                 >
+                  <div className="mb-2 space-y-2 rounded-lg bg-muted/40 p-2.5">
+                    <p className="text-xs text-muted-foreground">{passageBrief(exam.module, idx + 1)}</p>
+                    <WritePassageWithAi
+                      module={exam.module}
+                      section={idx + 1}
+                      onDone={(r) => setP(idx, { text: r.text, title: p.title || r.title })}
+                    />
+                  </div>
                   <Textarea value={p.text} onChange={(e) => setP(idx, { text: e.target.value })} rows={12} placeholder="Paste or type the full reading passage here…" />
                 </Field>
               ) : p.inputMode === "upload" ? (
@@ -375,6 +392,9 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                           questionType: p.questionType,
                           count: toGenerate,
                           options: aiListFor(p.questionType, p),
+                          module: generationModule(exam.module),
+                          section: idx + 1,
+                          skill: "reading",
                         });
                         setP(idx, {
                           questions: [...p.questions, ...res.questions.map(withId)],

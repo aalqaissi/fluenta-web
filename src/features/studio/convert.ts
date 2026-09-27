@@ -13,6 +13,7 @@ import type {
   WritingVisual,
 } from "@/mock/types";
 import { QUESTION_TYPE_LABEL, writingTasks } from "@/mock/data";
+import { TEXT_ANSWER_TYPES } from "@/lib/answerMatch";
 import { studioStore, type StudioExam, type ChartType, type Formality } from "./store";
 import { parsePassageText, studentOptionsFor, paragraphOptions, matchingInstructions, PARAGRAPH_OPTION_TYPES } from "./passageText";
 
@@ -23,7 +24,7 @@ import { parsePassageText, studentOptionsFor, paragraphOptions, matchingInstruct
  * text inputs so the authored content is still fully playable & scorable.
  */
 const LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
-const TEXT_TYPES = new Set(["sentence-completion", "summary-completion", "short-answer", "diagram-label"]);
+const TEXT_TYPES = TEXT_ANSWER_TYPES;
 
 export function readingInstructions(type: QuestionType): string {
   switch (type) {
@@ -39,6 +40,14 @@ export function readingInstructions(type: QuestionType): string {
     case "summary-completion":
     case "diagram-label":
       return "Complete each sentence. Write no more than the stated number of words.";
+    case "note-completion":
+      return "Complete the notes. Write no more than the stated number of words and/or a number for each answer.";
+    case "table-completion":
+      return "Complete the table. Write no more than the stated number of words and/or a number for each answer.";
+    case "flow-chart-completion":
+      return "Complete the flow-chart. Write no more than the stated number of words for each answer.";
+    case "form-completion":
+      return "Complete the form. Write no more than the stated number of words and/or a number for each answer.";
     case "short-answer":
       return "Answer the questions. Write no more than the stated number of words.";
     case "matching-information":

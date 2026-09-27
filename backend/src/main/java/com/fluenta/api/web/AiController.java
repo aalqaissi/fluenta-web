@@ -58,6 +58,12 @@ public class AiController {
         return studio.generate(req);
     }
 
+    @PostMapping("/studio-passage")
+    public AiDtos.StudioPassageReply studioPassage(@RequestBody AiDtos.StudioPassageRequest req) {
+        CurrentUser.requireAdmin();
+        return studio.passage(req);
+    }
+
     @PostMapping("/studio-fill")
     public AiDtos.StudioQuestionsReply studioFill(@RequestBody AiDtos.StudioFillRequest req) {
         CurrentUser.requireAdmin();

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FullMockCheck, LISTENING_FULL, LISTENING_PART_CONTEXT } from "../ContentRules";
 import { Plus, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,10 @@ const LISTENING_TYPES: QuestionType[] = [
   "matching-information",
   "diagram-label",
   "short-answer",
+  "form-completion",
+  "note-completion",
+  "table-completion",
+  "flow-chart-completion",
 ];
 
 const withId = (q: AiStudioQuestion): StudioQuestion => ({
@@ -45,6 +50,7 @@ export function ListeningEditor({ exam, patch }: { exam: StudioExam; patch: (p: 
 
   return (
     <div className="space-y-5">
+      <FullMockCheck counts={sections.map((s) => s.questions.length)} target={LISTENING_FULL} unit="Part" />
       {sections.map((s, idx) => {
         const patchQ = (qid: string, np: Partial<StudioQuestion>) =>
           setS(idx, { questions: s.questions.map((q) => (q.id === qid ? { ...q, ...np } : q)) });
@@ -54,7 +60,12 @@ export function ListeningEditor({ exam, patch }: { exam: StudioExam; patch: (p: 
         return (
           <Card key={s.id} className="p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-bold">Section {idx + 1}</h3>
+              <div>
+                <h3 className="font-bold">Section {idx + 1}</h3>
+                {LISTENING_PART_CONTEXT[idx + 1] && (
+                  <p className="text-xs text-muted-foreground">Expected: {LISTENING_PART_CONTEXT[idx + 1]}</p>
+                )}
+              </div>
               {sections.length > 1 && (
                 <Button variant="ghost" size="icon-sm" onClick={() => patch({ sections: sections.filter((_, i) => i !== idx) })}>
                   <Trash2 className="size-4 text-muted-foreground" />
@@ -108,6 +119,8 @@ export function ListeningEditor({ exam, patch }: { exam: StudioExam; patch: (p: 
                             passageText: s.transcript,
                             questionType: s.questionType,
                             count: toGenerate,
+                            skill: "listening",
+                            section: idx + 1,
                           });
                           setS(idx, { questions: [...s.questions, ...res.questions.map(withId)] });
                         } catch {

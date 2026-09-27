@@ -55,6 +55,10 @@ export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
   "summary-completion": "Summary Completion",
   "diagram-label": "Diagram Label Completion",
   "short-answer": "Short Answer",
+  "note-completion": "Note Completion",
+  "table-completion": "Table Completion",
+  "flow-chart-completion": "Flow-chart Completion",
+  "form-completion": "Form Completion",
 };
 
 export interface MockExamCard {

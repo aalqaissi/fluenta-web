@@ -5,7 +5,7 @@ import { optionListTitle } from "@/features/studio/passageText";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { isQuestionCorrect } from "@/lib/answerMatch";
+import { isQuestionCorrect, TEXT_ANSWER_TYPES } from "@/lib/answerMatch";
 
 interface Props {
   group: QuestionGroup;
@@ -32,7 +32,7 @@ const SELECT_TYPES = new Set([
   "matching-information",
   "matching-sentence-endings",
 ]);
-const TEXT_TYPES = new Set(["sentence-completion", "summary-completion", "short-answer", "diagram-label"]);
+const TEXT_TYPES = TEXT_ANSWER_TYPES;
 
 export function QuestionRenderer({ group, answers, setAnswer, review }: Props) {
   return (

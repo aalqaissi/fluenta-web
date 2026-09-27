@@ -51,7 +51,11 @@ export type QuestionType =
   | "sentence-completion"
   | "summary-completion"
   | "diagram-label"
-  | "short-answer";
+  | "short-answer"
+  | "note-completion"
+  | "table-completion"
+  | "flow-chart-completion"
+  | "form-completion";
 
 export interface QuestionOption {
   key: string; // "A", "True", ...

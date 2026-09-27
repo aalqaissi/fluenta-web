@@ -62,11 +62,22 @@ public final class AiDtos {
      * entries are written by the AI, filled ones are kept verbatim. {@code count} may be 0 to only
      * complete the list.
      */
-    public record StudioGenerateRequest(String passageText, String questionType, Integer count, List<String> options) {
+    /**
+     * ... plus the generation context: {@code module} academic|general (reading only — the two are generated
+     * separately), {@code section} the passage/part number, {@code skill} reading|listening.
+     */
+    public record StudioGenerateRequest(String passageText, String questionType, Integer count, List<String> options,
+                                        String module, Integer section, String skill) {
+        public StudioGenerateRequest(String passageText, String questionType, Integer count, List<String> options) {
+            this(passageText, questionType, count, options, null, null, null);
+        }
         public StudioGenerateRequest(String passageText, String questionType, Integer count) {
             this(passageText, questionType, count, null);
         }
     }
+    /** Write a reading passage that follows the module/section rules (optional {@code topic}). */
+    public record StudioPassageRequest(String module, Integer section, String topic) {}
+    public record StudioPassageReply(String title, String text) {}
     public record StudioImage(String base64, String mediaType) {}
     public record StudioFillRequest(String passageText, List<StudioQuestionDto> questions) {}
     public record StudioExtractRequest(List<StudioImage> images, String hint) {}
