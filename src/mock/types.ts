@@ -62,8 +62,10 @@ export interface Question {
   id: string;
   number: number;
   prompt: string; // the statement / stem / sentence-start
-  correct: string; // used only by mock scorer
-  wordLimit?: string; // completion / short-answer hint
+  correct: string; // primary answer-key entry (marked via lib/answerMatch)
+  /** extra accepted answers (spelling variants, digits vs words); "(optional)" words allowed */
+  accepted?: string[];
+  wordLimit?: string; // completion / short-answer limit — enforced when marking
   /** per-question type — overrides the group type when the group mixes types */
   type?: QuestionType;
   /** per-question choices for multiple-choice / multi-select */

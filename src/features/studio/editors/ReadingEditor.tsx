@@ -223,6 +223,7 @@ const withId = (q: AiStudioQuestion): StudioQuestion => ({
   type: q.type as QuestionType | undefined,
   options: q.options,
   wordLimit: q.wordLimit,
+  accepted: q.accepted,
 });
 
 export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Partial<StudioExam>) => void }) {
@@ -396,7 +397,7 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                       try {
                         const res = await api.ai.studioFill({
                           passageText: p.text,
-                          questions: p.questions.map((q) => ({ prompt: q.prompt, type: q.type ?? p.questionType, options: aiListFor(q.type ?? p.questionType, p) ?? q.options, answer: q.answer, wordLimit: q.wordLimit })),
+                          questions: p.questions.map((q) => ({ prompt: q.prompt, type: q.type ?? p.questionType, options: aiListFor(q.type ?? p.questionType, p) ?? q.options, answer: q.answer, wordLimit: q.wordLimit, accepted: q.accepted })),
                         });
                         const filled = res.questions;
                         setP(idx, {

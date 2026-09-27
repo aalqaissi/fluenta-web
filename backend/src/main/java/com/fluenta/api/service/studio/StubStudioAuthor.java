@@ -67,7 +67,7 @@ public class StubStudioAuthor {
         for (StudioQuestionDto q : questions) {
             String type = q.type() != null ? q.type() : fallbackType;
             String answer = (q.answer() != null && !q.answer().isBlank()) ? q.answer() : defaultAnswerFor(type);
-            out.add(new StudioQuestionDto(q.prompt(), q.type(), q.options(), answer, q.wordLimit()));
+            out.add(new StudioQuestionDto(q.prompt(), q.type(), q.options(), answer, q.wordLimit(), q.accepted()));
         }
         return out;
     }

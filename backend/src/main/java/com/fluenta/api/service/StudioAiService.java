@@ -25,10 +25,12 @@ public class StudioAiService {
 
     private static final String GEN_SYSTEM = """
         You are an IELTS item writer. Write questions grounded ONLY in the given passage. Return ONLY a JSON
-        object {"questions":[{"prompt":string,"type":string,"options":[string]?,"answer":string,"wordLimit":number?}]}.
+        object {"questions":[{"prompt":string,"type":string,"options":[string]?,"answer":string,"wordLimit":number?,"accepted":[string]?}]}.
         Use the requested question type. For multiple-choice give 4 options and answer a letter A-D; for multi-select
         give 5 options (A-E); for true-false-notgiven answer TRUE/FALSE/NOT GIVEN; for yes-no-notgiven answer
-        YES/NO/NOT GIVEN; for completion/short-answer answer the exact words from the passage. No prose, no fences.""";
+        YES/NO/NOT GIVEN; for completion/short-answer answer the exact words from the passage within the word limit, and list in
+        "accepted" any other answers that must also be marked correct (British/American spellings, digits vs words,
+        e.g. "4"/"four"); mark words a candidate may omit with parentheses, e.g. "(the) library". No prose, no fences.""";
     /** Matching types answered from a lettered list stored on the passage. */
     private static final Set<String> LIST_TYPES = Set.of(
             "matching-headings", "matching-features", "matching-sentence-endings", "matching-information");
@@ -141,7 +143,7 @@ public class StudioAiService {
             List<String> list = i < qs.size() ? qs.get(i).options() : null;
             if (LIST_TYPES.contains(q.type()) && list != null && !list.isEmpty()) {
                 q = new StudioQuestionDto(q.prompt(), q.type(), null,
-                        letterInRange(q.answer(), Math.min(list.size(), MAX_OPTIONS)), q.wordLimit());
+                        letterInRange(q.answer(), Math.min(list.size(), MAX_OPTIONS)), q.wordLimit(), null);
             }
             gated.add(q);
         }
@@ -180,8 +182,11 @@ public class StudioAiService {
             List<String> options = new ArrayList<>();
             for (JsonNode o : q.path("options")) options.add(o.asText(""));
             Integer wl = q.hasNonNull("wordLimit") ? q.get("wordLimit").asInt() : null;
+            List<String> accepted = new ArrayList<>();
+            for (JsonNode a : q.path("accepted")) accepted.add(a.asText(""));
             out.add(new StudioQuestionDto(q.path("prompt").asText(""), q.path("type").asText(null),
-                    options.isEmpty() ? null : options, q.path("answer").asText(""), wl));
+                    options.isEmpty() ? null : options, q.path("answer").asText(""), wl,
+                    accepted.isEmpty() ? null : accepted));
         }
         return out;
     }
@@ -203,9 +208,25 @@ public class StudioAiService {
             }
             Integer wl = q.wordLimit();
             if (TEXT_TYPES.contains(type) && wl == null) wl = 2;
-            out.add(new StudioQuestionDto(q.prompt(), type, options, answer, wl));
+            // The key must itself satisfy the limit, or the correct answer would be marked wrong.
+            if (TEXT_TYPES.contains(type)) wl = Math.max(wl, AnswerMatcher.normalize(answer).split(" ").length);
+            List<String> accepted = TEXT_TYPES.contains(type) ? acceptedVariants(q.accepted(), answer) : null;
+            out.add(new StudioQuestionDto(q.prompt(), type, options, answer, wl, accepted));
         }
         return out;
+    }
+
+    /** Up to 5 distinct, non-blank variants that differ from the primary answer; null when none. */
+    private static List<String> acceptedVariants(List<String> raw, String answer) {
+        if (raw == null) return null;
+        List<String> out = new ArrayList<>();
+        for (String a : raw) {
+            if (a == null || a.isBlank()) continue;
+            String t = a.trim();
+            if (t.equalsIgnoreCase(answer) || out.stream().anyMatch(t::equalsIgnoreCase)) continue;
+            if (out.size() < 5) out.add(t);
+        }
+        return out.isEmpty() ? null : out;
     }
 
     private String normalizeAnswer(String type, String answer, List<String> options) {

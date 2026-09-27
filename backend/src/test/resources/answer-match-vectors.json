@@ -1,0 +1,34 @@
+[
+  {"note": "exact", "answer": "library", "given": "library", "expect": true},
+  {"note": "case + spaces", "answer": "Library", "given": "  LIBRARY ", "expect": true},
+  {"note": "trailing punctuation", "answer": "library", "given": "library.", "expect": true},
+  {"note": "internal whitespace collapsed", "answer": "car park", "given": "car    park", "expect": true},
+  {"note": "curly quote", "answer": "children's books", "given": "children’s books", "expect": true},
+  {"note": "empty is wrong", "answer": "library", "given": "   ", "expect": false},
+  {"note": "wrong word", "answer": "library", "given": "museum", "expect": false},
+
+  {"note": "within numeric limit", "answer": "car park", "wordLimit": 2, "type": "sentence-completion", "given": "car park", "expect": true},
+  {"note": "over numeric limit even though it contains the answer", "answer": "park", "wordLimit": 1, "type": "sentence-completion", "given": "car park", "expect": false},
+  {"note": "Max N words label", "answer": "gaps", "wordLimit": "Max 1 word", "type": "summary-completion", "given": "the gaps", "expect": false},
+  {"note": "ONE WORD ONLY", "answer": "chairs", "wordLimit": "ONE WORD ONLY", "type": "short-answer", "given": "chairs", "expect": true},
+  {"note": "NO MORE THAN TWO WORDS over", "answer": "wooden chairs", "wordLimit": "NO MORE THAN TWO WORDS", "type": "short-answer", "given": "old wooden chairs", "expect": false},
+  {"note": "ONE WORD/NUMBER with number", "answer": "4", "accepted": ["four"], "wordLimit": "ONE WORD/NUMBER", "type": "sentence-completion", "given": "4", "expect": true},
+  {"note": "ONE WORD/NUMBER two tokens", "answer": "4", "wordLimit": "ONE WORD/NUMBER", "type": "sentence-completion", "given": "4 hours", "expect": false},
+  {"note": "AND/OR A NUMBER allows two words plus a number", "answer": "15 blue boxes", "wordLimit": "NO MORE THAN TWO WORDS AND/OR A NUMBER", "type": "note-completion", "given": "15 blue boxes", "expect": true},
+  {"note": "AND/OR A NUMBER rejects three words", "answer": "big blue boxes", "wordLimit": "NO MORE THAN TWO WORDS AND/OR A NUMBER", "type": "note-completion", "given": "big blue boxes", "expect": false},
+  {"note": "A NUMBER only rejects words", "answer": "12", "wordLimit": "A NUMBER", "type": "form-completion", "given": "twelve", "expect": false},
+  {"note": "A NUMBER only accepts digits", "answer": "12", "wordLimit": "A NUMBER", "type": "form-completion", "given": "12", "expect": true},
+  {"note": "currency number counts as one number", "answer": "£250", "wordLimit": "ONE WORD AND/OR A NUMBER", "type": "table-completion", "given": "£250", "expect": true},
+  {"note": "hyphenated word counts as one", "answer": "well-known", "wordLimit": 1, "type": "sentence-completion", "given": "well-known", "expect": true},
+  {"note": "unknown type still gated", "answer": "park", "wordLimit": 1, "given": "car park", "expect": false},
+  {"note": "unparseable label is not gated", "answer": "car park", "wordLimit": "see instructions", "type": "short-answer", "given": "car park", "expect": true},
+
+  {"note": "choice type never gated", "answer": "NOT GIVEN", "wordLimit": 1, "type": "true-false-notgiven", "given": "not given", "expect": true},
+  {"note": "multiple-choice letter", "answer": "B", "wordLimit": 2, "type": "multiple-choice", "given": "b", "expect": true},
+
+  {"note": "accepted spelling variant", "answer": "colour", "accepted": ["color"], "type": "short-answer", "wordLimit": 1, "given": "color", "expect": true},
+  {"note": "variant not listed", "answer": "colour", "accepted": ["color"], "type": "short-answer", "wordLimit": 1, "given": "colours", "expect": false},
+  {"note": "optional word omitted", "answer": "(the) library", "wordLimit": 2, "type": "sentence-completion", "given": "library", "expect": true},
+  {"note": "optional word included", "answer": "(the) library", "wordLimit": 2, "type": "sentence-completion", "given": "the library", "expect": true},
+  {"note": "optional words in accepted", "answer": "centre", "accepted": ["(city) center"], "wordLimit": 2, "type": "short-answer", "given": "city center", "expect": true}
+]

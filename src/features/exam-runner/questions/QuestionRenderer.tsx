@@ -5,6 +5,7 @@ import { optionListTitle } from "@/features/studio/passageText";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { isQuestionCorrect } from "@/lib/answerMatch";
 
 interface Props {
   group: QuestionGroup;
@@ -54,7 +55,7 @@ export function QuestionRenderer({ group, answers, setAnswer, review }: Props) {
       <ol className="space-y-3">
         {group.questions.map((q) => {
           const val = answers[q.id] ?? "";
-          const correct = review ? val.trim().toLowerCase() === q.correct.trim().toLowerCase() : undefined;
+          const correct = review ? isQuestionCorrect(val, q, group.type) : undefined;
           const qType = q.type ?? group.type;
           const pillOptions = qType === "yes-no-notgiven" ? YNNG : TFNG;
           const listOptions = q.options ?? mcOptions[q.id] ?? [];

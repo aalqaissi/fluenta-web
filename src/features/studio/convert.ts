@@ -70,7 +70,7 @@ export function studioReadingToExam(e: StudioExam): ReadingExam {
         ? (q.options ?? []).map((t, i) => ({ key: LETTERS[i], text: t || `Option ${LETTERS[i]}` }))
         : undefined;
       const wordLimit = TEXT_TYPES.has(qType) && q.wordLimit ? `Max ${q.wordLimit} word${q.wordLimit === 1 ? "" : "s"}` : undefined;
-      const question: Question = { id: q.id, number: counter++, prompt: q.prompt, correct: q.answer, type: qType, options, wordLimit };
+      const question: Question = { id: q.id, number: counter++, prompt: q.prompt, correct: q.answer, accepted: TEXT_TYPES.has(qType) ? q.accepted : undefined, type: qType, options, wordLimit };
 
       const last = groups.at(-1);
       if (last && last.type === qType) last.questions.push(question);
@@ -141,7 +141,7 @@ export function studioListeningToExam(e: StudioExam): ListeningExam {
         ? (q.options ?? []).map((t, i) => ({ key: LETTERS[i], text: t || `Option ${LETTERS[i]}` }))
         : undefined;
       const wordLimit = TEXT_TYPES.has(qType) && q.wordLimit ? `Max ${q.wordLimit} word${q.wordLimit === 1 ? "" : "s"}` : undefined;
-      return { id: q.id, number: counter++, prompt: q.prompt, correct: q.answer, type: qType, options, wordLimit };
+      return { id: q.id, number: counter++, prompt: q.prompt, correct: q.answer, accepted: TEXT_TYPES.has(qType) ? q.accepted : undefined, type: qType, options, wordLimit };
     });
 
     const group: QuestionGroup = {

@@ -69,15 +69,16 @@ export function WritingEditorPage() {
       });
       setWritingResult(res);
       try { localStorage.removeItem(storeKey); } catch { /* ignore */ }
-      afterGrading();
+      afterGrading(res.overall);
     } catch {
       setGradeState("error");
     }
   }
 
-  function afterGrading() {
+  /** Record the real graded band (not a sample) in a full exam; cancel/error leaves it unrecorded. */
+  function afterGrading(overall?: number) {
     if (full) {
-      fullExamStore.record("writing", sampleWritingResult.overall);
+      if (overall !== undefined) fullExamStore.record("writing", overall);
       navigate("/simulation/full-exam");
     } else {
       navigate(`/results/writing/${task.id}`);
@@ -146,7 +147,7 @@ export function WritingEditorPage() {
       <GradingModal
         key={attempt}
         open={gradeState !== "idle"}
-        onDone={afterGrading}
+        onDone={() => afterGrading()}
         mode="async"
         state={gradeState === "error" ? "error" : "loading"}
         errorText="We couldn't grade your essay right now."

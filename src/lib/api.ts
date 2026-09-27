@@ -312,6 +312,7 @@ export interface AiStudioQuestion {
   options?: string[];
   answer: string;
   wordLimit?: number;
+  accepted?: string[];
 }
 /** `options`: matching types' lettered list as it stands (blank entries are written by the AI); `count` 0 only completes it. */
 export interface AiStudioGenerateRequest { passageText: string; questionType: string; count: number; options?: string[]; }

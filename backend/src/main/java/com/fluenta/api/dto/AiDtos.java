@@ -34,7 +34,13 @@ public final class AiDtos {
     public record LiveInterviewTurnReply(String transcript, String reply, Integer part, boolean done) {}
     public record LiveInterviewGradeRequest(String examId, List<SpeakingPartResult> parts) {}
 
-    public record StudioQuestionDto(String prompt, String type, List<String> options, String answer, Integer wordLimit) {}
+    /** {@code accepted}: extra answer-key variants for text answers (spellings, "(optional)" words). */
+    public record StudioQuestionDto(String prompt, String type, List<String> options, String answer, Integer wordLimit,
+                                    List<String> accepted) {
+        public StudioQuestionDto(String prompt, String type, List<String> options, String answer, Integer wordLimit) {
+            this(prompt, type, options, answer, wordLimit, null);
+        }
+    }
     /**
      * {@code options}: for matching types, the passage's lettered list (A, B, C…) as it stands — blank
      * entries are written by the AI, filled ones are kept verbatim. {@code count} may be 0 to only
