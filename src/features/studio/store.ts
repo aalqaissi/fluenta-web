@@ -13,8 +13,10 @@ export interface StudioQuestion {
   type?: QuestionType;
   /** option texts for Multiple Choice (A–D) / Multi-Select (A–E) */
   options?: string[];
-  /** word limit for completion / short-answer types */
+  /** word limit for completion / short-answer types — an over-limit answer is marked wrong */
   wordLimit?: number;
+  /** extra accepted answers for text types (spelling variants, "(optional)" words) */
+  accepted?: string[];
 }
 export interface StudioPassage {
   id: string;

@@ -37,6 +37,26 @@ class StudioAiServiceTest {
     }
 
     @Test
+    void generateKeepsAcceptedVariantsForTextAnswersOnly() {
+        when(ai.complete(anyString(), anyString())).thenReturn("""
+            {"questions":[
+              {"prompt":"The ___ of the flag","type":"sentence-completion","answer":"colour","accepted":["color"," ","colour"],"wordLimit":1},
+              {"prompt":"Is it true?","type":"true-false-notgiven","answer":"TRUE","accepted":["T"]}
+            ]}""");
+        var r = studio.generate(new StudioGenerateRequest("Some passage", "sentence-completion", 2));
+        assertThat(r.questions().get(0).accepted()).containsExactly("color");   // blank + duplicate-of-answer dropped
+        assertThat(r.questions().get(1).accepted()).isNull();                   // choice types carry no variants
+    }
+
+    @Test
+    void wordLimitIsRaisedWhenTheKeyItselfIsLonger() {
+        when(ai.complete(anyString(), anyString())).thenReturn("""
+            {"questions":[{"prompt":"Where?","type":"short-answer","answer":"the old town hall","wordLimit":2}]}""");
+        var r = studio.generate(new StudioGenerateRequest("Some passage", "short-answer", 1));
+        assertThat(r.questions().get(0).wordLimit()).isEqualTo(4);
+    }
+
+    @Test
     void fillReturnsAnswersForEachQuestion() {
         when(ai.complete(anyString(), anyString())).thenReturn(
             "{\"questions\":[{\"prompt\":\"Q1\",\"type\":\"true-false-notgiven\",\"answer\":\"false\"}]}");

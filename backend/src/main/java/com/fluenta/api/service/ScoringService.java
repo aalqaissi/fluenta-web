@@ -3,12 +3,14 @@ package com.fluenta.api.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * Deterministic reading/listening scoring — the server-side port of the frontend
- * {@code src/lib/mockApi.ts} scorer. Not AI: it compares answers against the exam's answer key and
+ * {@code src/lib/mockApi.ts} scorer. Not AI: it compares answers against the exam's answer key (via {@link AnswerMatcher}) and
  * maps the raw score to an IELTS-style band.
  */
 @Service
@@ -18,41 +20,68 @@ public class ScoringService {
 
     /**
      * Extract {@code questionId -> correctAnswer} from an exam's content, regardless of format.
-     * Walks the JSON tree and treats any object carrying a textual {@code id} plus a textual
-     * {@code answer} (Studio shape) or {@code correct} (runtime shape) as a scorable question.
-     * Non-question nodes (passages, options, speaking prompts, ...) are ignored.
+     * Kept for callers that only need the primary answer; scoring uses {@link #keys}.
      */
     public Map<String, String> answerKey(JsonNode content) {
-        Map<String, String> key = new LinkedHashMap<>();
-        collect(content, key);
+        Map<String, String> out = new LinkedHashMap<>();
+        keys(content).forEach((id, k) -> out.put(id, k.answer()));
+        return out;
+    }
+
+    /**
+     * Extract the full answer key ({@code questionId -> AnswerMatcher.Key}). Walks the JSON tree and
+     * treats any object carrying a textual {@code id} plus a textual {@code answer} (Studio shape) or
+     * {@code correct} (runtime shape) as a scorable question, collecting its {@code accepted}
+     * variants, {@code wordLimit} and effective type — its own {@code type}, else the nearest
+     * ancestor's {@code type}/{@code questionType} (passage / section / group).
+     */
+    public Map<String, AnswerMatcher.Key> keys(JsonNode content) {
+        Map<String, AnswerMatcher.Key> key = new LinkedHashMap<>();
+        collect(content, null, key);
         return key;
     }
 
-    private void collect(JsonNode node, Map<String, String> key) {
+    private void collect(JsonNode node, String inheritedType, Map<String, AnswerMatcher.Key> key) {
         if (node == null) return;
         if (node.isObject()) {
+            String type = inheritedType;
+            if (node.hasNonNull("questionType") && node.get("questionType").isTextual()) type = node.get("questionType").asText();
+            if (node.hasNonNull("type") && node.get("type").isTextual()) type = node.get("type").asText();
             JsonNode id = node.get("id");
             JsonNode answer = node.has("answer") ? node.get("answer") : node.get("correct");
             if (id != null && id.isTextual() && answer != null && answer.isTextual()) {
-                key.put(id.asText(), answer.asText());
+                key.put(id.asText(), new AnswerMatcher.Key(answer.asText(), accepted(node.get("accepted")),
+                        wordLimit(node.get("wordLimit")), type));
             }
-            node.fields().forEachRemaining(e -> collect(e.getValue(), key));
+            for (var it = node.fields(); it.hasNext(); ) {
+                var e = it.next();
+                collect(e.getValue(), type, key);
+            }
         } else if (node.isArray()) {
-            node.forEach(child -> collect(child, key));
+            for (JsonNode child : node) collect(child, inheritedType, key);
         }
+    }
+
+    private static List<String> accepted(JsonNode node) {
+        List<String> out = new ArrayList<>();
+        if (node != null && node.isArray()) node.forEach(a -> { if (a.isTextual()) out.add(a.asText()); });
+        return out;
+    }
+
+    private static Object wordLimit(JsonNode node) {
+        if (node == null || node.isNull()) return null;
+        if (node.isNumber()) return node.asInt();
+        return node.isTextual() ? node.asText() : null;
     }
 
     /** Score submitted answers against an exam's content for the given skill. */
     public Score score(String skill, JsonNode content, Map<String, String> answers) {
-        Map<String, String> key = answerKey(content);
+        Map<String, AnswerMatcher.Key> key = keys(content);
         int correct = 0;
-        int total = 0;
-        for (Map.Entry<String, String> q : key.entrySet()) {
-            total++;
-            String given = answers.getOrDefault(q.getKey(), "").trim().toLowerCase();
-            String want = q.getValue().trim().toLowerCase();
-            if (!given.isEmpty() && given.equals(want)) correct++;
+        for (Map.Entry<String, AnswerMatcher.Key> q : key.entrySet()) {
+            if (AnswerMatcher.matches(answers.getOrDefault(q.getKey(), ""), q.getValue())) correct++;
         }
+        int total = key.size();
         double band = "listening".equalsIgnoreCase(skill)
                 ? bandFromAccuracy(correct, total)
                 : rawToBand(correct);

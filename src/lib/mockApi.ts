@@ -1,4 +1,5 @@
 import { delay } from "./utils";
+import { isQuestionCorrect } from "./answerMatch";
 import { readingExam } from "@/mock/passages";
 import { listeningExam } from "@/mock/listening";
 import { sampleWritingResult, speakingParts, sampleSpeakingFeedback } from "@/mock/data";
@@ -59,8 +60,7 @@ export function scoreGroups(groups: QuestionGroup[], answers: Record<string, str
   for (const g of groups) {
     for (const q of g.questions) {
       total++;
-      const given = (answers[q.id] ?? "").trim().toLowerCase();
-      if (given && given === q.correct.trim().toLowerCase()) correct++;
+      if (isQuestionCorrect(answers[q.id], q, g.type)) correct++;
     }
   }
   return { correct, total };

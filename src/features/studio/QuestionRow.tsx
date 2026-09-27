@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { QUESTION_TYPE_LABEL } from "@/mock/data";
 import type { QuestionOption, QuestionType } from "@/mock/types";
 import type { StudioQuestion } from "./store";
+import { answerMatches } from "@/lib/answerMatch";
 
 const LETTERS = ["A", "B", "C", "D", "E"];
 const CHOICE_ANSWERS: Partial<Record<QuestionType, string[]>> = {
@@ -19,6 +21,35 @@ const TEXT_TYPES = new Set<QuestionType>(["sentence-completion", "summary-comple
  * (effective) type — shared by the Reading and Listening editors.
  * `typeOptions` is the per-question type dropdown list for that skill.
  */
+/** Does the key (with any "(optional)" words included) itself satisfy the word limit? */
+function fitsLimit(answer: string, wordLimit: number, type: string) {
+  const full = answer.replace(/[()]/g, "");
+  return answerMatches(full, { answer: full, wordLimit, type });
+}
+
+/**
+ * Comma-separated accepted variants. Edited as free text and committed on blur, so typing a comma
+ * doesn't get normalised away mid-word.
+ */
+function AcceptedInput({ value, onCommit }: { value?: string[]; onCommit: (v: string[] | undefined) => void }) {
+  const joined = (value ?? []).join(", ");
+  const [text, setText] = useState(joined);
+  useEffect(() => setText(joined), [joined]);
+  return (
+    <Input
+      className="flex-1"
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => {
+        const list = text.split(",").map((a) => a.trim()).filter(Boolean);
+        onCommit(list.length ? list : undefined);
+      }}
+      placeholder="e.g. color, 4 — comma-separated; write (the) library for optional words"
+      aria-label="Also accept these answers"
+    />
+  );
+}
+
 export function QuestionRow({
   q,
   n,
@@ -151,6 +182,17 @@ export function QuestionRow({
           </>
         )}
       </div>
+      {isText && (
+        <div className="mt-2 flex items-center gap-2">
+          <span className="shrink-0 text-sm font-semibold text-muted-foreground">Also accept</span>
+          <AcceptedInput value={q.accepted} onCommit={(accepted) => onChange({ accepted })} />
+        </div>
+      )}
+      {isText && q.answer.trim() && !fitsLimit(q.answer, q.wordLimit ?? 2, type) && (
+        <p className="mt-1.5 text-xs font-semibold text-destructive">
+          This answer is longer than the word limit — students giving it would be marked wrong. Raise the limit or shorten the answer.
+        </p>
+      )}
     </Card>
   );
 }
