@@ -36,7 +36,17 @@ _Source: owner's IELTS Assessment & Exam Specifications — "Core Platform Modes
 ## Design (backend)
 - `AttemptEntity.mode` (`practice|exam`, default `practice`); `AttemptRequest.mode`, `AttemptDto.mode`. Unknown values fall back to `practice`. Hibernate `ddl-auto: update` adds the column; old rows read as `practice`.
 
-## Mobile (parity, reduced)
+## Mobile — full parity (follow-up, 2026-09-27)
+Replaces the reduced parity below. `lib/utils/exam_mode.dart` (mode resolution, `ExamTiming`, `writingBand`), `lib/widgets/runner_timer.dart`
+(`RunnerTimer` with a unit-testable `tick()`, `TimerChip`, `ModeBadge`), `lib/widgets/mode_picker.dart` (`pushWithMode` bottom sheet:
+Practice / Exam conditions) used by the practice hub, dashboard, reading hub and writing hub.
+- Listening: exam phases (parts locked to the recording, played once, auto-advance) → 2-minute check → auto-submit; practice replay + optional timer.
+- Reading: exam 60:00 mandatory; practice optional timer.
+- Writing: exam 20/40-min auto-submit (blank → 0); full exam Task 1 → Task 2 via `next`; a failed grade is not recorded.
+- Speaking: caps 5/2/5 min (practice 5 min), exam Part 2 1-min automatic prep + notes → recording starts, one recording per part, auto-advance at the cap; practice optional prep + re-record; full exam records the band.
+- Full exam: all four sections in strict order, no retake (Reset only), writing Task 2 double-weighted, overall = mean of the four.
+
+## Mobile (parity, reduced — superseded)
 - Attempts send `mode`.
 - The Listening runner in practice allows replay (exam keeps play-once).
 - The Reading runner in exam mode uses 60:00.
