@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { ModeLaunch } from "@/features/exam-runner/ModeLaunch";
 import { Headphones, Clock, ListChecks, Play, Shuffle } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { UpgradeBanner } from "@/components/common/UpgradeBanner";
@@ -53,9 +54,7 @@ export function ListeningPage() {
                     <span className="flex items-center gap-1.5 text-muted-foreground"><ListChecks className="size-4" /> {questionCount(featured.exam)} questions</span>
                   </div>
                   <div className="mt-5 flex flex-wrap gap-2">
-                    <Button size="lg" onClick={() => navigate(`/exam/listening/${featured.id}`)}>
-                      <Play className="size-4" /> Start listening test
-                    </Button>
+                    <ModeLaunch size="lg" to={`/exam/listening/${featured.id}`} />
                     {pool.all.length > 1 && (
                       <Button size="lg" variant="outline" onClick={pool.shuffle}>
                         <Shuffle className="size-4" /> Pick another
@@ -98,9 +97,7 @@ export function ListeningPage() {
                       <p className="mt-1 text-sm text-muted-foreground">
                         {e.exam.sections.length} section{e.exam.sections.length === 1 ? "" : "s"} · {moduleLabel(e.module)}
                       </p>
-                      <Button variant="outline" className="mt-4" onClick={() => navigate(`/exam/listening/${e.id}`)}>
-                        <Play className="size-4" /> Take exam
-                      </Button>
+                      <ModeLaunch size="sm" className="mt-4" to={`/exam/listening/${e.id}`} />
                     </Card>
                   ))}
                 </div>

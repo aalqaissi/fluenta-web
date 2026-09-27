@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { writingBand } from "@/features/exam-runner/examMode";
 
 // Tracks the bands earned in the current Full Exam run so the orchestrator can
 // sequence the four skills and, once all are done, produce a combined result +
@@ -6,7 +7,9 @@ import { useSyncExternalStore } from "react";
 export type FullSkill = "listening" | "reading" | "writing" | "speaking";
 export const FULL_SKILL_ORDER: FullSkill[] = ["listening", "reading", "writing", "speaking"];
 
-export type FullExamResults = Partial<Record<FullSkill, number>>;
+/** Writing is two tasks; the component band is derived with Task 2 double-weighted. */
+export type FullRecordKey = FullSkill | "writingT1" | "writingT2";
+export type FullExamResults = Partial<Record<FullRecordKey, number>>;
 
 const KEY = "fluenta.fullexam.results";
 
@@ -35,8 +38,14 @@ export const fullExamStore = {
     return () => listeners.delete(l);
   },
   get: () => results,
-  record(skill: FullSkill, band: number) {
-    results = { ...results, [skill]: band };
+  record(key: FullRecordKey, band: number) {
+    results = { ...results, [key]: band };
+    if (key === "writingT1" || key === "writingT2") {
+      const { writingT1, writingT2 } = results;
+      // the writing section completes once both tasks are graded
+      const { writing: _drop, ...rest } = results;
+      results = writingT1 != null && writingT2 != null ? { ...rest, writing: writingBand(writingT1, writingT2) } : rest;
+    }
     save();
     emit();
   },

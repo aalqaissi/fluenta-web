@@ -10,6 +10,8 @@ interface Props {
   src?: string;
   /** enforce the real-test rule: the audio may be played only once */
   playOnce?: boolean;
+  /** called when a play-through finishes, or when the audio can't be played at all */
+  onEnded?: () => void;
 }
 
 /**
@@ -18,7 +20,7 @@ interface Props {
  * When `playOnce` is set it counts through the recording a single time, then
  * locks, mirroring the IELTS "audio is played once" rule.
  */
-export function AudioPlayer({ durationSec, src, playOnce = false }: Props) {
+export function AudioPlayer({ durationSec, src, playOnce = false, onEnded }: Props) {
   const [playing, setPlaying] = useState(false);
   const [t, setT] = useState(0);
   const [plays, setPlays] = useState(0);
@@ -28,6 +30,12 @@ export function AudioPlayer({ durationSec, src, playOnce = false }: Props) {
   const [failed, setFailed] = useState(false);
 
   const total = Math.max(1, src && realDur ? realDur : durationSec);
+
+  const endedRef = useRef(onEnded);
+  endedRef.current = onEnded;
+  useEffect(() => {
+    if (plays > 0 || failed) endedRef.current?.();
+  }, [plays, failed]);
 
   const finishedOnce = plays >= 1;
   const locked = playOnce && finishedOnce;
@@ -134,7 +142,7 @@ export function AudioPlayer({ durationSec, src, playOnce = false }: Props) {
           ? "Audio unavailable — you can still answer the questions."
           : playOnce
           ? `Audio played ${Math.min(plays, 1)} of 1 time${locked ? " — playback is now locked, just like the real test." : src ? "." : ". In the real test it plays once."}`
-          : src ? "Section audio." : "Preview player — playback is simulated."}
+          : src ? "Section audio — replay it as often as you like in practice." : "Preview player — playback is simulated."}
       </p>
     </div>
   );

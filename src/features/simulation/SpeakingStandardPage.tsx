@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Timer } from "lucide-react";
+import { type ExamMode, withMode } from "@/features/exam-runner/examMode";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, Sparkles, CheckCircle2, Loader2, BadgeCheck, TrendingUp, Play } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -28,11 +30,13 @@ export function SpeakingStandardPage() {
   // A random published speaking test, chosen when the student starts.
   const pool = useAsync(() => fetchPublished("speaking"), []);
   const [examId, setExamId] = useState<string | undefined>();
+  const [mode, setMode] = useState<ExamMode>("practice");
   const available = pool.data?.length ?? 0;
 
-  function start() {
+  function start(m: ExamMode) {
     const pick = pickRandom(pool.data ?? []);
     if (!pick) return;
+    setMode(m);
     setExamId(pick.id);
     setStep("generating");
   }
@@ -45,7 +49,7 @@ export function SpeakingStandardPage() {
       setProgress((p) => {
         if (p >= 100) {
           clearInterval(t);
-          setTimeout(() => navigate(`/exam/speaking/${examId}`), 400);
+          setTimeout(() => navigate(withMode(`/exam/speaking/${examId}`, mode)), 400);
           return 100;
         }
         return Math.min(100, p + 4);
@@ -155,8 +159,11 @@ export function SpeakingStandardPage() {
         )}
 
         <div className="mt-6 flex flex-wrap gap-2">
-          <Button size="lg" onClick={start} disabled={available === 0}>
-            <Play className="size-4" /> Start exam
+          <Button size="lg" variant="outline" onClick={() => start("practice")} disabled={available === 0} title="Flexible timing, re-record allowed">
+            <Play className="size-4" /> Practice
+          </Button>
+          <Button size="lg" onClick={() => start("exam")} disabled={available === 0} title="1-minute Part 2 preparation, 2-minute long turn, one recording per part">
+            <Timer className="size-4" /> Exam conditions
           </Button>
           <Button variant="outline" size="lg" onClick={() => navigate("/simulation/speaking")}>
             Cancel

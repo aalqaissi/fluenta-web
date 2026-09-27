@@ -26,6 +26,7 @@ public class AttemptEntity {
     private double band;
     private int durationUsedSec;
     private String createdAt; // ISO
+    private String mode;      // practice | exam — null on rows written before modes existed (= practice)
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -49,4 +50,6 @@ public class AttemptEntity {
     public void setDurationUsedSec(int durationUsedSec) { this.durationUsedSec = durationUsedSec; }
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    public String getMode() { return mode; }
+    public void setMode(String mode) { this.mode = mode; }
 }

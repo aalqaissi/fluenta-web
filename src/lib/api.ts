@@ -145,6 +145,7 @@ export interface AttemptDto {
   band: number;
   durationUsedSec: number;
   createdAt: string;
+  mode?: "practice" | "exam";
 }
 
 export interface AttemptRequest {
@@ -152,6 +153,8 @@ export interface AttemptRequest {
   skill: string;
   answers: Record<string, string>;
   durationUsedSec: number;
+  /** practice (default) or exam — Full Exam conditions */
+  mode?: "practice" | "exam";
 }
 
 export interface CertificateDto {

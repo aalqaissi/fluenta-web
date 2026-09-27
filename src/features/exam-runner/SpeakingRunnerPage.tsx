@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, ChevronDown, Flag, Lightbulb, Loader2, Mic, RotateCcw, Square } from "lucide-react";
 import { getSpeakingFeedback, speakingOverall } from "@/lib/mockApi";
 import { api } from "@/lib/api";
@@ -13,10 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { GradingModal } from "./GradingModal";
+import { EXAM_TIMING, useExamMode } from "./examMode";
+import { ModeBadge } from "./ModeBadge";
 import { pad2, cn } from "@/lib/utils";
 
-// max length of a single recording per part (matches the real test's timing)
-const RECORD_CAP = 150; // 2:30
 
 const TIPS = [
   "Read all the questions first, then answer them one after another in a single, connected response.",
@@ -39,9 +39,13 @@ export function SpeakingRunnerPage() {
 function SpeakingRunner({ exam }: { exam: SpeakingExam }) {
   const navigate = useNavigate();
 
-  const [sp] = useSearchParams();
-  const full = sp.get("full");
+  const { mode, full } = useExamMode();
+  const isExam = mode === "exam";
   const [pIdx, setPIdx] = useState(0);
+  // Part 2 preparation: exam = exactly 1 minute, automatic; practice = optional.
+  const [prepLeft, setPrepLeft] = useState<number | null>(null);
+  const [prepDone, setPrepDone] = useState<Record<string, boolean>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [recorded, setRecorded] = useState<Record<string, boolean>>({});
@@ -57,7 +61,9 @@ function SpeakingRunner({ exam }: { exam: SpeakingExam }) {
   const [submitting, setSubmitting] = useState(false);
 
   const part = exam.parts[pIdx];
-  const cap = RECORD_CAP;
+  const last = exam.parts.length - 1;
+  // Exam: Part 1 ≈4–5 min, Part 2 long turn stopped at 2 min, Part 3 ≈4–5 min. Practice: flexible 5-min cap.
+  const cap = isExam ? EXAM_TIMING.speakingCapSec[part.number] ?? EXAM_TIMING.speakingPracticeCapSec : EXAM_TIMING.speakingPracticeCapSec;
   const completed = Object.values(recorded).filter(Boolean).length;
 
   function pickMime(): string {
@@ -127,15 +133,53 @@ function SpeakingRunner({ exam }: { exam: SpeakingExam }) {
     if (recording) {
       stopRecording();
     } else {
+      if (isExam && recorded[part.id]) return; // one recording per part under exam conditions
+      finishPrep();
       startRecording();
     }
   }
 
   function goToPart(i: number) {
     stopRecording();
+    setPrepLeft(null);
     setElapsed(0);
     setPIdx(i);
   }
+
+  function finishPrep() {
+    if (prepLeft === null) return;
+    setPrepLeft(null);
+    setPrepDone((d) => ({ ...d, [part.id]: true }));
+  }
+
+  // Exam Part 2: the 1-minute preparation starts automatically on the cue card.
+  useEffect(() => {
+    if (isExam && part.cueCard && !recorded[part.id] && !prepDone[part.id]) setPrepLeft(EXAM_TIMING.speakingPrepSec);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pIdx]);
+
+  // Prep countdown — when it ends the long turn starts (exam: recording begins automatically).
+  useEffect(() => {
+    if (prepLeft === null) return;
+    if (prepLeft === 0) {
+      setPrepLeft(null);
+      setPrepDone((d) => ({ ...d, [part.id]: true }));
+      if (isExam) startRecording();
+      return;
+    }
+    const t = window.setTimeout(() => setPrepLeft((v) => (v === null ? null : v - 1)), 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prepLeft]);
+
+  // Exam: when a part's time limit stops the recording, move on to the next part.
+  useEffect(() => {
+    if (isExam && !recording && elapsed >= cap && recorded[part.id] && pIdx < last) {
+      const t = window.setTimeout(() => goToPart(pIdx + 1), 1200);
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recording, elapsed, recorded]);
 
   function extFor(type: string): string {
     if (type.includes("webm")) return "webm";
@@ -203,6 +247,7 @@ function SpeakingRunner({ exam }: { exam: SpeakingExam }) {
           <Badge variant="muted" className="hidden sm:inline-flex">
             Recording {pIdx + 1} of {exam.parts.length} · {completed} completed
           </Badge>
+          <ModeBadge mode={mode} />
         </div>
       </div>
 
@@ -242,7 +287,37 @@ function SpeakingRunner({ exam }: { exam: SpeakingExam }) {
                 </ul>
               </>
             )}
-            <p className="mt-3 text-xs text-muted-foreground">You have 1 minute to prepare, then speak for up to 2 minutes in one recording.</p>
+            <p className="mt-3 text-xs text-muted-foreground">
+              {isExam
+                ? "You have exactly 1 minute to prepare and may make notes. Then speak for up to 2 minutes — you won't be interrupted, and the recording stops at the time limit."
+                : "Take a minute to prepare if you like, then speak for up to 2 minutes in one recording."}
+            </p>
+            {(prepLeft !== null || isExam || notes[part.id]) && (
+              <textarea
+                value={notes[part.id] ?? ""}
+                onChange={(e) => setNotes((n) => ({ ...n, [part.id]: e.target.value }))}
+                rows={3}
+                placeholder="Your notes (not graded)…"
+                className="mt-3 w-full rounded-xl border border-border bg-background p-3 text-sm"
+                aria-label="Preparation notes"
+              />
+            )}
+            {prepLeft !== null ? (
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <span className="rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-bold tabular-nums text-primary">
+                  Preparation · {pad2(Math.floor(prepLeft / 60))}:{pad2(prepLeft % 60)}
+                </span>
+                <Button size="sm" variant="outline" onClick={() => { finishPrep(); startRecording(); }}>
+                  Start speaking now
+                </Button>
+              </div>
+            ) : (
+              !isExam && !recorded[part.id] && !prepDone[part.id] && (
+                <Button size="sm" variant="outline" className="mt-3" onClick={() => setPrepLeft(EXAM_TIMING.speakingPrepSec)}>
+                  Start 1-minute preparation (optional)
+                </Button>
+              )
+            )}
           </Card>
         ) : (
           <Card className="mb-5 p-5">
@@ -264,6 +339,7 @@ function SpeakingRunner({ exam }: { exam: SpeakingExam }) {
         <Card className="mb-5 flex flex-col items-center p-6">
           <button
             onClick={toggleRecord}
+            disabled={isExam && isDone && !recording}
             className={cn(
               "relative grid size-24 place-items-center rounded-full text-white transition-all",
               recording ? "bg-destructive" : "bg-warm-gradient hover:scale-105"
@@ -276,10 +352,13 @@ function SpeakingRunner({ exam }: { exam: SpeakingExam }) {
           <p className="mt-3 text-sm font-semibold tabular-nums">
             {recording ? "Recording…" : isDone ? "Recorded" : "Start recording"} · {pad2(Math.floor(elapsed / 60))}:{pad2(elapsed % 60)} / {pad2(Math.floor(cap / 60))}:{pad2(cap % 60)}
           </p>
-          {isDone && !recording && (
+          {isDone && !recording && !isExam && (
             <Button variant="outline" size="sm" className="mt-3" onClick={toggleRecord}>
               <RotateCcw className="size-4" /> Re-record
             </Button>
+          )}
+          {isDone && !recording && isExam && (
+            <p className="mt-2 text-xs font-semibold text-muted-foreground">Exam conditions: one recording per part.</p>
           )}
           <p className="mt-2 text-xs text-muted-foreground">We'll upload your recording to grade it.</p>
         </Card>

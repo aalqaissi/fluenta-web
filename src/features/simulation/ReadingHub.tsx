@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ModeLaunch } from "@/features/exam-runner/ModeLaunch";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Clock, ListChecks, Play, Target, GraduationCap, Shuffle } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -73,9 +74,7 @@ export function ReadingHub() {
                         <span className="flex items-center gap-1.5 text-muted-foreground"><Target className="size-4" /> {moduleLabel(featured.module)}</span>
                       </div>
                       <div className="mt-5 flex flex-wrap gap-2">
-                        <Button size="lg" onClick={() => navigate(`/exam/reading/${featured.id}`)}>
-                          <Play className="size-4" /> Start reading test
-                        </Button>
+                        <ModeLaunch size="lg" to={`/exam/reading/${featured.id}`} />
                         {pool.all.length > 1 && (
                           <Button size="lg" variant="outline" onClick={pool.shuffle}>
                             <Shuffle className="size-4" /> Pick another
@@ -107,9 +106,7 @@ export function ReadingHub() {
                           <p className="mt-1 text-sm text-muted-foreground">
                             {e.exam.passages.length} passage{e.exam.passages.length === 1 ? "" : "s"} · {questionCount(e.exam)} questions · {moduleLabel(e.module)}
                           </p>
-                          <Button variant="outline" className="mt-4" onClick={() => navigate(`/exam/reading/${e.id}`)}>
-                            <Play className="size-4" /> Take exam
-                          </Button>
+                          <ModeLaunch size="sm" className="mt-4" to={`/exam/reading/${e.id}`} />
                         </Card>
                       ))}
                     </div>

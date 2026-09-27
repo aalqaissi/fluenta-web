@@ -12,9 +12,12 @@ import { writingTasks } from "@/mock/data";
 import { useFullExam, fullExamStore, type FullSkill } from "./fullexam-store";
 import { cn, formatBand } from "@/lib/utils";
 
-const writingId = (writingTasks.find((t) => t.taskNumber === 2) ?? writingTasks[0]).id;
+const writingT2Id = (writingTasks.find((t) => t.taskNumber === 2) ?? writingTasks[0]).id;
+/** Task 1 depends on the module (Academic report vs General Training letter). */
+const writingT1Id = (module: string) =>
+  (writingTasks.find((t) => t.taskNumber === 1 && t.module === module) ?? writingTasks[0]).id;
 
-const SECTIONS: {
+type Section = {
   key: FullSkill;
   skill: string;
   icon: typeof Headphones;
@@ -22,18 +25,25 @@ const SECTIONS: {
   detail: string;
   to: string;
   tint: string;
-}[] = [
+};
+
+/** Exam order is fixed — Listening → Reading → Writing → Speaking — and each runs under exam conditions. */
+const sectionsFor = (module: string): Section[] => [
   { key: "listening", skill: "Listening", icon: Headphones, minutes: 30, detail: "4 sections · 40 questions", to: `/exam/listening/${getListeningExam().id}?full=1`, tint: "bg-secondary/15 text-[rgb(var(--on-secondary))]" },
   { key: "reading", skill: "Reading", icon: BookOpen, minutes: 60, detail: "3 passages · 40 questions", to: `/exam/reading/${getReadingExam().id}?full=1`, tint: "bg-success/12 text-success" },
-  { key: "writing", skill: "Writing", icon: PenLine, minutes: 60, detail: "Task 2 essay", to: `/exam/writing/${writingId}?full=1`, tint: "bg-info/12 text-info" },
+  { key: "writing", skill: "Writing", icon: PenLine, minutes: 60, detail: "Task 1 (20 min) + Task 2 (40 min) · Task 2 counts double", to: `/exam/writing/${writingT1Id(module)}?full=1&next=${writingT2Id}`, tint: "bg-info/12 text-info" },
   { key: "speaking", skill: "Speaking", icon: Mic, minutes: 15, detail: "3 parts · recorded", to: `/exam/speaking/${getSpeakingExam().id}?full=1`, tint: "bg-primary/12 text-primary" },
 ];
 
 export function FullExamPage() {
   const navigate = useNavigate();
-  const { isLocked } = useApp();
+  const { isLocked, module } = useApp();
   const locked = isLocked("full-exam");
   const results = useFullExam();
+  const SECTIONS = sectionsFor(module);
+  // resume writing at Task 2 when Task 1 is already graded
+  const startPath = (s: Section) =>
+    s.key === "writing" && results.writingT1 != null ? `/exam/writing/${writingT2Id}?full=1` : s.to;
   const total = SECTIONS.reduce((n, s) => n + s.minutes, 0);
 
   const doneCount = SECTIONS.filter((s) => results[s.key] != null).length;
@@ -102,7 +112,7 @@ export function FullExamPage() {
               <BadgeCheck className="size-4" /> View results &amp; certificate
             </Button>
           ) : (
-            <Button className="w-full" onClick={() => nextIdx >= 0 && navigate(SECTIONS[nextIdx].to)}>
+            <Button className="w-full" onClick={() => nextIdx >= 0 && navigate(startPath(SECTIONS[nextIdx]))}>
               {doneCount === 0 ? "Begin full exam" : "Continue"} · {SECTIONS[nextIdx]?.skill} <ArrowRight className="size-4" />
             </Button>
           )}
@@ -133,9 +143,14 @@ export function FullExamPage() {
               <div className="hidden items-center gap-1.5 text-sm text-muted-foreground sm:flex">
                 <Clock className="size-4" /> {s.minutes} min
               </div>
-              <Button variant={isDone ? "outline" : "primary"} size="sm" onClick={() => navigate(s.to)}>
-                {isDone ? "Redo" : "Start"}
-              </Button>
+              {isDone ? (
+                <Badge variant="muted">Done</Badge>
+              ) : (
+                // strict order: only the next section can be started; restart the whole run with Reset
+                <Button size="sm" disabled={i !== nextIdx} onClick={() => navigate(startPath(s))}>
+                  {i === nextIdx ? "Start" : "Locked"}
+                </Button>
+              )}
             </Card>
           );
         })}

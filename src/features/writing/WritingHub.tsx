@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { ModeLaunch } from "@/features/exam-runner/ModeLaunch";
 import { PenLine, Clock, FileText, Play } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { ModuleToggle } from "@/components/common/ModuleToggle";
@@ -47,9 +48,7 @@ export function WritingHub() {
               <span className="flex items-center gap-1"><Clock className="size-3.5" /> {Math.round(t.durationSec / 60)} min</span>
               <span className="flex items-center gap-1"><FileText className="size-3.5" /> min {t.minWords} words</span>
             </div>
-            <Button className="mt-4" onClick={() => navigate(`/exam/writing/${t.id}`)}>
-              <Play className="size-4" /> Start writing
-            </Button>
+            <ModeLaunch className="mt-4" to={`/exam/writing/${t.id}`} />
           </Card>
         ))}
       </div>
@@ -77,9 +76,7 @@ export function WritingHub() {
                   <span className="flex items-center gap-1"><Clock className="size-3.5" /> {Math.round(t.durationSec / 60)} min</span>
                   <span className="flex items-center gap-1"><FileText className="size-3.5" /> min {t.minWords} words</span>
                 </div>
-                <Button variant="outline" className="mt-4" onClick={() => navigate(`/exam/writing/${t.id}`)}>
-                  <Play className="size-4" /> Take exam
-                </Button>
+                <ModeLaunch size="sm" className="mt-4" to={`/exam/writing/${t.id}`} />
               </Card>
             ))}
           </div>

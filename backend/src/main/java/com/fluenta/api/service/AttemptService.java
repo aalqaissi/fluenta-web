@@ -54,6 +54,7 @@ public class AttemptService {
         a.setBand(score.band());
         a.setDurationUsedSec(req.durationUsedSec());
         a.setCreatedAt(Instant.now().toString());
+        a.setMode("exam".equals(req.mode()) ? "exam" : "practice");
         return mappers.toDto(attempts.save(a));
     }
 
