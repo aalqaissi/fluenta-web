@@ -52,7 +52,7 @@ public class Mappers {
         return new AttemptDto(
                 a.getId(), a.getExamId(), a.getExamTitle(), a.getSkill(),
                 json.parse(a.getAnswers()), a.getCorrect(), a.getTotal(), a.getBand(),
-                a.getDurationUsedSec(), a.getCreatedAt());
+                a.getDurationUsedSec(), a.getCreatedAt(), a.getMode() == null ? "practice" : a.getMode());
     }
 
     public CertificateDto toDto(CertificateEntity c) {

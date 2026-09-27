@@ -104,6 +104,23 @@ class HttpContractTest {
     }
 
     @Test
+    void attemptModeRoundTripsAndDefaultsToPractice() throws Exception {
+        String token = login();
+        mvc.perform(post("/api/attempts")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"examId\":\"read-languages\",\"skill\":\"reading\",\"answers\":{},\"durationUsedSec\":60,\"mode\":\"exam\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("exam"));
+        mvc.perform(post("/api/attempts")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"examId\":\"read-languages\",\"skill\":\"reading\",\"answers\":{},\"durationUsedSec\":60,\"mode\":\"bogus\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("practice"));
+    }
+
+    @Test
     void studioCrudRoundTripsOverHttp() throws Exception {
         String token = login();
         String body = "{\"id\":null,\"skill\":\"reading\",\"title\":\"HTTP CRUD\",\"module\":\"academic\"," +

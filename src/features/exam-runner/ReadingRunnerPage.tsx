@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Clock, Search, BookOpen, Flag } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
@@ -14,6 +14,9 @@ import { HighlightableText, type Highlight } from "./HighlightableText";
 import { HighlightToolbar } from "./HighlightToolbar";
 import { QuestionRenderer } from "./questions/QuestionRenderer";
 import { GradingModal } from "./GradingModal";
+import { EXAM_TIMING, useExamMode } from "./examMode";
+import { ModeBadge } from "./ModeBadge";
+import { TimerControl, useRunnerTimer } from "./RunnerTimer";
 import { RunnerLoading, RunnerError } from "./RunnerStates";
 import { pad2, cn } from "@/lib/utils";
 import type { ReadingExam } from "@/mock/types";
@@ -30,14 +33,12 @@ export function ReadingRunnerPage() {
 
 function ReadingRunner({ exam }: { exam: ReadingExam }) {
   const navigate = useNavigate();
-  const [sp] = useSearchParams();
-  const full = sp.get("full");
+  const { mode, full } = useExamMode();
   const [pIdx, setPIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [activeColor, setActiveColor] = useState<string | null>(null);
   const [find, setFind] = useState("");
-  const [timeLeft, setTimeLeft] = useState(exam.durationSec);
   const [grading, setGrading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [gradedBand, setGradedBand] = useState(0);
@@ -49,18 +50,13 @@ function ReadingRunner({ exam }: { exam: ReadingExam }) {
   );
   const answered = Object.values(answers).filter((v) => v.trim()).length;
 
-  useEffect(() => {
-    const t = setInterval(() => setTimeLeft((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(t);
-  }, []);
-  useEffect(() => {
-    if (timeLeft === 0) submit();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft]);
-
-  const mins = Math.floor(timeLeft / 60);
-  const secs = timeLeft % 60;
-  const low = timeLeft < 120;
+  // Full Exam: the IELTS 60-minute limit, mandatory, auto-submit (no transfer time).
+  // Practice: optional timer using the authored time limit.
+  const timer = useRunnerTimer({
+    mode,
+    durationSec: mode === "exam" ? EXAM_TIMING.readingSec : exam.durationSec,
+    onExpire: () => submit(),
+  });
 
   function setAnswer(qid: string, val: string) {
     setAnswers((a) => ({ ...a, [qid]: val }));
@@ -74,7 +70,8 @@ function ReadingRunner({ exam }: { exam: ReadingExam }) {
         examId: exam.id,
         skill: "reading",
         answers,
-        durationUsedSec: exam.durationSec - timeLeft,
+        durationUsedSec: timer.elapsed,
+        mode,
       });
       setGradedBand(a.band);
       setLastAttempt({
@@ -119,14 +116,8 @@ function ReadingRunner({ exam }: { exam: ReadingExam }) {
           <Badge variant="muted" className="hidden sm:inline-flex">
             {answered}/{totalQ} answered
           </Badge>
-          <div
-            className={cn(
-              "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-bold tabular-nums",
-              low ? "bg-destructive/10 text-destructive" : "bg-muted"
-            )}
-          >
-            <Clock className="size-4" /> {pad2(mins)}:{pad2(secs)}
-          </div>
+          <ModeBadge mode={mode} />
+          <TimerControl timer={timer} />
         </div>
       </div>
 

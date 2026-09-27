@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Clock, Flag, Sparkles, Check } from "lucide-react";
+import { ArrowLeft, Flag, Sparkles, Check } from "lucide-react";
 import { sampleWritingResult } from "@/mock/data";
 import { resolveWritingTask } from "@/features/studio/convert";
 import { setLastWriting, setWritingResult } from "@/store/attempt-store";
@@ -10,14 +10,20 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { GradingModal } from "@/features/exam-runner/GradingModal";
-import { pad2, cn } from "@/lib/utils";
+import { EXAM_TIMING, useExamMode } from "@/features/exam-runner/examMode";
+import { ModeBadge } from "@/features/exam-runner/ModeBadge";
+import { TimerControl, useRunnerTimer } from "@/features/exam-runner/RunnerTimer";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { VisualPrompt } from "./VisualPrompt";
 
 export function WritingEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [sp] = useSearchParams();
-  const full = sp.get("full");
+  const { mode, full } = useExamMode();
+  /** full-exam writing runs Task 1 then Task 2: the Task 1 runner carries the Task 2 id */
+  const next = sp.get("next");
   const task = resolveWritingTask(id);
   const storeKey = `fluenta.writing.${task.id}`;
 
@@ -26,18 +32,26 @@ export function WritingEditorPage() {
       const saved = localStorage.getItem(storeKey);
       if (saved !== null) return saved;
     } catch { /* ignore */ }
-    return task.id === "w-task2" ? sampleWritingResult.answer : "";
+    // the demo sample answer is a practice convenience — exam conditions start from a blank page
+    return task.id === "w-task2" && mode === "practice" ? sampleWritingResult.answer : "";
   });
-  const [timeLeft, setTimeLeft] = useState(task.durationSec);
   const [gradeState, setGradeState] = useState<"idle" | "loading" | "error">("idle");
   const [attempt, setAttempt] = useState(0);
   const [saved, setSaved] = useState(true);
   const saveTimer = useRef<number | null>(null);
 
-  useEffect(() => {
-    const t = setInterval(() => setTimeLeft((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(t);
-  }, []);
+  // Exam: official task time (Task 1 20 min / Task 2 40 min), auto-submit at 0. Practice: optional timer.
+  const timer = useRunnerTimer({
+    mode,
+    durationSec: mode === "exam" ? (task.taskNumber === 1 ? EXAM_TIMING.writingTask1Sec : EXAM_TIMING.writingTask2Sec) : task.durationSec,
+    onExpire: () => {
+      if (gradeState === "loading") return;
+      if (!text.trim()) {
+        toast.info("Time is up — no answer was written for this task.");
+        afterGrading(0);
+      } else submit();
+    },
+  });
 
   // autosave (debounced) so the answer isn't lost
   useEffect(() => {
@@ -78,8 +92,10 @@ export function WritingEditorPage() {
   /** Record the real graded band (not a sample) in a full exam; cancel/error leaves it unrecorded. */
   function afterGrading(overall?: number) {
     if (full) {
-      if (overall !== undefined) fullExamStore.record("writing", overall);
-      navigate("/simulation/full-exam");
+      if (overall !== undefined) fullExamStore.record(task.taskNumber === 1 ? "writingT1" : "writingT2", overall);
+      navigate(next && overall !== undefined ? `/exam/writing/${next}?full=1` : "/simulation/full-exam");
+    } else if (overall === 0 && !text.trim()) {
+      navigate(-1);
     } else {
       navigate(`/results/writing/${task.id}`);
     }
@@ -99,9 +115,8 @@ export function WritingEditorPage() {
           <span className={cn("hidden items-center gap-1 text-xs font-semibold sm:flex", saved ? "text-success" : "text-muted-foreground")}>
             {saved ? <><Check className="size-3.5" /> Saved</> : "Saving…"}
           </span>
-          <div className={cn("flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-bold tabular-nums", timeLeft < 120 ? "bg-destructive/10 text-destructive" : "bg-muted")}>
-            <Clock className="size-4" /> {pad2(Math.floor(timeLeft / 60))}:{pad2(timeLeft % 60)}
-          </div>
+          <ModeBadge mode={mode} />
+          <TimerControl timer={timer} />
         </div>
       </div>
 
