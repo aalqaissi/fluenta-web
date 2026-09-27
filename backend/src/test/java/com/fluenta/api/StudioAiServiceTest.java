@@ -74,6 +74,65 @@ class StudioAiServiceTest {
         assertThat(r.questions().get(0).type()).isEqualTo("short-answer");
     }
 
+    // --- matching types: the lettered list (sentence endings / headings / features) ---
+
+    @Test
+    void matchingGenerateCompletesBlankOptionsKeepsAdminOnesAndAnswersWithLetters() {
+        // The admin typed B; A and C are blank. The model rewrites B (must be ignored), returns an
+        // extra option (must be dropped) and answers with an out-of-range letter (must be coerced).
+        when(ai.complete(anyString(), anyString())).thenReturn("""
+            {"options":["expose errors.","AI rewrote B","apply weighting.","extra D"],
+             "questions":[
+               {"prompt":"Breaking an evaluation into parts can","answer":"b"},
+               {"prompt":"Statistical rules are useful because they","answer":"Z"}
+             ]}""");
+        var r = studio.generate(new StudioGenerateRequest("passage", "matching-sentence-endings", 2,
+                List.of("", "prevent one feature dominating.", "")));
+        assertThat(r.options()).containsExactly("expose errors.", "prevent one feature dominating.", "apply weighting.");
+        assertThat(r.questions()).hasSize(2).allSatisfy(q -> {
+            assertThat(q.type()).isEqualTo("matching-sentence-endings");
+            assertThat(q.options()).isNull();                    // the list lives on the passage
+            assertThat(q.answer()).matches("[A-C]");
+        });
+        assertThat(r.questions().get(0).answer()).isEqualTo("B");
+    }
+
+    @Test
+    void matchingGenerateWithZeroCountOnlyFillsTheList() {
+        when(ai.complete(anyString(), anyString())).thenReturn(
+            "{\"options\":[\"one.\",\"two.\"],\"questions\":[{\"prompt\":\"ignored\",\"answer\":\"A\"}]}");
+        var r = studio.generate(new StudioGenerateRequest("passage", "matching-headings", 0, List.of("", "")));
+        assertThat(r.options()).containsExactly("one.", "two.");
+        assertThat(r.questions()).isEmpty();
+    }
+
+    @Test
+    void matchingGenerateSendsTheListToTheModel() {
+        when(ai.complete(anyString(), anyString())).thenReturn("{\"options\":[\"x.\"],\"questions\":[]}");
+        studio.generate(new StudioGenerateRequest("passage", "matching-sentence-endings", 3, List.of("", "kept ending.")));
+        verify(ai).complete(anyString(), argThat(u -> u.contains("B. kept ending.") && u.contains("A. (write this one)") && u.contains("COUNT: 3")));
+    }
+
+    @Test
+    void matchingGenerateWithoutAListMakesCountPlusTwoOptions() {
+        when(ai.complete(anyString(), anyString())).thenReturn("{\"options\":[],\"questions\":[]}");
+        var r = studio.generate(new StudioGenerateRequest("passage", "matching-features", 3, null));
+        assertThat(r.options()).hasSize(5);                         // blanks the model skipped get a placeholder
+        assertThat(r.options()).allSatisfy(o -> assertThat(o).isNotBlank());
+    }
+
+    @Test
+    void fillAnswersMatchingQuestionsWithALetterFromTheirList() {
+        when(ai.complete(anyString(), anyString())).thenReturn(
+            "{\"questions\":[{\"prompt\":\"Q1\",\"type\":\"matching-sentence-endings\",\"answer\":\"c\"}]}");
+        var r = studio.fill(new StudioFillRequest("passage", List.of(new StudioQuestionDto(
+                "Q1", "matching-sentence-endings", List.of("a.", "b.", "c."), "", null))));
+        assertThat(r.questions()).singleElement().satisfies(q -> {
+            assertThat(q.answer()).isEqualTo("C");
+            assertThat(q.options()).isNull();
+        });
+    }
+
     @Test
     void fillRejectsOversizePassage() {
         assertThatThrownBy(() -> studio.fill(new StudioFillRequest("a".repeat(12_001),

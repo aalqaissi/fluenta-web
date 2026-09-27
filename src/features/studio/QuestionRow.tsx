@@ -121,7 +121,7 @@ export function QuestionRow({
             </Select>
           ) : (
             <span className="text-sm text-muted-foreground">
-              {q.answer ? <b className="mr-1 text-foreground">{q.answer}</b> : null}Add the answer options for this passage first.
+              {q.answer ? <b className="mr-1 text-foreground">{q.answer}</b> : null}Add the lettered list below these questions first.
             </span>
           )
         ) : isChoice ? (
@@ -181,7 +181,7 @@ export function GenerateCountInput({ value, onChange }: { value: number; onChang
 export function defaultAnswerFor(type: QuestionType): string {
   if (type === "true-false-notgiven") return "TRUE";
   if (type === "yes-no-notgiven") return "YES";
-  if (type === "multiple-choice" || type === "multi-select") return "A";
+  if (type === "multiple-choice" || type === "multi-select" || type.startsWith("matching-")) return "A";
   return "sample";
 }
 

@@ -34,6 +34,34 @@ public class StubStudioAuthor {
         return out;
     }
 
+    private static String optionNoun(String type) {
+        if ("matching-sentence-endings".equals(type)) return "ending";
+        if ("matching-headings".equals(type)) return "heading";
+        return "option";
+    }
+
+    /** Completes a matching list: blank entries get a placeholder, filled ones are kept. */
+    public List<String> matchingOptions(String type, List<String> options) {
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < options.size(); i++) {
+            String o = options.get(i);
+            out.add(o != null && !o.isBlank() ? o : "Sample " + optionNoun(type) + " " + (char) ('A' + i) + " (offline placeholder).");
+        }
+        return out;
+    }
+
+    /** Placeholder matching questions whose answers walk through the list A, B, C… */
+    public List<StudioQuestionDto> matchingQuestions(String type, int count, int optionCount) {
+        List<StudioQuestionDto> out = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            String letter = String.valueOf((char) ('A' + (i % Math.max(1, optionCount))));
+            out.add(new StudioQuestionDto(
+                    i == 0 ? "AI-generated question about the content." : "Another AI-generated question.",
+                    type, null, letter, null));
+        }
+        return out;
+    }
+
     public List<StudioQuestionDto> fill(List<StudioQuestionDto> questions, String fallbackType) {
         List<StudioQuestionDto> out = new ArrayList<>();
         for (StudioQuestionDto q : questions) {

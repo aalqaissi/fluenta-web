@@ -1,6 +1,7 @@
 import { Check, X } from "lucide-react";
 import type { QuestionGroup, QuestionOption } from "@/mock/types";
 import { mcOptions } from "@/mock/passages";
+import { optionListTitle } from "@/features/studio/passageText";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ export function QuestionRenderer({ group, answers, setAnswer, review }: Props) {
       {/* shared reference box for matching types */}
       {SELECT_TYPES.has(group.type) && group.sharedOptions?.some((o) => o.text) && (
         <div className="rounded-xl border border-border bg-muted/40 p-4">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">{optionListTitle(group.type)}</p>
           <ul className="space-y-1.5 text-sm">
             {group.sharedOptions.map((o) => (
               <li key={o.key} className="flex gap-2">
