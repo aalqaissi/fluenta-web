@@ -25,6 +25,17 @@ class StubStudioAuthorTest {
     }
 
     @Test
+    void matchingFillsBlankOptionsAndSpreadsAnswersOverTheList() {
+        var options = stub.matchingOptions("matching-sentence-endings", java.util.Arrays.asList("", "kept.", ""));
+        assertThat(options).hasSize(3);
+        assertThat(options.get(1)).isEqualTo("kept.");
+        assertThat(options.get(0)).isNotBlank();
+        var qs = stub.matchingQuestions("matching-sentence-endings", 4, 3);
+        assertThat(qs).extracting(StudioQuestionDto::answer).containsExactly("A", "B", "C", "A");
+        assertThat(qs).allSatisfy(q -> assertThat(q.type()).isEqualTo("matching-sentence-endings"));
+    }
+
+    @Test
     void fillOnlySetsAnswersLeavingPromptsIntact() {
         var input = List.of(new StudioQuestionDto("Q1", "yes-no-notgiven", null, "", null));
         var out = stub.fill(input, "yes-no-notgiven");

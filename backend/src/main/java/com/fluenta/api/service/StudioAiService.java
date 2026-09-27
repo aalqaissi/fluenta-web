@@ -29,6 +29,22 @@ public class StudioAiService {
         Use the requested question type. For multiple-choice give 4 options and answer a letter A-D; for multi-select
         give 5 options (A-E); for true-false-notgiven answer TRUE/FALSE/NOT GIVEN; for yes-no-notgiven answer
         YES/NO/NOT GIVEN; for completion/short-answer answer the exact words from the passage. No prose, no fences.""";
+    /** Matching types answered from a lettered list stored on the passage. */
+    private static final Set<String> LIST_TYPES = Set.of(
+            "matching-headings", "matching-features", "matching-sentence-endings", "matching-information");
+    private static final int MAX_OPTIONS = 26;
+    private static final String MATCH_SYSTEM = """
+        You are an IELTS item writer building a matching task grounded ONLY in the given passage. You get the
+        question type, a lettered LIST (some entries written, some marked "(write this one)") and COUNT.
+        1) Complete the LIST: write every "(write this one)" entry; copy written entries unchanged; keep the same
+           number of entries in the same order. For matching-sentence-endings each entry is a sentence ENDING;
+           for matching-headings a short paragraph heading; for matching-features a name/feature (person, place,
+           date…); for matching-information the list is the passage's paragraphs (copy it unchanged).
+        2) Write COUNT questions whose answer is ONE letter from the LIST. For matching-sentence-endings each
+           question is a sentence BEGINNING that one ending completes correctly according to the passage; for
+           matching-headings it names the paragraph to title; for matching-features/matching-information it is a
+           statement. Prefer different answers for different questions; unused entries act as distractors.
+        Return ONLY {"options":[string],"questions":[{"prompt":string,"answer":"A"}]}. No prose, no fences.""";
     private static final String FILL_SYSTEM = """
         You are an IELTS examiner. For each question (prompt + type + options), return the correct answer grounded in
         the passage, preserving prompt/type/options and order. Return ONLY {"questions":[...]} with the same shape as
@@ -52,10 +68,58 @@ public class StudioAiService {
         String passage = req.passageText() == null ? "" : req.passageText();
         if (passage.length() > props.maxEssayChars()) throw ApiException.badRequest("Passage is too long");
         String type = (req.questionType() != null && TYPES.contains(req.questionType())) ? req.questionType() : "short-answer";
+        if (LIST_TYPES.contains(type)) return generateMatching(req, passage, type);
         int count = clamp(req.count() == null ? 2 : req.count(), 1, 20);
         if (!props.live()) return new StudioQuestionsReply(stub.generate(type, count));
         String user = "QUESTION TYPE: " + type + "\nCOUNT: " + count + "\nPASSAGE:\n" + passage;
         return new StudioQuestionsReply(normalize(readQuestions(parse(ai.complete(GEN_SYSTEM, user))), type));
+    }
+
+    /**
+     * Matching types: complete the passage's lettered list first (blank entries only — entries the admin
+     * wrote are kept verbatim), then write {@code count} questions answered by letters from that list.
+     * {@code count} 0 only completes the list; no list at all means count + 2 entries (room for distractors).
+     */
+    private StudioQuestionsReply generateMatching(StudioGenerateRequest req, String passage, String type) {
+        int count = clamp(req.count() == null ? 2 : req.count(), 0, 20);
+        List<String> given = new ArrayList<>(req.options() == null ? List.of() : req.options());
+        if (given.isEmpty()) for (int i = 0; i < Math.max(count + 2, 3); i++) given.add("");
+        if (given.size() > MAX_OPTIONS) given = new ArrayList<>(given.subList(0, MAX_OPTIONS));
+        for (int i = 0; i < given.size(); i++) given.set(i, given.get(i) == null ? "" : given.get(i).trim());
+
+        if (!props.live()) {
+            return new StudioQuestionsReply(stub.matchingQuestions(type, count, given.size()), stub.matchingOptions(type, given));
+        }
+        StringBuilder list = new StringBuilder();
+        for (int i = 0; i < given.size(); i++) {
+            list.append((char) ('A' + i)).append(". ").append(given.get(i).isEmpty() ? "(write this one)" : given.get(i)).append('\n');
+        }
+        String user = "QUESTION TYPE: " + type + "\nCOUNT: " + count + "\nLIST:\n" + list + "PASSAGE:\n" + passage;
+        JsonNode node = parse(ai.complete(MATCH_SYSTEM, user));
+
+        // Gate: same length as asked, admin entries win, blanks the model skipped get a placeholder.
+        List<String> fromAi = new ArrayList<>();
+        for (JsonNode o : node.path("options")) fromAi.add(o.asText("").trim());
+        List<String> placeholders = stub.matchingOptions(type, java.util.Collections.nCopies(given.size(), ""));
+        List<String> filled = new ArrayList<>();
+        for (int i = 0; i < given.size(); i++) {
+            String mine = given.get(i);
+            String theirs = i < fromAi.size() ? stripLetter(fromAi.get(i)) : "";
+            filled.add(!mine.isEmpty() ? mine : !theirs.isEmpty() ? theirs : placeholders.get(i));
+        }
+        List<StudioQuestionDto> qs = new ArrayList<>();
+        for (JsonNode q : node.path("questions")) {
+            if (qs.size() >= count) break;
+            String prompt = q.path("prompt").asText("").trim();
+            if (prompt.isEmpty()) continue;
+            qs.add(new StudioQuestionDto(prompt, type, null, letterInRange(q.path("answer").asText(""), filled.size()), null));
+        }
+        return new StudioQuestionsReply(qs, filled);
+    }
+
+    /** "A. text" / "A) text" → "text" (models sometimes echo the letter). */
+    private static String stripLetter(String s) {
+        return s.replaceFirst("^\\(?[A-Z]\\s*[.):]\\s+", "").trim();
     }
 
     public StudioQuestionsReply fill(StudioFillRequest req) {
@@ -69,7 +133,19 @@ public class StudioAiService {
         try { user = "PASSAGE:\n" + passage
                 + "\nQUESTIONS JSON:\n" + om.writeValueAsString(qs); }
         catch (Exception e) { throw ApiException.badRequest("Bad questions payload"); }
-        return new StudioQuestionsReply(normalize(readQuestions(parse(ai.complete(FILL_SYSTEM, user))), fallback));
+        List<StudioQuestionDto> out = normalize(readQuestions(parse(ai.complete(FILL_SYSTEM, user))), fallback);
+        // Matching answers must be a letter of the list the admin sent (the model need not echo it back).
+        List<StudioQuestionDto> gated = new ArrayList<>();
+        for (int i = 0; i < out.size(); i++) {
+            StudioQuestionDto q = out.get(i);
+            List<String> list = i < qs.size() ? qs.get(i).options() : null;
+            if (LIST_TYPES.contains(q.type()) && list != null && !list.isEmpty()) {
+                q = new StudioQuestionDto(q.prompt(), q.type(), null,
+                        letterInRange(q.answer(), Math.min(list.size(), MAX_OPTIONS)), q.wordLimit());
+            }
+            gated.add(q);
+        }
+        return new StudioQuestionsReply(gated);
     }
 
     public StudioExtractResult extract(StudioExtractRequest req) {
@@ -119,6 +195,12 @@ public class StudioAiService {
             if ("multiple-choice".equals(type)) options = pad(q.options(), 4);
             else if ("multi-select".equals(type)) options = pad(q.options(), 5);
             String answer = normalizeAnswer(type, q.answer(), options);
+            // Matching: the list lives on the passage — answer with one of its letters, keep no per-question copy.
+            if (LIST_TYPES.contains(type)) {
+                int n = q.options() == null ? 0 : Math.min(q.options().size(), MAX_OPTIONS);
+                answer = n > 0 ? letterInRange(q.answer() == null ? "" : q.answer().trim(), n) : answer.toUpperCase();
+                options = null;
+            }
             Integer wl = q.wordLimit();
             if (TEXT_TYPES.contains(type) && wl == null) wl = 2;
             out.add(new StudioQuestionDto(q.prompt(), type, options, answer, wl));

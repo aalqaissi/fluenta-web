@@ -35,10 +35,24 @@ public final class AiDtos {
     public record LiveInterviewGradeRequest(String examId, List<SpeakingPartResult> parts) {}
 
     public record StudioQuestionDto(String prompt, String type, List<String> options, String answer, Integer wordLimit) {}
-    public record StudioGenerateRequest(String passageText, String questionType, Integer count) {}
+    /**
+     * {@code options}: for matching types, the passage's lettered list (A, B, C…) as it stands — blank
+     * entries are written by the AI, filled ones are kept verbatim. {@code count} may be 0 to only
+     * complete the list.
+     */
+    public record StudioGenerateRequest(String passageText, String questionType, Integer count, List<String> options) {
+        public StudioGenerateRequest(String passageText, String questionType, Integer count) {
+            this(passageText, questionType, count, null);
+        }
+    }
     public record StudioImage(String base64, String mediaType) {}
     public record StudioFillRequest(String passageText, List<StudioQuestionDto> questions) {}
     public record StudioExtractRequest(List<StudioImage> images, String hint) {}
-    public record StudioQuestionsReply(List<StudioQuestionDto> questions) {}
+    /** {@code options}: the completed lettered list for matching types (null otherwise). */
+    public record StudioQuestionsReply(List<StudioQuestionDto> questions, List<String> options) {
+        public StudioQuestionsReply(List<StudioQuestionDto> questions) {
+            this(questions, null);
+        }
+    }
     public record StudioExtractResult(String passageText, List<StudioQuestionDto> questions) {}
 }

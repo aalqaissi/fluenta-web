@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Plus, Trash2, Type, Image as ImageIcon, Sparkles } from "lucide-react";
+import { Plus, Trash2, Type, Image as ImageIcon, Sparkles, ClipboardPaste } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QUESTION_TYPE_LABEL } from "@/mock/data";
 import type { QuestionType } from "@/mock/types";
-import { api, type AiStudioQuestion } from "@/lib/api";
+import { toast } from "sonner";
+import { api, ApiError, type AiStudioQuestion } from "@/lib/api";
 import { MediaDrop, AiButton, Field } from "../components";
 import { QuestionRow, aiQuestions, defaultAnswerFor, GenerateCountInput, GENERATE_DEFAULT } from "../QuestionRow";
 import { newPassage, newQuestion, type StudioExam, type StudioPassage, type StudioQuestion } from "../store";
@@ -16,48 +17,132 @@ import {
   AUTHORED_OPTION_TYPES,
   LETTERS,
   PARAGRAPH_OPTION_TYPES,
+  authoredOptions,
+  matchingInstructions,
   matchingOptionsFor,
+  optionListTitle,
   paragraphOptions,
+  parseOptionList,
   parsePassageText,
 } from "../passageText";
+import { readingInstructions } from "../convert";
 
-const OPTIONS_HELP: Partial<Record<QuestionType, string>> = {
-  "matching-headings": "The list of headings students choose from",
-  "matching-features": "The list of features (e.g. people, places, dates) students choose from",
-  "matching-sentence-endings": "The list of sentence endings students choose from",
+/**
+ * The lettered list the AI works from for a matching type: the admin's list (blank rows included,
+ * for the AI to write) or, for Matching Information, the passage's paragraphs. Undefined otherwise.
+ */
+function aiListFor(type: QuestionType, p: StudioPassage): string[] | undefined {
+  if (AUTHORED_OPTION_TYPES.has(type)) return p.options ?? [];
+  if (PARAGRAPH_OPTION_TYPES.has(type)) return parsePassageText(p.text).paragraphs;
+  return undefined;
+}
+
+const OPTION_NOUN: Partial<Record<QuestionType, string>> = {
+  "matching-sentence-endings": "Ending",
+  "matching-headings": "Heading",
 };
 
 /**
- * The lettered answer list for a passage's matching questions: editable for Headings / Features /
- * Sentence Endings, and read-only (the detected paragraph letters) for Matching Information.
- * Shown whenever the passage or any of its questions uses one of those types.
+ * The lettered list under a block of matching questions, laid out like the IELTS paper
+ * ("Sentence endings / A. … / B. …"). Headings / Features / Sentence Endings are typed or pasted
+ * here; it is one list per passage, shared by every block of that type in the passage.
  */
-function MatchingLegend({ passage: p, onOptions }: { passage: StudioPassage; onOptions: (options: string[]) => void }) {
-  const types = new Set<QuestionType>([p.questionType, ...p.questions.map((q) => q.type).filter((t): t is QuestionType => !!t)]);
-  const authoredType = [...types].find((t) => AUTHORED_OPTION_TYPES.has(t));
-  const needsParagraphs = [...types].some((t) => PARAGRAPH_OPTION_TYPES.has(t));
-  if (!authoredType && !needsParagraphs) return null;
-
+function OptionListEditor({
+  type,
+  passage: p,
+  answers,
+  onOptions,
+  onFillWithAi,
+  filling,
+}: {
+  type: QuestionType;
+  passage: StudioPassage;
+  answers: string[];
+  onOptions: (options: string[]) => void;
+  /** AI writes the empty rows (filled ones are kept). */
+  onFillWithAi: (options: string[]) => void;
+  filling?: boolean;
+}) {
+  const [pasting, setPasting] = useState(false);
+  const [draft, setDraft] = useState("");
   const options = p.options?.length ? p.options : ["", "", ""];
   const set = (i: number, v: string) => onOptions(options.map((o, j) => (j === i ? v : o)));
-  const parsed = parsePassageText(p.text);
-  const paragraphs = paragraphOptions(parsed);
+  const blanks = options.filter((o) => !o.trim()).length;
+  // Grow with empty rows; shrink only by dropping empty rows from the end (never a written one).
+  const setRowCount = (n: number) => {
+    const target = Math.max(1, Math.min(LETTERS.length, n));
+    if (target >= options.length) return onOptions([...options, ...Array(target - options.length).fill("")]);
+    const next = [...options];
+    while (next.length > target && !next[next.length - 1].trim()) next.pop();
+    onOptions(next);
+  };
+  const defined = new Set(authoredOptions(p.options).map((o) => o.key));
+  const missing = [...new Set(answers.map((a) => a.trim().toUpperCase()).filter((a) => a && !defined.has(a)))].sort();
 
   return (
-    <div className="mt-5 space-y-4">
-      {authoredType && (
-        <div className="rounded-xl border border-border bg-muted/30 p-4">
-          <p className="text-sm font-bold">Answer options</p>
-          <p className="mb-3 text-xs text-muted-foreground">
-            {OPTIONS_HELP[authoredType]}. Each question's correct answer is one of these letters; students see this list in the exam.
-          </p>
+    <div className="mt-4 rounded-xl border border-border bg-muted/30 p-4">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-bold">{optionListTitle(type)}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+            Number of {(OPTION_NOUN[type] ?? "option").toLowerCase()}s
+            <Input
+              type="number"
+              min={1}
+              max={LETTERS.length}
+              className="h-8 w-16"
+              value={options.length}
+              onChange={(e) => setRowCount(Math.floor(Number(e.target.value)) || 1)}
+              aria-label={`Number of ${(OPTION_NOUN[type] ?? "option").toLowerCase()}s`}
+            />
+          </label>
+          <AiButton label="Fill with AI" disabled={blanks === 0} loading={filling} onClick={() => onFillWithAi(options)} />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setDraft(authoredOptions(p.options).map((o) => `${o.key}. ${o.text}`).join("\n"));
+              setPasting((v) => !v);
+            }}
+          >
+            <ClipboardPaste className="size-4" /> {pasting ? "Edit one by one" : "Paste list"}
+          </Button>
+        </div>
+      </div>
+      <p className="mb-3 text-xs text-muted-foreground">
+        Set how many {(OPTION_NOUN[type] ?? "option").toLowerCase()}s ({LETTERS[0]}–{LETTERS[options.length - 1]}), type any you want to
+        keep, and let AI write the empty ones. Then “Generate with AI” writes questions answered from this list — or add questions
+        yourself and pick each one's letter.
+      </p>
+
+      {pasting ? (
+        <div className="space-y-2">
+          <Textarea
+            rows={8}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={"A. expose errors that professionals would prefer not to make visible.\nB. prevent one noticeable feature from having excessive influence.\n…"}
+          />
+          <p className="text-xs text-muted-foreground">One option per line, starting with its letter (A. / A) / (A)). Lines without a letter take the next one.</p>
+          <Button
+            size="sm"
+            onClick={() => {
+              onOptions(parseOptionList(draft));
+              setPasting(false);
+            }}
+          >
+            Use this list
+          </Button>
+        </div>
+      ) : (
+        <>
           <div className="space-y-2">
             {options.map((o, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className="w-5 shrink-0 text-sm font-bold text-primary">{LETTERS[i]}</span>
-                <Input value={o} onChange={(e) => set(i, e.target.value)} placeholder={`Option ${LETTERS[i]}`} />
+                <span className="w-6 shrink-0 text-sm font-bold text-primary">{LETTERS[i]}.</span>
+                <Input value={o} onChange={(e) => set(i, e.target.value)} placeholder={`${OPTION_NOUN[type] ?? "Option"} ${LETTERS[i]}`} />
                 {options.length > 1 && (
-                  <Button variant="ghost" size="icon-sm" title="Remove option" onClick={() => onOptions(options.filter((_, j) => j !== i))}>
+                  <Button variant="ghost" size="icon-sm" title="Remove" onClick={() => onOptions(options.filter((_, j) => j !== i))}>
                     <Trash2 className="size-4 text-muted-foreground" />
                   </Button>
                 )}
@@ -66,32 +151,58 @@ function MatchingLegend({ passage: p, onOptions }: { passage: StudioPassage; onO
           </div>
           {options.length < LETTERS.length && (
             <Button variant="outline" size="sm" className="mt-3" onClick={() => onOptions([...options, ""])}>
-              <Plus className="size-4" /> Add option
+              <Plus className="size-4" /> Add {LETTERS[options.length]}
             </Button>
           )}
-        </div>
+        </>
       )}
-      {needsParagraphs && (
-        <div className="rounded-xl border border-border bg-muted/30 p-4">
-          <p className="text-sm font-bold">Paragraphs (Matching Information answers)</p>
-          {parsed.labels?.some(Boolean) ? (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {paragraphs.map((o, i) => (
-                <span key={o.key} className="rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary" title={parsed.paragraphs[i]}>
-                  {o.key} · {parsed.paragraphs[i]?.slice(0, 28) ?? ""}…
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-1 text-xs text-muted-foreground">
-              No paragraph letters found — students will see paragraphs lettered A–{paragraphs.at(-1)?.key ?? "A"} in order. To set them
-              yourself, put each letter on its own line above its paragraph.
-            </p>
-          )}
-        </div>
+
+      {missing.length > 0 && (
+        <p className="mt-3 text-xs font-semibold text-destructive">
+          {missing.length === 1 ? `Answer ${missing[0]} isn't` : `Answers ${missing.join(", ")} aren't`} in this list yet — students can't see what{" "}
+          {missing.length === 1 ? "it means" : "they mean"}.
+        </p>
       )}
     </div>
   );
+}
+
+/** Read-only paragraph letters under a block of Matching Information questions. */
+function ParagraphList({ passage: p }: { passage: StudioPassage }) {
+  const parsed = parsePassageText(p.text);
+  const paragraphs = paragraphOptions(parsed);
+  const labelled = parsed.labels?.some(Boolean);
+  return (
+    <div className="mt-4 rounded-xl border border-border bg-muted/30 p-4">
+      <p className="text-sm font-bold">Paragraphs</p>
+      {!labelled && (
+        <p className="mb-2 text-xs text-muted-foreground">
+          No paragraph letters in the passage text, so they're lettered in order. To set them yourself, put each letter on its own line above
+          its paragraph.
+        </p>
+      )}
+      <ul className="mt-1 space-y-1 text-sm">
+        {paragraphs.map((o, i) => (
+          <li key={o.key} className="flex gap-2">
+            <span className="w-6 shrink-0 font-bold text-primary">{o.key}.</span>
+            <span className="truncate text-muted-foreground">{parsed.paragraphs[i]}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Consecutive questions of the same (effective) type, with their index in the passage. */
+function questionRuns(p: StudioPassage): { type: QuestionType; items: { q: StudioQuestion; qi: number }[] }[] {
+  const runs: { type: QuestionType; items: { q: StudioQuestion; qi: number }[] }[] = [];
+  p.questions.forEach((q, qi) => {
+    const type = q.type ?? p.questionType;
+    const last = runs.at(-1);
+    if (last && last.type === type) last.items.push({ q, qi });
+    else runs.push({ type, items: [{ q, qi }] });
+  });
+  return runs;
 }
 
 const READING_TYPES = Object.keys(QUESTION_TYPE_LABEL) as QuestionType[];
@@ -132,6 +243,8 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
         const patchQ = (qid: string, np: Partial<StudioQuestion>) =>
           setP(idx, { questions: p.questions.map((q) => (q.id === qid ? { ...q, ...np } : q)) });
         const toGenerate = genCount[p.id] ?? GENERATE_DEFAULT;
+        // Questions are numbered across the whole exam, as on the paper.
+        const offset = passages.slice(0, idx).reduce((n, x) => n + x.questions.length, 0);
         const fillDisabled = p.questionType === "multi-select";
 
         return (
@@ -244,8 +357,6 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
               </Field>
             </div>
 
-            <MatchingLegend passage={p} onOptions={(options) => setP(idx, { options })} />
-
             {/* questions */}
             <div className="mt-5">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -262,8 +373,13 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                           passageText: p.text,
                           questionType: p.questionType,
                           count: toGenerate,
+                          options: aiListFor(p.questionType, p),
                         });
-                        setP(idx, { questions: [...p.questions, ...res.questions.map(withId)] });
+                        setP(idx, {
+                          questions: [...p.questions, ...res.questions.map(withId)],
+                          // Matching: the AI completed the list first; keep it with the questions it answers.
+                          ...(res.options?.length && AUTHORED_OPTION_TYPES.has(p.questionType) ? { options: res.options } : {}),
+                        });
                       } catch {
                         setP(idx, { questions: [...p.questions, ...aiQuestions(p.questionType, toGenerate)] });
                       } finally {
@@ -280,7 +396,7 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                       try {
                         const res = await api.ai.studioFill({
                           passageText: p.text,
-                          questions: p.questions.map((q) => ({ prompt: q.prompt, type: q.type ?? p.questionType, options: q.options, answer: q.answer, wordLimit: q.wordLimit })),
+                          questions: p.questions.map((q) => ({ prompt: q.prompt, type: q.type ?? p.questionType, options: aiListFor(q.type ?? p.questionType, p) ?? q.options, answer: q.answer, wordLimit: q.wordLimit })),
                         });
                         const filled = res.questions;
                         setP(idx, {
@@ -301,19 +417,61 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
               {p.questions.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">No questions yet.</p>
               ) : (
-                <div className="space-y-3">
-                  {p.questions.map((q, qi) => (
-                    <QuestionRow
-                      key={q.id}
-                      q={q}
-                      n={qi + 1}
-                      inheritType={p.questionType}
-                      typeOptions={READING_TYPES}
-                      matchOptionsFor={(t) => matchingOptionsFor(t, p)}
-                      onChange={(np) => patchQ(q.id, np)}
-                      onDelete={() => setP(idx, { questions: p.questions.filter((x) => x.id !== q.id) })}
-                    />
-                  ))}
+                <div className="space-y-4">
+                  {/* One block per run of same-type questions, laid out like the paper:
+                      "Questions 32–36 / instruction / questions / Sentence endings A–H". */}
+                  {questionRuns(p).map((run) => {
+                    const first = offset + run.items[0].qi + 1;
+                    const last = offset + run.items[run.items.length - 1].qi + 1;
+                    const opts = matchingOptionsFor(run.type, p);
+                    return (
+                      <div key={run.items[0].q.id} className="rounded-xl border border-border p-4">
+                        <p className="text-sm font-bold">
+                          {first === last ? `Question ${first}` : `Questions ${first}–${last}`}
+                          <span className="font-semibold text-muted-foreground"> · {QUESTION_TYPE_LABEL[run.type]}</span>
+                        </p>
+                        <p className="mb-3 mt-0.5 text-sm italic text-muted-foreground">
+                          {matchingInstructions(run.type, opts) ?? readingInstructions(run.type)}
+                        </p>
+                        <div className="space-y-3">
+                          {run.items.map(({ q, qi }) => (
+                            <QuestionRow
+                              key={q.id}
+                              q={q}
+                              n={offset + qi + 1}
+                              inheritType={p.questionType}
+                              typeOptions={READING_TYPES}
+                              matchOptionsFor={(t) => matchingOptionsFor(t, p)}
+                              onChange={(np) => patchQ(q.id, np)}
+                              onDelete={() => setP(idx, { questions: p.questions.filter((x) => x.id !== q.id) })}
+                            />
+                          ))}
+                        </div>
+                        {AUTHORED_OPTION_TYPES.has(run.type) && (
+                          <OptionListEditor
+                            type={run.type}
+                            passage={p}
+                            answers={p.questions.filter((x) => (x.type ?? p.questionType) === run.type).map((x) => x.answer)}
+                            onOptions={(options) => setP(idx, { options })}
+                            filling={busy[`opt:${p.id}`]}
+                            onFillWithAi={async (options) => {
+                              setB(`opt:${p.id}`, true);
+                              try {
+                                // count 0: only write the empty rows of the list.
+                                const res = await api.ai.studioGenerate({ passageText: p.text, questionType: run.type, count: 0, options });
+                                if (res.options?.length) setP(idx, { options: res.options });
+                              } catch (err) {
+                                toast.error(err instanceof ApiError ? err.message : "AI is unavailable right now — type the list yourself.");
+                              } finally {
+                                setB(`opt:${p.id}`, false);
+                              }
+                            }}
+                          />
+                        )}
+                        {PARAGRAPH_OPTION_TYPES.has(run.type) && <ParagraphList passage={p} />}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

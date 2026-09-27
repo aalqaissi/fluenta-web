@@ -14,7 +14,7 @@ import type {
 } from "@/mock/types";
 import { QUESTION_TYPE_LABEL, writingTasks } from "@/mock/data";
 import { studioStore, type StudioExam, type ChartType, type Formality } from "./store";
-import { parsePassageText, studentOptionsFor, paragraphOptions, PARAGRAPH_OPTION_TYPES } from "./passageText";
+import { parsePassageText, studentOptionsFor, paragraphOptions, matchingInstructions, PARAGRAPH_OPTION_TYPES } from "./passageText";
 
 /**
  * Convert an admin-authored Studio reading exam into the shape the student
@@ -25,7 +25,7 @@ import { parsePassageText, studentOptionsFor, paragraphOptions, PARAGRAPH_OPTION
 const LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
 const TEXT_TYPES = new Set(["sentence-completion", "summary-completion", "short-answer", "diagram-label"]);
 
-function readingInstructions(type: QuestionType): string {
+export function readingInstructions(type: QuestionType): string {
   switch (type) {
     case "true-false-notgiven":
       return "Do the following statements agree with the information in the passage? Choose True, False or Not Given.";
@@ -92,6 +92,8 @@ export function studioReadingToExam(e: StudioExam): ReadingExam {
       const first = g.questions[0].number;
       const lastN = g.questions[g.questions.length - 1].number;
       g.rangeLabel = first === lastN ? `Question ${first}` : `Questions ${first}–${lastN}`;
+      // Matching groups name their letter range ("…with the correct ending, A–H."), as on the paper.
+      g.instructions = matchingInstructions(g.type, g.sharedOptions) ?? g.instructions;
     }
 
     return {

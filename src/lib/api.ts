@@ -313,11 +313,13 @@ export interface AiStudioQuestion {
   answer: string;
   wordLimit?: number;
 }
-export interface AiStudioGenerateRequest { passageText: string; questionType: string; count: number; }
+/** `options`: matching types' lettered list as it stands (blank entries are written by the AI); `count` 0 only completes it. */
+export interface AiStudioGenerateRequest { passageText: string; questionType: string; count: number; options?: string[]; }
 export interface AiStudioFillRequest { passageText: string; questions: AiStudioQuestion[]; }
 export interface AiStudioImage { base64: string; mediaType: string; }
 export interface AiStudioExtractRequest { images: AiStudioImage[]; hint?: string; }
-export interface AiStudioQuestionsReply { questions: AiStudioQuestion[]; }
+/** `options`: the completed lettered list, for matching types. */
+export interface AiStudioQuestionsReply { questions: AiStudioQuestion[]; options?: string[] | null; }
 export interface AiStudioExtractResult { passageText: string; questions: AiStudioQuestion[]; }
 export interface AiSpeakingCriterion { key: string; label: string; band: number; note: string; }
 export interface AiSpeakingPartResult { number: number; transcript: string; note?: string; }
