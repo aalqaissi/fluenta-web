@@ -139,12 +139,25 @@ export interface WritingAnnotation {
   note: string;
 }
 
+/** A Yalla teaching-strategy note — separate from the IELTS criteria, never changes a band. */
+export interface CoachingNote {
+  key: string;
+  title: string;
+  status: "good" | "improve" | "tip";
+  note: string;
+}
+
 export interface WritingResult {
+  /** estimated band = mean of the four criteria (not an official IELTS result) */
   overall: number;
   wordCount: number;
   criteria: WritingCriterion[];
   answer: string;
   annotations: WritingAnnotation[];
+  taskType?: "academic-t1" | "general-t1" | "task2";
+  /** Task 2 only — identified before structural feedback */
+  essayType?: string | null;
+  coaching?: CoachingNote[];
 }
 
 // ---- Listening / Speaking ---------------------------------------

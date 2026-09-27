@@ -281,8 +281,9 @@ export function LiveInterviewPage() {
       {stage === "ended" ? (
         <Card className="p-5">
           <h3 className="flex items-center gap-2 text-base font-bold">
-            <Sparkles className="size-4 text-primary" /> Interview feedback · overall band {formatBand(overall)}
+            <Sparkles className="size-4 text-primary" /> Interview feedback · estimated band {formatBand(overall)}
           </h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">Estimated IELTS band — not an official IELTS/Cambridge result.</p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {criteria.map((f) => (
               <div key={f.key} className="rounded-xl border border-border p-3.5">

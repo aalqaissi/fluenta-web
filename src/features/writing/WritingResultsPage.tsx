@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Bot, Sparkles } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Bot, CheckCircle2, GraduationCap, Lightbulb, Sparkles } from "lucide-react";
 import { sampleWritingResult } from "@/mock/data";
 import { resolveWritingTask } from "@/features/studio/convert";
 import { getLastWriting } from "@/store/attempt-store";
 import type { AiWritingResult } from "@/lib/api";
-import type { WritingCriterionKey } from "@/mock/types";
+import type { CoachingNote, WritingCriterionKey } from "@/mock/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,54 @@ const critBar: Record<WritingCriterionKey, string> = {
   lexical: "bg-secondary",
   grammar: "bg-destructive",
 };
+
+const ESSAY_TYPE_LABEL: Record<string, string> = {
+  opinion: "Opinion (agree / disagree)",
+  extent: "Opinion (to what extent)",
+  discussion: "Discussion (both views)",
+  "adv-disadv": "Advantages & disadvantages",
+  outweigh: "Advantages outweigh disadvantages",
+  "problem-solution": "Problems & solutions",
+  "cause-solution": "Causes & solutions",
+  "two-part": "Two-part question",
+  other: "Other / mixed",
+};
+
+const STATUS_META: Record<CoachingNote["status"], { label: string; Icon: typeof CheckCircle2; tone: string }> = {
+  good: { label: "Working well", Icon: CheckCircle2, tone: "text-success" },
+  improve: { label: "To improve", Icon: AlertTriangle, tone: "text-destructive" },
+  tip: { label: "Strategy tip", Icon: Lightbulb, tone: "text-primary" },
+};
+
+/** The Yalla teaching layer — shown apart from the IELTS criteria because it never changes a band. */
+function CoachingCard({ notes }: { notes: CoachingNote[] }) {
+  return (
+    <Card className="mt-4 p-5">
+      <h3 className="flex items-center gap-2 text-base font-bold">
+        <GraduationCap className="size-5 text-primary" /> Yalla strategy coaching
+      </h3>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        Teaching recommendations from the Yalla method — they don't change your IELTS criterion bands.
+      </p>
+      <ul className="mt-3 space-y-3">
+        {notes.map((n) => {
+          const meta = STATUS_META[n.status] ?? STATUS_META.tip;
+          return (
+            <li key={n.key} className="rounded-xl border border-border p-3.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold">{n.title}</span>
+                <span className={cn("flex shrink-0 items-center gap-1 text-[11px] font-bold uppercase tracking-wide", meta.tone)}>
+                  <meta.Icon className="size-3.5" /> {meta.label}
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{n.note}</p>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
+  );
+}
 
 export function WritingResultsPage() {
   const navigate = useNavigate();
@@ -52,7 +100,7 @@ export function WritingResultsPage() {
       <Card className="mb-6 p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-5">
-            <ProgressRing value={(result.overall / 9) * 100} size={104} stroke={10} label={formatBand(result.overall)} sublabel="overall" />
+            <ProgressRing value={(result.overall / 9) * 100} size={104} stroke={10} label={formatBand(result.overall)} sublabel="estimated" />
             <div>
               <Badge variant="info" className="mb-1">
                 <Sparkles className="size-3" /> AI feedback · Task {task.taskNumber}
@@ -60,6 +108,10 @@ export function WritingResultsPage() {
               </Badge>
               <h1 className="text-2xl font-extrabold">Your writing, reviewed</h1>
               <p className="text-sm text-muted-foreground">{wordCount} words · scored across all four criteria.</p>
+              <p className="text-xs font-semibold text-muted-foreground">Estimated IELTS band — not an official IELTS/Cambridge result.</p>
+              {result.essayType && (
+                <Badge variant="muted" className="mt-1.5">Essay type: {ESSAY_TYPE_LABEL[result.essayType] ?? result.essayType}</Badge>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -131,6 +183,8 @@ export function WritingResultsPage() {
               ))}
             </div>
           </Card>
+
+          {!!result.coaching?.length && <CoachingCard notes={result.coaching} />}
 
           <Card className="mt-4 overflow-hidden border-0 bg-warm-gradient p-5 text-white">
             <h3 className="flex items-center gap-2 text-base font-bold">

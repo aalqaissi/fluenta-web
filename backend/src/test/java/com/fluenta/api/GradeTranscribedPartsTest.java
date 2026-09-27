@@ -44,6 +44,23 @@ class GradeTranscribedPartsTest {
     }
 
     @Test
+    void overallIsTheEquallyWeightedMeanNotTheModelsNumber() {
+        when(ai.complete(anyString(), anyString())).thenReturn("""
+            {"overall": 9,
+             "criteria": [
+               {"key":"fluency","band":6,"note":"a"},{"key":"lexical","band":6,"note":"b"},
+               {"key":"grammar","band":6,"note":"c"},{"key":"pronunciation","band":7,"note":"d"}]}""");
+        var r = svc.gradeTranscribedParts("u1", "x", "PART 1\n", List.of(new SpeakingPartResult(1, "hi", "")), true);
+        assertThat(r.overall()).isEqualTo(6.5);                  // (6+6+6+7)/4 = 6.25 → 6.5 (IELTS rounding)
+    }
+
+    @Test
+    void gradingPromptProtectsAccentAndNamesTheFocus() {
+        assertThat(SpeakingFeedbackService.GRADE_SYSTEM)
+                .contains("Do NOT penalise").contains("accent").contains("intelligibility").contains("equally weighted");
+    }
+
+    @Test
     void offlineUsesTheStubGrader() {
         var parts = List.of(new SpeakingPartResult(1, "hello", ""));
         var r = svc.gradeTranscribedParts("u1", "live-interview", "PART 1\n", parts, false);

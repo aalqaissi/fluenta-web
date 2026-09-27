@@ -38,12 +38,13 @@ export function SpeakingResultsPage() {
       <Card className="mb-6 p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-5">
-            <ProgressRing value={(attempt.overall / 9) * 100} size={104} stroke={10} label={formatBand(attempt.overall)} sublabel="overall" />
+            <ProgressRing value={(attempt.overall / 9) * 100} size={104} stroke={10} label={formatBand(attempt.overall)} sublabel="estimated" />
             <div>
               <Badge variant="success" className="mb-1">
                 <Sparkles className="size-3" /> Graded by AI
               </Badge>
               <h1 className="text-2xl font-extrabold">Your speaking, reviewed</h1>
+              <p className="text-xs font-semibold text-muted-foreground">Estimated IELTS band — not an official IELTS/Cambridge result.</p>
               <p className="text-sm text-muted-foreground">
                 {exam?.parts.length ?? 3} parts · {attempt.partsRecorded} recorded · scored across all four criteria.
               </p>

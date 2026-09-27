@@ -71,6 +71,50 @@ class WritingFeedbackServiceTest {
         assertThat(r.annotations()).extracting(AiDtos.WritingAnnotation::id).containsExactly("a1");
     }
 
+    private WritingFeedbackService liveWith(com.fluenta.api.service.grader.WritingGrader g) {
+        var props = new AiProperties(true, "sk-test", "claude-sonnet-5", "medium", 60, 12000, 5000000, false, "anthropic", "", 8192);
+        return new WritingFeedbackService(props, new StubWritingGrader(),
+                new com.fluenta.api.service.grader.ClaudeWritingGrader(null, null) {
+                    @Override public AiDtos.WritingResult grade(AiDtos.WritingFeedbackRequest r) { return g.grade(r); }
+                }, null, null);
+    }
+
+    private static List<AiDtos.WritingCriterion> bands(double t, double c, double l, double g) {
+        return List.of(new AiDtos.WritingCriterion("task", "x", t, "s"), new AiDtos.WritingCriterion("coherence", "x", c, "s"),
+                new AiDtos.WritingCriterion("lexical", "x", l, "s"), new AiDtos.WritingCriterion("grammar", "x", g, "s"));
+    }
+
+    @Test
+    void task2UsesTaskResponseCriteriaMeanOverallAndClassifierFallback() {
+        var svc = liveWith(rq -> new AiDtos.WritingResult(null, "ai", 9.0, 0, rq.essay(), bands(6, 7, 6, 6), List.of(),
+                "task2", "haiku", List.of(
+                        new AiDtos.CoachingNote("peel", null, "improve", "Body 2 lacks an example."),
+                        new AiDtos.CoachingNote("made-up", null, "improve", "dropped"),
+                        new AiDtos.CoachingNote("shopping-list", null, "weird", "dropped: bad status"))));
+        var r = svc.generate("u1", new AiDtos.WritingFeedbackRequest("w1", 2, "Essay", "academic",
+                "Some say X. Do you agree or disagree?", 250, "An essay."));
+        assertThat(r.criteria().get(0).label()).isEqualTo("Task Response");
+        assertThat(r.overall()).isEqualTo(6.5);                    // mean 6.25 → 6.5, not the model's 9.0
+        assertThat(r.taskType()).isEqualTo("task2");
+        assertThat(r.essayType()).isEqualTo("opinion");            // unknown model type → classifier
+        assertThat(r.coaching()).singleElement().satisfies(n -> {
+            assertThat(n.key()).isEqualTo("peel");
+            assertThat(n.title()).isEqualTo("PEEL paragraph development");
+        });
+    }
+
+    @Test
+    void task1HasAchievementLabelNoEssayTypeAndCoachingFallback() {
+        var svc = liveWith(rq -> new AiDtos.WritingResult(null, "ai", 6, 0, rq.essay(), bands(6, 6, 6, 6), List.of()));
+        var r = svc.generate("u1", new AiDtos.WritingFeedbackRequest("w1", 1, "Report", "academic",
+                "The chart shows...", 150, "The chart shows sales. Sales rose."));
+        assertThat(r.criteria().get(0).label()).isEqualTo("Task Achievement");
+        assertThat(r.taskType()).isEqualTo("academic-t1");
+        assertThat(r.essayType()).isNull();
+        assertThat(r.coaching()).isNotEmpty();                    // offline heuristics fill the Yalla layer
+        assertThat(r.coaching()).extracting(AiDtos.CoachingNote::key).contains("overview");
+    }
+
     @Test
     void rejectsBlankAndOversizeEssays() {
         var service = new WritingFeedbackService(offline(), new StubWritingGrader(), null, null, null);

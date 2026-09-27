@@ -135,6 +135,6 @@ class LiveInterviewServiceTest {
                         new SpeakingPartResult(3, "technology helps", "")));
         var r = svc.grade("u1", req);
         assertThat(r.criteria()).hasSize(4);
-        assertThat(r.overall()).isEqualTo(6.5);
+        assertThat(r.overall()).isEqualTo(6.0);   // equally weighted mean 6.125 → 6.0, not the model's 6.5
     }
 }
