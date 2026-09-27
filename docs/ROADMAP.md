@@ -3,7 +3,7 @@
 A living checklist of deferred / held work. **Pick items by priority and I'll build them.**
 Priority column: fill with P0/P1/P2 (or leave blank). Status: ☐ pending · ◐ in progress · ☑ done.
 
-_Last updated 2026-09-12._
+_Last updated 2026-09-27._
 
 ## Held this stage (by decision)
 
@@ -41,10 +41,17 @@ _IELTS Preparation is the active track. The switcher shows the others as "coming
 |  | ☑ | Real audio capture for Speaking | Delivered with Speaking feedback: web MediaRecorder, mobile record package. |
 |  | ☐ | Postgres migration option | SQLite now; JPA makes the swap a config change. |
 |  | ☐ | **Backend server can't bind on this machine** — Java NIO loopback blocked by a local proxy | Not a code bug. Verified via MockMvc + verify profile. Run via Docker/WSL/another host or allow `java.exe` loopback. See `backend/README.md`. |
+|  | ☐ | **Backend tests share the dev SQLite DB** — `AdminUsersContractTest` fails as users accumulate | Give tests an isolated DB file. |
 |  | ☐ | Code-split the FE bundle (currently one >500 kB chunk) | Vite warns; not urgent. |
 |  | ☑ | **Pluggable AI providers** | Config-selectable LLM (Anthropic, or any OpenAI-compatible provider incl. Gemini) and STT (OpenAI or Groq); generic key names; default (Claude + OpenAI Whisper) unchanged. |
 
 ## Done (recent)
+
+- ☑ **Owner "IELTS Assessment & Exam Specifications" (2026-09-27)** — delivered in four parts (specs in `docs/superpowers/specs/2026-09-27-ielts-spec-*`):
+  - **A · Scoring integrity** — answer-key marking only; completion/short-answer word limits enforced (over-limit = wrong); accepted spelling variants + "(optional)" words in the key (Studio "Also accept"); same rule on server, web and mobile.
+  - **B · AI assessment rules** — separate Academic T1 / GT T1 / Task 2 grading (Task Achievement vs Task Response, GT register + bullets, essay type identified first, opinion-vs-discussion flagged); Yalla coaching (overview opening, PEEL, two-idea max, shopping-list trap) shown separately and never changes bands; "Estimated" bands; speaking criteria focus + no accent penalty; examiner part timings.
+  - **C · Practice vs Full Exam mode** — stored on attempts; practice = optional timer + replay; exam = official timing + auto-submit (reading 60 min, listening once + 2-min check, writing 20/40 min, speaking 1-min Part 2 prep / 2-min turn); full exam in fixed order with Writing Task 1 + Task 2 (Task 2 counts double).
+  - **D · Content generation** — Academic vs General Training passages written separately ("Write passage with AI"), TFNG vs YNNG definitions, note/table/flow-chart/form completion, full-mock checks (13+13+14, 4×10).
 
 - ☑ Spring Boot (Java 21) + SQLite backend; FE wired to the API.
 - ☑ Rebrand → **Yalla English Hub**.
