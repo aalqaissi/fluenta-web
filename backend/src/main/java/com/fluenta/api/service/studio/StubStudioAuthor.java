@@ -1,6 +1,7 @@
 package com.fluenta.api.service.studio;
 
 import com.fluenta.api.dto.AiDtos.StudioExtractResult;
+import com.fluenta.api.dto.AiDtos.StudioPassageReply;
 import com.fluenta.api.dto.AiDtos.StudioQuestionDto;
 import org.springframework.stereotype.Component;
 
@@ -70,6 +71,15 @@ public class StubStudioAuthor {
             out.add(new StudioQuestionDto(q.prompt(), q.type(), q.options(), answer, q.wordLimit(), q.accepted()));
         }
         return out;
+    }
+
+    /** Offline placeholder passage that states the section brief, so authors see what to write. */
+    public StudioPassageReply passage(String module, Integer section, String topic) {
+        String brief = ContentRules.passageBrief(module, section);
+        String subject = topic == null || topic.isBlank() ? "your chosen topic" : topic.trim();
+        return new StudioPassageReply("Draft passage (offline placeholder)",
+                "A. This is an offline placeholder passage about " + subject + ". Connect the AI service to write it.\n\n"
+                        + "B. Brief it will follow: " + brief);
     }
 
     public StudioExtractResult extract() {

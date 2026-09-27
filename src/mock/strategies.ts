@@ -128,6 +128,46 @@ export const STRATEGIES: Record<QuestionType, Strategy> = {
       "Copy exactly from the passage.",
     ],
   },
+  "note-completion": {
+    intro: "Fill gaps in a set of notes using words from the text or recording, within the word limit.",
+    videoLength: "3 min",
+    tips: [
+      "Use the note headings to find the right part of the text.",
+      "Predict the kind of word each gap needs (noun, number, adjective).",
+      "Keep within the word limit — extra words make the answer wrong.",
+      "Check spelling: a misspelt answer is marked wrong.",
+    ],
+  },
+  "table-completion": {
+    intro: "Complete a table by reading across rows and down columns to see what each gap needs.",
+    videoLength: "3 min",
+    tips: [
+      "Read the column and row headings before you start.",
+      "Answers usually follow the order of the text.",
+      "Notice units and plurals in the table.",
+      "Respect the word/number limit exactly.",
+    ],
+  },
+  "flow-chart-completion": {
+    intro: "Complete the stages of a process shown as a flow-chart, in the order the text describes them.",
+    videoLength: "3 min",
+    tips: [
+      "Follow the arrows — the stages match the order in the text.",
+      "Look for sequence signals: first, then, after that, finally.",
+      "Use words from the text; don't change their form.",
+      "Keep within the word limit.",
+    ],
+  },
+  "form-completion": {
+    intro: "Complete a form (names, dates, addresses, numbers) — common in Listening Part 1.",
+    videoLength: "3 min",
+    tips: [
+      "Read the form first so you know what details are coming.",
+      "Listen for spelled-out names and numbers — write them carefully.",
+      "Speakers often correct themselves: write the final answer.",
+      "Check the word/number limit for each gap.",
+    ],
+  },
 };
 
 /** Build a practice set (list of groups) for a reading question type from the bank. */

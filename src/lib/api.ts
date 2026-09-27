@@ -318,7 +318,13 @@ export interface AiStudioQuestion {
   accepted?: string[];
 }
 /** `options`: matching types' lettered list as it stands (blank entries are written by the AI); `count` 0 only completes it. */
-export interface AiStudioGenerateRequest { passageText: string; questionType: string; count: number; options?: string[]; }
+export interface AiStudioGenerateRequest {
+  passageText: string; questionType: string; count: number; options?: string[];
+  /** generation context: Academic and General Training reading are generated separately */
+  module?: string; section?: number; skill?: "reading" | "listening";
+}
+export interface AiStudioPassageRequest { module: string; section: number; topic?: string; }
+export interface AiStudioPassageReply { title: string; text: string; }
 export interface AiStudioFillRequest { passageText: string; questions: AiStudioQuestion[]; }
 export interface AiStudioImage { base64: string; mediaType: string; }
 export interface AiStudioExtractRequest { images: AiStudioImage[]; hint?: string; }
@@ -451,6 +457,7 @@ export const api = {
         request<AiSpeakingResult>("POST", "/ai/live-interview/grade", req),
     },
     studioGenerate: (req: AiStudioGenerateRequest) => request<AiStudioQuestionsReply>("POST", "/ai/studio-generate", req),
+    studioPassage: (req: AiStudioPassageRequest) => request<AiStudioPassageReply>("POST", "/ai/studio-passage", req),
     studioFill: (req: AiStudioFillRequest) => request<AiStudioQuestionsReply>("POST", "/ai/studio-fill", req),
     studioExtract: (req: AiStudioExtractRequest) => request<AiStudioExtractResult>("POST", "/ai/studio-extract", req),
   },

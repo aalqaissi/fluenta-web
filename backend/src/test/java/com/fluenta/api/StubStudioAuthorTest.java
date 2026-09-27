@@ -51,4 +51,11 @@ class StubStudioAuthorTest {
         assertThat(r.passageText()).isNotBlank();
         assertThat(r.questions()).isNotEmpty();
     }
+
+    @Test
+    void offlinePassageStatesTheSectionBrief() {
+        var r = stub.passage("general", 1, "library");
+        assertThat(r.text()).contains("library").contains("notices");
+        assertThat(r.title()).isNotBlank();
+    }
 }

@@ -57,6 +57,38 @@ class StudioAiServiceTest {
     }
 
     @Test
+    void generatePromptCarriesModuleContextAndTfngYnngDefinitions() {
+        when(ai.complete(anyString(), anyString())).thenReturn("{\"questions\":[]}");
+        studio.generate(new StudioGenerateRequest("Some passage", "yes-no-notgiven", 2, null, "general", 2, "reading"));
+        var system = org.mockito.ArgumentCaptor.forClass(String.class);
+        var user = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(ai).complete(system.capture(), user.capture());
+        assertThat(system.getValue()).containsIgnoringCase("writer's views").containsIgnoringCase("factual information").contains("outside knowledge");
+        assertThat(user.getValue()).contains("General Training").contains("workplace");
+    }
+
+    @Test
+    void newCompletionTypesNormaliseWithWordLimits() {
+        when(ai.complete(anyString(), anyString())).thenReturn("""
+            {"questions":[{"prompt":"Stage 2: the leaves are ___","type":"flow-chart-completion","answer":"dried"},
+                          {"prompt":"Name: ___","type":"form-completion","answer":"Jones"}]}""");
+        var r = studio.generate(new StudioGenerateRequest("Some passage", "note-completion", 2));
+        assertThat(r.questions()).extracting(StudioQuestionDto::type).containsExactly("flow-chart-completion", "form-completion");
+        assertThat(r.questions()).allSatisfy(q -> assertThat(q.wordLimit()).isNotNull());
+    }
+
+    @Test
+    void passageFollowsTheModuleBrief() {
+        when(ai.complete(anyString(), anyString())).thenReturn("{\"title\":\"Staff canteen rules\",\"text\":\"A. The canteen opens at 8.\"}");
+        var r = studio.passage(new StudioPassageRequest("general", 2, "canteen"));
+        assertThat(r.title()).isEqualTo("Staff canteen rules");
+        assertThat(r.text()).contains("canteen");
+        var user = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(ai).complete(anyString(), user.capture());
+        assertThat(user.getValue()).contains("workplace").contains("NOT a simplified Academic passage").contains("canteen");
+    }
+
+    @Test
     void fillReturnsAnswersForEachQuestion() {
         when(ai.complete(anyString(), anyString())).thenReturn(
             "{\"questions\":[{\"prompt\":\"Q1\",\"type\":\"true-false-notgiven\",\"answer\":\"false\"}]}");

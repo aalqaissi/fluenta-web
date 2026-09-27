@@ -7,14 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { QUESTION_TYPE_LABEL } from "@/mock/data";
 import type { QuestionOption, QuestionType } from "@/mock/types";
 import type { StudioQuestion } from "./store";
-import { answerMatches } from "@/lib/answerMatch";
+import { answerMatches, TEXT_ANSWER_TYPES } from "@/lib/answerMatch";
 
 const LETTERS = ["A", "B", "C", "D", "E"];
 const CHOICE_ANSWERS: Partial<Record<QuestionType, string[]>> = {
   "true-false-notgiven": ["TRUE", "FALSE", "NOT GIVEN"],
   "yes-no-notgiven": ["YES", "NO", "NOT GIVEN"],
 };
-const TEXT_TYPES = new Set<QuestionType>(["sentence-completion", "summary-completion", "diagram-label", "short-answer"]);
+const TEXT_TYPES = TEXT_ANSWER_TYPES;
 
 /**
  * A single authored question, rendered with the fields appropriate to its

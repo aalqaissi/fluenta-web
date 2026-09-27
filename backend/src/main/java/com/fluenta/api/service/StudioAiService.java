@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fluenta.api.config.AiProperties;
 import com.fluenta.api.dto.AiDtos.*;
+import com.fluenta.api.service.studio.ContentRules;
 import com.fluenta.api.service.studio.StubStudioAuthor;
 import com.fluenta.api.web.ApiException;
 import org.springframework.stereotype.Service;
@@ -19,9 +20,21 @@ public class StudioAiService {
     private static final Set<String> TYPES = Set.of(
             "true-false-notgiven", "yes-no-notgiven", "multiple-choice", "multi-select",
             "matching-information", "matching-headings", "matching-features", "matching-sentence-endings",
-            "sentence-completion", "summary-completion", "diagram-label", "short-answer");
+            "sentence-completion", "summary-completion", "diagram-label", "short-answer",
+            "note-completion", "table-completion", "flow-chart-completion", "form-completion");
     private static final Set<String> TEXT_TYPES = Set.of(
-            "sentence-completion", "summary-completion", "diagram-label", "short-answer");
+            "sentence-completion", "summary-completion", "diagram-label", "short-answer",
+            "note-completion", "table-completion", "flow-chart-completion", "form-completion");
+
+    /** Shared item-writing rules (owner spec §2): TFNG and YNNG test different things; the text is the only source. */
+    private static final String ITEM_RULES = """
+        TRUE/FALSE/NOT GIVEN tests FACTUAL information: TRUE = the statement agrees with the information in the text;
+        FALSE = it contradicts the information; NOT GIVEN = the text gives no information to confirm or contradict it.
+        YES/NO/NOT GIVEN tests the WRITER'S VIEWS or claims: YES = it agrees with the writer's view/claim; NO = it
+        contradicts the writer's view/claim; NOT GIVEN = the writer's position on that point cannot be established.
+        Keep the two task types distinct and decide every answer ONLY from the text — never from outside knowledge,
+        assumptions, probability or common sense. Completion answers (sentence/summary/note/table/flow-chart/form/
+        diagram-label/short-answer) must be words copied from the text and must fit the word limit.""";
 
     private static final String GEN_SYSTEM = """
         You are an IELTS item writer. Write questions grounded ONLY in the given passage. Return ONLY a JSON
@@ -30,7 +43,13 @@ public class StudioAiService {
         give 5 options (A-E); for true-false-notgiven answer TRUE/FALSE/NOT GIVEN; for yes-no-notgiven answer
         YES/NO/NOT GIVEN; for completion/short-answer answer the exact words from the passage within the word limit, and list in
         "accepted" any other answers that must also be marked correct (British/American spellings, digits vs words,
-        e.g. "4"/"four"); mark words a candidate may omit with parentheses, e.g. "(the) library". No prose, no fences.""";
+        e.g. "4"/"four"); mark words a candidate may omit with parentheses, e.g. "(the) library". No prose, no fences.
+        """ + ITEM_RULES;
+    private static final String PASSAGE_SYSTEM = """
+        You are an IELTS reading-content writer for Yalla English Hub. Write ONE original reading text that follows
+        the BRIEF exactly (source type, purpose, register, length and paragraph labels). Do not copy published
+        IELTS material. Return ONLY a JSON object {"title":string,"text":string}; separate paragraphs in "text" with
+        a blank line. No prose, no fences.""";
     /** Matching types answered from a lettered list stored on the passage. */
     private static final Set<String> LIST_TYPES = Set.of(
             "matching-headings", "matching-features", "matching-sentence-endings", "matching-information");
@@ -50,7 +69,8 @@ public class StudioAiService {
     private static final String FILL_SYSTEM = """
         You are an IELTS examiner. For each question (prompt + type + options), return the correct answer grounded in
         the passage, preserving prompt/type/options and order. Return ONLY {"questions":[...]} with the same shape as
-        the input plus a correct "answer" per the type's convention (letter for choice; TRUE/FALSE/NOT GIVEN etc.). No prose.""";
+        the input plus a correct "answer" per the type's convention (letter for choice; TRUE/FALSE/NOT GIVEN etc.). No prose.
+        """ + ITEM_RULES;
     private static final String EXTRACT_SYSTEM = """
         You read an uploaded image for an IELTS author. If it is a reading passage or question sheet, transcribe the
         passage into "passageText" and structure its questions. If it is a chart/graph/diagram/map/process, write a
@@ -73,8 +93,30 @@ public class StudioAiService {
         if (LIST_TYPES.contains(type)) return generateMatching(req, passage, type);
         int count = clamp(req.count() == null ? 2 : req.count(), 1, 20);
         if (!props.live()) return new StudioQuestionsReply(stub.generate(type, count));
-        String user = "QUESTION TYPE: " + type + "\nCOUNT: " + count + "\nPASSAGE:\n" + passage;
+        String user = contextLine(req) + "QUESTION TYPE: " + type + "\nCOUNT: " + count + "\nPASSAGE:\n" + passage;
         return new StudioQuestionsReply(normalize(readQuestions(parse(ai.complete(GEN_SYSTEM, user))), type));
+    }
+
+    /** Module/section/part context (Academic vs General Training are generated separately). */
+    private static String contextLine(StudioGenerateRequest req) {
+        String c = ContentRules.context(req.skill(), req.module(), req.section());
+        return c.isEmpty() ? "" : "CONTEXT: " + c + "\n";
+    }
+
+    /** Write a reading passage following the owner spec's module/section brief. */
+    public StudioPassageReply passage(StudioPassageRequest req) {
+        String module = req.module() == null ? "academic" : req.module();
+        String topic = req.topic() == null ? "" : req.topic().trim();
+        if (topic.length() > 200) throw ApiException.badRequest("Topic is too long");
+        if (!props.live()) return stub.passage(module, req.section(), topic);
+        String user = "BRIEF: " + ContentRules.passageBrief(module, req.section())
+                + (topic.isEmpty() ? "" : "\nTOPIC: " + topic);
+        JsonNode node = parse(ai.complete(PASSAGE_SYSTEM, user));
+        String text = node.path("text").asText("").trim();
+        if (text.isEmpty()) throw new ApiException(org.springframework.http.HttpStatus.BAD_GATEWAY, "The AI returned an empty passage.");
+        if (text.length() > props.maxEssayChars()) text = text.substring(0, props.maxEssayChars());
+        String title = node.path("title").asText("").trim();
+        return new StudioPassageReply(title.isEmpty() ? "Untitled passage" : title, text);
     }
 
     /**
@@ -96,7 +138,7 @@ public class StudioAiService {
         for (int i = 0; i < given.size(); i++) {
             list.append((char) ('A' + i)).append(". ").append(given.get(i).isEmpty() ? "(write this one)" : given.get(i)).append('\n');
         }
-        String user = "QUESTION TYPE: " + type + "\nCOUNT: " + count + "\nLIST:\n" + list + "PASSAGE:\n" + passage;
+        String user = contextLine(req) + "QUESTION TYPE: " + type + "\nCOUNT: " + count + "\nLIST:\n" + list + "PASSAGE:\n" + passage;
         JsonNode node = parse(ai.complete(MATCH_SYSTEM, user));
 
         // Gate: same length as asked, admin entries win, blanks the model skipped get a placeholder.
