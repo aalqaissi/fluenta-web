@@ -51,10 +51,18 @@ public final class AiDtos {
     public record LiveInterviewGradeRequest(String examId, List<SpeakingPartResult> parts) {}
 
     /** {@code accepted}: extra answer-key variants for text answers (spellings, "(optional)" words). */
+    /**
+     * {@code choose}: for multi-select, how many letters are correct ("Choose TWO" = 2, "Choose THREE" = 3);
+     * {@code answer} then holds that many letters, comma-separated ("A,C").
+     */
     public record StudioQuestionDto(String prompt, String type, List<String> options, String answer, Integer wordLimit,
-                                    List<String> accepted) {
+                                    List<String> accepted, Integer choose) {
+        public StudioQuestionDto(String prompt, String type, List<String> options, String answer, Integer wordLimit,
+                                 List<String> accepted) {
+            this(prompt, type, options, answer, wordLimit, accepted, null);
+        }
         public StudioQuestionDto(String prompt, String type, List<String> options, String answer, Integer wordLimit) {
-            this(prompt, type, options, answer, wordLimit, null);
+            this(prompt, type, options, answer, wordLimit, null, null);
         }
     }
     /**
@@ -67,7 +75,11 @@ public final class AiDtos {
      * separately), {@code section} the passage/part number, {@code skill} reading|listening.
      */
     public record StudioGenerateRequest(String passageText, String questionType, Integer count, List<String> options,
-                                        String module, Integer section, String skill) {
+                                        String module, Integer section, String skill, Integer choose) {
+        public StudioGenerateRequest(String passageText, String questionType, Integer count, List<String> options,
+                                     String module, Integer section, String skill) {
+            this(passageText, questionType, count, options, module, section, skill, null);
+        }
         public StudioGenerateRequest(String passageText, String questionType, Integer count, List<String> options) {
             this(passageText, questionType, count, options, null, null, null);
         }

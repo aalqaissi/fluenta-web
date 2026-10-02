@@ -35,6 +35,34 @@ public class StubStudioAuthor {
         return out;
     }
 
+    /** "A,B" / "A,B,C": the first {@code choose} letters. */
+    private static String firstLetters(int choose) {
+        return randomLetters(choose >= 3 ? 3 : 2, choose >= 3 ? 7 : 5);
+    }
+
+    /** {@code n} distinct random letters among the first {@code of}, sorted ("B,E") — never always A,B. */
+    private static String randomLetters(int n, int of) {
+        List<String> all = new ArrayList<>();
+        for (int i = 0; i < of; i++) all.add(String.valueOf((char) ('A' + i)));
+        java.util.Collections.shuffle(all, java.util.concurrent.ThreadLocalRandom.current());
+        List<String> picked = new ArrayList<>(all.subList(0, n));
+        java.util.Collections.sort(picked);
+        return String.join(",", picked);
+    }
+
+    /** Placeholder "Choose TWO/THREE" questions: 5 options (7 for THREE), the first N letters correct. */
+    public List<StudioQuestionDto> multiSelect(int count, int choose) {
+        List<StudioQuestionDto> out = new ArrayList<>();
+        int size = choose >= 3 ? 7 : 5;
+        for (int i = 0; i < count; i++) {
+            out.add(new StudioQuestionDto(
+                    i == 0 ? "AI-generated question about the content." : "Another AI-generated question.",
+                    "multi-select", new ArrayList<>(java.util.Collections.nCopies(size, "")), firstLetters(choose),
+                    null, null, choose >= 3 ? 3 : 2));
+        }
+        return out;
+    }
+
     private static String optionNoun(String type) {
         if ("matching-sentence-endings".equals(type)) return "ending";
         if ("matching-headings".equals(type)) return "heading";
@@ -67,8 +95,11 @@ public class StubStudioAuthor {
         List<StudioQuestionDto> out = new ArrayList<>();
         for (StudioQuestionDto q : questions) {
             String type = q.type() != null ? q.type() : fallbackType;
-            String answer = (q.answer() != null && !q.answer().isBlank()) ? q.answer() : defaultAnswerFor(type);
-            out.add(new StudioQuestionDto(q.prompt(), q.type(), q.options(), answer, q.wordLimit(), q.accepted()));
+            boolean blank = q.answer() == null || q.answer().isBlank();
+            String answer = !blank ? q.answer()
+                    : "multi-select".equals(type) ? firstLetters(q.choose() == null ? 2 : q.choose())
+                    : defaultAnswerFor(type);
+            out.add(new StudioQuestionDto(q.prompt(), q.type(), q.options(), answer, q.wordLimit(), q.accepted(), q.choose()));
         }
         return out;
     }

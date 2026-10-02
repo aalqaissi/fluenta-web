@@ -1,3 +1,4 @@
+import { questionSlots } from "@/lib/answerMatch";
 import { useNavigate } from "react-router-dom";
 import { ModeLaunch } from "@/features/exam-runner/ModeLaunch";
 import { Headphones, Clock, ListChecks, Play, Shuffle } from "lucide-react";
@@ -21,7 +22,7 @@ interface ListeningItem {
 }
 const toItem = (dto: ExamDto): ListeningItem => ({ id: dto.id, module: dto.module, exam: listeningFromDto(dto) });
 
-const questionCount = (e: ListeningExam) => e.sections.reduce((n, s) => n + s.group.questions.length, 0);
+const questionCount = (e: ListeningExam) => e.sections.reduce((n, s) => n + s.group.questions.reduce((k, q) => k + questionSlots(q), 0), 0);
 const moduleLabel = (m: ExamDto["module"]) => (m === "general" ? "General" : m === "both" ? "Academic & General" : "Academic");
 
 export function ListeningPage() {

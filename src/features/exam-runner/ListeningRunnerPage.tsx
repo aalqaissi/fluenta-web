@@ -1,3 +1,4 @@
+import { answeredSlots, questionSlots } from "@/lib/answerMatch";
 import { useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -64,10 +65,11 @@ function ListeningRunner({ exam }: { exam: ListeningExam }) {
   const section = exam.sections[sIdx];
   const last = exam.sections.length - 1;
   const totalQ = useMemo(
-    () => exam.sections.reduce((n, s) => n + s.group.questions.length, 0),
+    () => exam.sections.reduce((n, s) => n + s.group.questions.reduce((k, q) => k + questionSlots(q), 0), 0),
     [exam]
   );
-  const answered = Object.values(answers).filter((v) => v.trim()).length;
+  // Question numbers answered (a Choose TWO counts its picked letters).
+  const answered = exam.sections.reduce((n, s) => n + s.group.questions.reduce((k, q) => k + answeredSlots(answers[q.id], q), 0), 0);
   const listeningPhase = isExam && phase === "listening";
 
   const timer = useRunnerTimer({
@@ -170,7 +172,7 @@ function ListeningRunner({ exam }: { exam: ListeningExam }) {
           </span>
           <h2 className="text-base font-bold">Part {section.number}</h2>
           <Badge variant="outline">{section.difficulty}</Badge>
-          <Badge variant="muted">{section.group.questions.length} questions</Badge>
+          <Badge variant="muted">{section.group.questions.reduce((k, q) => k + questionSlots(q), 0)} questions</Badge>
           <span className="w-full text-sm text-muted-foreground sm:w-auto">{section.context}</span>
         </div>
 

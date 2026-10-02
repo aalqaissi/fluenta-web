@@ -9,7 +9,8 @@
     "build:app": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "seed:export": "node scripts/export-seed.mjs"
+    "seed:export": "node scripts/export-seed.mjs",
+    "test:answers": "node scripts/check-answer-vectors.mjs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.0",

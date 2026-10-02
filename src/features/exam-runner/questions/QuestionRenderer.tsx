@@ -5,7 +5,7 @@ import { optionListTitle } from "@/features/studio/passageText";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { isQuestionCorrect, TEXT_ANSWER_TYPES } from "@/lib/answerMatch";
+import { answerLetters, isQuestionCorrect, questionMarks, TEXT_ANSWER_TYPES } from "@/lib/answerMatch";
 
 interface Props {
   group: QuestionGroup;
@@ -59,6 +59,9 @@ export function QuestionRenderer({ group, answers, setAnswer, review }: Props) {
           const qType = q.type ?? group.type;
           const pillOptions = qType === "yes-no-notgiven" ? YNNG : TFNG;
           const listOptions = q.options ?? mcOptions[q.id] ?? [];
+          // "Choose TWO/THREE": several letters, worth (and numbered as) that many questions.
+          const pick = qType === "multi-select" ? (q.marks ?? Math.max(1, answerLetters(q.correct).length)) : 1;
+          const marks = review && pick > 1 ? questionMarks(val, q, group.type) : undefined;
 
           return (
             <li
@@ -75,14 +78,19 @@ export function QuestionRenderer({ group, answers, setAnswer, review }: Props) {
               <div className="flex gap-3">
                 <span
                   className={cn(
-                    "grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold",
+                    "grid h-6 min-w-6 shrink-0 place-items-center rounded-full px-1.5 text-xs font-bold",
                     review ? (correct ? "bg-success text-white" : "bg-destructive text-white") : "bg-primary/10 text-primary"
                   )}
                 >
-                  {review ? correct ? <Check className="size-3.5" /> : <X className="size-3.5" /> : q.number}
+                  {review ? correct ? <Check className="size-3.5" /> : <X className="size-3.5" /> : pick > 1 ? `${q.number}–${q.number + pick - 1}` : q.number}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium leading-relaxed">{q.prompt}</p>
+                  {pick > 1 && (
+                    <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Choose {pick === 3 ? "THREE" : "TWO"} letters
+                    </p>
+                  )}
                   {q.wordLimit && (
                     <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                       {q.wordLimit}
@@ -93,7 +101,10 @@ export function QuestionRenderer({ group, answers, setAnswer, review }: Props) {
                     {CHOICE_TYPES.has(qType) && (
                       <ChoicePills options={pillOptions} value={val} onChange={(v) => setAnswer(q.id, v)} disabled={review} />
                     )}
-                    {LIST_TYPES.has(qType) && (
+                    {LIST_TYPES.has(qType) && pick > 1 && (
+                      <MultiChoiceList options={listOptions} max={pick} value={val} onChange={(v) => setAnswer(q.id, v)} disabled={review} />
+                    )}
+                    {LIST_TYPES.has(qType) && pick === 1 && (
                       <ChoiceList options={listOptions} value={val} onChange={(v) => setAnswer(q.id, v)} disabled={review} />
                     )}
                     {SELECT_TYPES.has(qType) && (
@@ -124,7 +135,10 @@ export function QuestionRenderer({ group, answers, setAnswer, review }: Props) {
                   </div>
 
                   {review && !correct && (
-                    <p className="mt-2 text-xs font-semibold text-success">Correct answer: {q.correct}</p>
+                    <p className="mt-2 text-xs font-semibold text-success">
+                      Correct answer{pick > 1 ? "s" : ""}: {pick > 1 ? answerLetters(q.correct).join(", ") : q.correct}
+                      {marks && <span className="ml-2 text-muted-foreground">({marks.earned} of {marks.total} marks)</span>}
+                    </p>
                   )}
                 </div>
               </div>
@@ -164,6 +178,61 @@ function ChoicePills({
           {o.text}
         </button>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Checkbox list for "Choose TWO/THREE": at most `max` letters; the answer is the picked letters,
+ * sorted and comma-separated ("A,C").
+ */
+function MultiChoiceList({
+  options,
+  max,
+  value,
+  onChange,
+  disabled,
+}: {
+  options: QuestionOption[];
+  max: number;
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  const picked = answerLetters(value);
+  const full = picked.length >= max;
+  const toggle = (k: string) =>
+    onChange((picked.includes(k) ? picked.filter((x) => x !== k) : full ? picked : [...picked, k]).sort().join(","));
+  return (
+    <div className="space-y-2">
+      {options.map((o) => {
+        const on = picked.includes(o.key);
+        return (
+          <button
+            key={o.key}
+            role="checkbox"
+            aria-checked={on}
+            disabled={disabled || (full && !on)}
+            onClick={() => toggle(o.key)}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left text-sm transition-all disabled:cursor-default",
+              on ? "border-primary bg-primary/[0.06]" : "border-border bg-surface hover:bg-muted",
+              full && !on && !disabled && "opacity-50",
+            )}
+          >
+            <span
+              className={cn(
+                "grid size-6 shrink-0 place-items-center rounded-md border text-xs font-bold",
+                on ? "border-primary bg-primary text-primary-foreground" : "border-border",
+              )}
+            >
+              {o.key}
+            </span>
+            <span>{o.text}</span>
+          </button>
+        );
+      })}
+      <p className="text-xs text-muted-foreground">{picked.length} of {max} chosen</p>
     </div>
   );
 }

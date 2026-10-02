@@ -40,7 +40,11 @@ public class StudioAiService {
         You are an IELTS item writer. Write questions grounded ONLY in the given passage. Return ONLY a JSON
         object {"questions":[{"prompt":string,"type":string,"options":[string]?,"answer":string,"wordLimit":number?,"accepted":[string]?}]}.
         Use the requested question type. For multiple-choice give 4 options and answer a letter A-D; for multi-select
-        give 5 options (A-E); for true-false-notgiven answer TRUE/FALSE/NOT GIVEN; for yes-no-notgiven answer
+        ("Choose TWO/THREE") write each question as ONE item with 5 options (7 when CHOOSE is 3) and answer exactly
+        CHOOSE different letters, comma-separated (e.g. "A,C"): the letters of the options the passage states or
+        clearly supports — check each one against the text; every other option must be plausible but wrong
+        according to the passage — COUNT is the number of such items, so return COUNT
+        of them; for true-false-notgiven answer TRUE/FALSE/NOT GIVEN; for yes-no-notgiven answer
         YES/NO/NOT GIVEN; for completion/short-answer answer the exact words from the passage within the word limit, and list in
         "accepted" any other answers that must also be marked correct (British/American spellings, digits vs words,
         e.g. "4"/"four"); mark words a candidate may omit with parentheses, e.g. "(the) library". No prose, no fences.
@@ -92,9 +96,77 @@ public class StudioAiService {
         String type = (req.questionType() != null && TYPES.contains(req.questionType())) ? req.questionType() : "short-answer";
         if (LIST_TYPES.contains(type)) return generateMatching(req, passage, type);
         int count = clamp(req.count() == null ? 2 : req.count(), 1, 20);
+        if (MULTI_SELECT.equals(type)) {
+            int choose = chooseOf(req.choose(), null);
+            if (!props.live()) return new StudioQuestionsReply(stub.multiSelect(count, choose));
+            String user = contextLine(req) + "QUESTION TYPE: " + type + "\nCHOOSE: " + choose + "\nCOUNT: " + count
+                    + "\nPASSAGE:\n" + passage;
+            List<StudioQuestionDto> qs = new ArrayList<>();
+            for (StudioQuestionDto q : readQuestions(parse(ai.complete(GEN_SYSTEM, user)))) {
+                if (qs.size() >= count) break;
+                if (q.prompt() == null || q.prompt().isBlank()) continue;
+                qs.add(shuffleOptions(multiSelect(q.prompt(), q.options(), q.answer(), choose)));
+            }
+            return new StudioQuestionsReply(qs);
+        }
         if (!props.live()) return new StudioQuestionsReply(stub.generate(type, count));
         String user = contextLine(req) + "QUESTION TYPE: " + type + "\nCOUNT: " + count + "\nPASSAGE:\n" + passage;
-        return new StudioQuestionsReply(normalize(readQuestions(parse(ai.complete(GEN_SYSTEM, user))), type));
+        List<StudioQuestionDto> qs = new ArrayList<>();
+        for (StudioQuestionDto q : normalize(readQuestions(parse(ai.complete(GEN_SYSTEM, user))), type)) {
+            qs.add("multiple-choice".equals(q.type()) ? shuffleOptions(q) : q);
+        }
+        return new StudioQuestionsReply(qs);
+    }
+
+    /**
+     * Models tend to write the correct option(s) first, so generated answers would cluster on A / A,B.
+     * Shuffle the options and carry each correct letter with its text — the key stays right, its
+     * position becomes random. Only for freshly generated questions (an admin's own options are kept).
+     */
+    StudioQuestionDto shuffleOptions(StudioQuestionDto q) {
+        List<String> opts = q.options();
+        if (opts == null || opts.size() < 2) return q;
+        List<Integer> order = new ArrayList<>();
+        for (int i = 0; i < opts.size(); i++) order.add(i);
+        java.util.Collections.shuffle(order, java.util.concurrent.ThreadLocalRandom.current());
+        Set<String> correct = AnswerMatcher.letters(q.answer());
+        List<String> shuffled = new ArrayList<>();
+        List<String> answer = new ArrayList<>();
+        for (int i = 0; i < order.size(); i++) {
+            int from = order.get(i);
+            shuffled.add(opts.get(from));
+            if (correct.contains(String.valueOf((char) ('A' + from)))) answer.add(String.valueOf((char) ('A' + i)));
+        }
+        java.util.Collections.sort(answer);
+        return new StudioQuestionDto(q.prompt(), q.type(), shuffled, String.join(",", answer), q.wordLimit(), q.accepted(), q.choose());
+    }
+
+    // --- multi-select ("Choose TWO/THREE"): one question, several correct letters ---
+
+    private static final String MULTI_SELECT = AnswerMatcher.MULTI_SELECT;
+    private static final int MS_MAX_OPTIONS = 8;
+
+    /** 2 or 3: the requested count, else inferred from how many letters the answer already has. */
+    private static int chooseOf(Integer requested, String answer) {
+        if (requested != null) return requested >= 3 ? 3 : 2;
+        return answer != null && AnswerMatcher.letters(answer).size() >= 3 ? 3 : 2;
+    }
+
+    /**
+     * Gate for one multi-select question: options padded to 5 (7 for choose THREE, at most 8); the answer
+     * keeps the first {@code choose} distinct letters that exist among the options, sorted ("C, a" → "A,C").
+     * Fewer valid letters than asked stay as they are — the Studio flags it for the admin.
+     */
+    private StudioQuestionDto multiSelect(String prompt, List<String> options, String answer, int choose) {
+        List<String> opts = new ArrayList<>(options == null ? List.of() : options);
+        int size = Math.min(MS_MAX_OPTIONS, Math.max(choose == 3 ? 7 : 5, opts.size()));
+        opts = pad(opts, size);
+        List<String> picked = new ArrayList<>();
+        for (String l : AnswerMatcher.letters(answer)) {
+            if (picked.size() < choose && l.charAt(0) - 'A' < size) picked.add(l);
+        }
+        java.util.Collections.sort(picked);
+        return new StudioQuestionDto(prompt, MULTI_SELECT, opts, String.join(",", picked), null, null, choose);
     }
 
     /** Module/section/part context (Academic vs General Training are generated separately). */
@@ -182,8 +254,13 @@ public class StudioAiService {
         List<StudioQuestionDto> gated = new ArrayList<>();
         for (int i = 0; i < out.size(); i++) {
             StudioQuestionDto q = out.get(i);
-            List<String> list = i < qs.size() ? qs.get(i).options() : null;
-            if (LIST_TYPES.contains(q.type()) && list != null && !list.isEmpty()) {
+            StudioQuestionDto input = i < qs.size() ? qs.get(i) : null;
+            List<String> list = input != null ? input.options() : null;
+            if (MULTI_SELECT.equals(q.type())) {
+                // Answer with the question's own choose count, against the options the admin wrote.
+                int choose = chooseOf(input != null ? input.choose() : null, q.answer());
+                q = multiSelect(q.prompt(), list != null ? list : q.options(), q.answer(), choose);
+            } else if (LIST_TYPES.contains(q.type()) && list != null && !list.isEmpty()) {
                 q = new StudioQuestionDto(q.prompt(), q.type(), null,
                         letterInRange(q.answer(), Math.min(list.size(), MAX_OPTIONS)), q.wordLimit(), null);
             }
@@ -238,6 +315,10 @@ public class StudioAiService {
         for (StudioQuestionDto q : raw) {
             if (q.prompt() == null || q.prompt().isBlank()) continue;
             String type = (q.type() != null && TYPES.contains(q.type())) ? q.type() : fallbackType;
+            if (MULTI_SELECT.equals(type)) {
+                out.add(multiSelect(q.prompt(), q.options(), q.answer(), chooseOf(q.choose(), q.answer())));
+                continue;
+            }
             List<String> options = null;
             if ("multiple-choice".equals(type)) options = pad(q.options(), 4);
             else if ("multi-select".equals(type)) options = pad(q.options(), 5);

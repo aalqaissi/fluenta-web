@@ -1,3 +1,4 @@
+import { questionSlots } from "@/lib/answerMatch";
 import { useState } from "react";
 import { ModeLaunch } from "@/features/exam-runner/ModeLaunch";
 import { useNavigate } from "react-router-dom";
@@ -26,7 +27,7 @@ interface ReadingItem {
 const toItem = (dto: ExamDto): ReadingItem => ({ id: dto.id, module: dto.module, exam: readingFromDto(dto) });
 
 const moduleLabel = (m: ExamDto["module"]) => (m === "general" ? "General Training" : m === "both" ? "Academic & General" : "Academic");
-const questionCount = (e: ReadingExam) => e.passages.reduce((n, p) => n + p.groups.reduce((m, g) => m + g.questions.length, 0), 0);
+const questionCount = (e: ReadingExam) => e.passages.reduce((n, p) => n + p.groups.reduce((m, g) => m + g.questions.reduce((k, q) => k + questionSlots(q), 0), 0), 0);
 
 export function ReadingHub() {
   const navigate = useNavigate();

@@ -1,5 +1,5 @@
 import { delay } from "./utils";
-import { isQuestionCorrect } from "./answerMatch";
+import { questionMarks } from "./answerMatch";
 import { readingExam } from "@/mock/passages";
 import { listeningExam } from "@/mock/listening";
 import { sampleWritingResult, speakingParts, sampleSpeakingFeedback } from "@/mock/data";
@@ -53,14 +53,15 @@ export async function runAiGrading(onProgress: (pct: number, label: string) => v
   }
 }
 
-/** Count correct/total across a set of question groups (skill-agnostic). */
+/** Count marks earned/available across question groups (a "Choose TWO" is worth 2). */
 export function scoreGroups(groups: QuestionGroup[], answers: Record<string, string>) {
   let correct = 0;
   let total = 0;
   for (const g of groups) {
     for (const q of g.questions) {
-      total++;
-      if (isQuestionCorrect(answers[q.id], q, g.type)) correct++;
+      const m = questionMarks(answers[q.id], q, g.type);
+      correct += m.earned;
+      total += m.total;
     }
   }
   return { correct, total };

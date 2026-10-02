@@ -1,3 +1,4 @@
+import { answeredSlots, questionSlots } from "@/lib/answerMatch";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -45,10 +46,11 @@ function ReadingRunner({ exam }: { exam: ReadingExam }) {
 
   const passage = exam.passages[pIdx];
   const totalQ = useMemo(
-    () => exam.passages.reduce((n, p) => n + p.groups.reduce((m, g) => m + g.questions.length, 0), 0),
+    () => exam.passages.reduce((n, p) => n + p.groups.reduce((m, g) => m + g.questions.reduce((k, q) => k + questionSlots(q), 0), 0), 0),
     [exam]
   );
-  const answered = Object.values(answers).filter((v) => v.trim()).length;
+  // Question numbers answered (a Choose TWO counts its picked letters).
+  const answered = exam.passages.reduce((n, p) => n + p.groups.reduce((m, g) => m + g.questions.reduce((k, q) => k + answeredSlots(answers[q.id], q), 0), 0), 0);
 
   // Full Exam: the IELTS 60-minute limit, mandatory, auto-submit (no transfer time).
   // Practice: optional timer using the authored time limit.

@@ -1,0 +1,18 @@
+[
+  {"note": "choose two, both right", "type": "multi-select", "answer": "A,C", "given": "A,C", "earned": 2, "total": 2},
+  {"note": "choose two, any order", "type": "multi-select", "answer": "A,C", "given": "C,A", "earned": 2, "total": 2},
+  {"note": "choose two, one right", "type": "multi-select", "answer": "A,C", "given": "A,D", "earned": 1, "total": 2},
+  {"note": "choose two, second letter right", "type": "multi-select", "answer": "A,C", "given": "C,D", "earned": 1, "total": 2},
+  {"note": "choose two, none right", "type": "multi-select", "answer": "A,C", "given": "B,D", "earned": 0, "total": 2},
+  {"note": "choose two, only one picked", "type": "multi-select", "answer": "A,C", "given": "C", "earned": 1, "total": 2},
+  {"note": "choose two, nothing picked", "type": "multi-select", "answer": "A,C", "given": "", "earned": 0, "total": 2},
+  {"note": "choose two, too many picked earns nothing", "type": "multi-select", "answer": "A,C", "given": "A,B,C", "earned": 0, "total": 2},
+  {"note": "duplicate letters count once", "type": "multi-select", "answer": "A,C", "given": "A,A", "earned": 1, "total": 2},
+  {"note": "lower case + spaces", "type": "multi-select", "answer": "B, E", "given": " e , b ", "earned": 2, "total": 2},
+  {"note": "choose three", "type": "multi-select", "answer": "A,D,F", "given": "F,D,B", "earned": 2, "total": 3},
+  {"note": "legacy one-letter multi-select row", "type": "multi-select", "answer": "B", "given": "B", "earned": 1, "total": 1},
+  {"note": "single choice unchanged", "type": "multiple-choice", "answer": "B", "given": "b", "earned": 1, "total": 1},
+  {"note": "single choice wrong", "type": "multiple-choice", "answer": "B", "given": "C", "earned": 0, "total": 1},
+  {"note": "text type unchanged", "type": "sentence-completion", "answer": "library", "wordLimit": 1, "given": "the library", "earned": 0, "total": 1},
+  {"note": "no type unchanged", "answer": "TRUE", "given": "true", "earned": 1, "total": 1}
+]
