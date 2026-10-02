@@ -12,7 +12,7 @@ import { QuestionRenderer } from "@/features/exam-runner/questions/QuestionRende
 import { QUESTION_TYPE_LABEL } from "@/mock/data";
 import type { Passage, QuestionGroup, QuestionType } from "@/mock/types";
 import { cn, formatBand } from "@/lib/utils";
-import { isQuestionCorrect } from "@/lib/answerMatch";
+import { questionMarks } from "@/lib/answerMatch";
 
 interface Section {
   passage: Passage;
@@ -55,11 +55,10 @@ export function QuestionTypePracticePage() {
   const [activeColor, setActiveColor] = useState<string | null>(null);
 
   const allQuestions = sections.flatMap((s) => s.groups.flatMap((g) => g.questions));
-  const total = allQuestions.length;
   const answered = allQuestions.filter((q) => (answers[q.id] ?? "").trim()).length;
-  const correct = sections
-    .flatMap((s) => s.groups.flatMap((g) => g.questions.map((q) => isQuestionCorrect(answers[q.id], q, g.type))))
-    .filter(Boolean).length;
+  const marks = sections.flatMap((s) => s.groups.flatMap((g) => g.questions.map((q) => questionMarks(answers[q.id], q, g.type))));
+  const total = marks.reduce((n, m) => n + m.total, 0);
+  const correct = marks.reduce((n, m) => n + m.earned, 0);
   const pct = total ? Math.round((correct / total) * 100) : 0;
   const band = pct >= 90 ? 8.5 : pct >= 75 ? 7.5 : pct >= 60 ? 6.5 : pct >= 40 ? 5.5 : 4.5;
 

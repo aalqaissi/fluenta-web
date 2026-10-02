@@ -49,6 +49,18 @@ class ScoringServiceTest {
     }
 
     @Test
+    void chooseTwoEarnsOneMarkPerCorrectLetterAndCountsAsTwo() throws Exception {
+        JsonNode exam = new ObjectMapper().readTree("""
+            {"passages":[{"questionType":"multi-select","questions":[
+              {"id":"m1","answer":"A,C","options":["a","b","c","d","e"]},
+              {"id":"t1","type":"true-false-notgiven","answer":"TRUE"}
+            ]}]}""");
+        var s = scoring.score("reading", exam, Map.of("m1", "C,D", "t1", "true"));
+        assertThat(s.total()).isEqualTo(3);     // 2 marks for the choose-TWO + 1 for TFNG
+        assertThat(s.correct()).isEqualTo(2);   // C right, D wrong; TFNG right
+    }
+
+    @Test
     void answerKeyMapIsUnchanged() throws Exception {
         assertThat(scoring.answerKey(studio())).containsEntry("q2", "colour").hasSize(4);
     }

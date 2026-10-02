@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { QUESTION_TYPE_LABEL } from "@/mock/data";
 import type { QuestionOption, QuestionType } from "@/mock/types";
 import type { StudioQuestion } from "./store";
-import { answerMatches, TEXT_ANSWER_TYPES } from "@/lib/answerMatch";
+import { answerLetters, answerMatches, TEXT_ANSWER_TYPES } from "@/lib/answerMatch";
+import { cn } from "@/lib/utils";
 
-const LETTERS = ["A", "B", "C", "D", "E"];
+const LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+
+/** How many letters a multi-select question asks for: its `choose`, else inferred from its answer (2 or 3). */
+export function chooseCount(q: { choose?: number; answer?: string }): 2 | 3 {
+  if (q.choose) return q.choose >= 3 ? 3 : 2;
+  return answerLetters(q.answer).length >= 3 ? 3 : 2;
+}
+
+/** How many question numbers (and marks) a question takes — a "Choose TWO" takes 2. */
+export function questionSpan(q: { type?: QuestionType; choose?: number; answer?: string }, inheritType: QuestionType): number {
+  return (q.type ?? inheritType) === "multi-select" ? chooseCount(q) : 1;
+}
 const CHOICE_ANSWERS: Partial<Record<QuestionType, string[]>> = {
   "true-false-notgiven": ["TRUE", "FALSE", "NOT GIVEN"],
   "yes-no-notgiven": ["YES", "NO", "NOT GIVEN"],
@@ -74,8 +86,17 @@ export function QuestionRow({
   const isMS = type === "multi-select";
   const isChoice = type === "true-false-notgiven" || type === "yes-no-notgiven";
   const isText = TEXT_TYPES.has(type);
-  const optCount = isMS ? 5 : 4;
+  // Multi-select ("Choose TWO/THREE"): one question with `choose` correct letters among 5 (or 7) options.
+  const choose = chooseCount(q);
+  const optCount = isMS ? Math.min(LETTERS.length, Math.max(choose === 3 ? 7 : 5, q.options?.length ?? 0)) : 4;
   const options = Array.from({ length: optCount }, (_, i) => q.options?.[i] ?? "");
+  const picked = answerLetters(q.answer).filter((l) => LETTERS.indexOf(l) < optCount);
+  const span = isMS ? choose : 1;
+
+  function togglePick(l: string) {
+    const next = picked.includes(l) ? picked.filter((x) => x !== l) : picked.length < choose ? [...picked, l] : picked;
+    onChange({ answer: [...next].sort().join(","), choose });
+  }
 
   function setOption(i: number, val: string) {
     const next = [...options];
@@ -86,7 +107,7 @@ export function QuestionRow({
   return (
     <Card className="p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <span className="text-sm font-bold">Question {n}</span>
+        <span className="text-sm font-bold">{span > 1 ? `Questions ${n}–${n + span - 1}` : `Question ${n}`}</span>
         <div className="flex items-center gap-2">
           <Select value={q.type ?? "default"} onValueChange={(v) => onChange({ type: v === "default" ? undefined : (v as QuestionType) })}>
             <SelectTrigger className="h-8 w-[190px] text-xs"><SelectValue /></SelectTrigger>
@@ -105,6 +126,27 @@ export function QuestionRow({
 
       <Input value={q.prompt} onChange={(e) => onChange({ prompt: e.target.value })} placeholder="Question text…" />
 
+      {isMS && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-sm font-semibold">Students choose</span>
+          <Select
+            value={String(choose)}
+            onValueChange={(v) => {
+              const c = v === "3" ? 3 : 2;
+              const opts = Array.from({ length: Math.max(c === 3 ? 7 : 5, q.options?.length ?? 0) }, (_, i) => q.options?.[i] ?? "");
+              onChange({ choose: c, options: opts, answer: picked.slice(0, c).join(",") });
+            }}
+          >
+            <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2">TWO letters</SelectItem>
+              <SelectItem value="3">THREE letters</SelectItem>
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground">Worth {choose} marks — one per correct letter, in any order.</span>
+        </div>
+      )}
+
       {(isMC || isMS) && (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {options.map((opt, i) => (
@@ -113,19 +155,43 @@ export function QuestionRow({
               <Input value={opt} onChange={(e) => setOption(i, e.target.value)} placeholder={`Option ${LETTERS[i]}`} />
             </div>
           ))}
+          {isMS && optCount < LETTERS.length && (
+            <Button variant="outline" size="sm" className="justify-self-start" onClick={() => onChange({ options: [...options, ""] })}>
+              <Plus className="size-4" /> Add option {LETTERS[optCount]}
+            </Button>
+          )}
         </div>
       )}
 
-      {isMS && (
-        <p className="mt-2 text-xs text-muted-foreground">
-          For a “choose TWO/THREE” question, add one row per correct letter — give each row the same question text and options, and pick that
-          row's own correct letter below.
-        </p>
-      )}
-
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <span className="text-sm font-semibold">Correct answer</span>
-        {isMC || isMS ? (
+        <span className="text-sm font-semibold">{isMS ? "Correct answers" : "Correct answer"}</span>
+        {isMS ? (
+          <>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Correct answers">
+              {LETTERS.slice(0, optCount).map((l) => {
+                const on = picked.includes(l);
+                return (
+                  <button
+                    key={l}
+                    type="button"
+                    role="checkbox"
+                    aria-checked={on}
+                    onClick={() => togglePick(l)}
+                    className={cn(
+                      "grid size-9 place-items-center rounded-lg border text-sm font-bold transition-colors",
+                      on ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-muted",
+                    )}
+                  >
+                    {l}
+                  </button>
+                );
+              })}
+            </div>
+            <span className={cn("text-xs font-semibold", picked.length === choose ? "text-success" : "text-destructive")}>
+              {picked.length === choose ? `${choose} correct letters set` : `Tick ${choose} correct letters (${picked.length}/${choose})`}
+            </span>
+          </>
+        ) : isMC ? (
           <Select value={q.answer || undefined} onValueChange={(v) => onChange({ answer: v })}>
             <SelectTrigger className="h-9 w-28"><SelectValue placeholder="Select" /></SelectTrigger>
             <SelectContent>
@@ -220,10 +286,47 @@ export function GenerateCountInput({ value, onChange }: { value: number; onChang
   );
 }
 
+/** Question numbers (= marks) a list of questions takes — what the IELTS 40-question totals count. */
+export function marksOf(questions: { type?: QuestionType; choose?: number; answer?: string }[], inheritType: QuestionType): number {
+  return questions.reduce((n, q) => n + questionSpan(q, inheritType), 0);
+}
+
+/** "7", or "6 · 7 marks" when a Choose TWO/THREE makes the marks differ from the question count. */
+export function questionsLabel(questions: { type?: QuestionType; choose?: number; answer?: string }[], inheritType: QuestionType): string {
+  const marks = marksOf(questions, inheritType);
+  return marks === questions.length ? String(marks) : `${questions.length} · ${marks} marks`;
+}
+
+/** Beside "Generate with AI" for multi-select: should each generated question be "Choose TWO" or "THREE"? */
+export function GenerateChooseSelect({ value, onChange }: { value: 2 | 3; onChange: (c: 2 | 3) => void }) {
+  return (
+    <Select value={String(value)} onValueChange={(v) => onChange(v === "3" ? 3 : 2)}>
+      <SelectTrigger className="h-9 w-36 text-xs" aria-label="Letters to choose in generated questions">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="2">Choose TWO</SelectItem>
+        <SelectItem value="3">Choose THREE</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+
+/** `n` distinct random letters among the first `of`, sorted ("B,E") — so placeholders aren't always A,B. */
+function randomLetters(n: number, of: number): string {
+  const all = LETTERS.slice(0, of);
+  for (let i = all.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [all[i], all[j]] = [all[j], all[i]];
+  }
+  return all.slice(0, n).sort().join(",");
+}
+
 export function defaultAnswerFor(type: QuestionType): string {
   if (type === "true-false-notgiven") return "TRUE";
   if (type === "yes-no-notgiven") return "YES";
-  if (type === "multiple-choice" || type === "multi-select" || type.startsWith("matching-")) return "A";
+  if (type === "multi-select") return randomLetters(2, 5);
+  if (type === "multiple-choice" || type.startsWith("matching-")) return "A";
   return "sample";
 }
 
@@ -237,5 +340,6 @@ export function aiQuestions(type: QuestionType, count = 2): StudioQuestion[] {
     answer: defaultAnswerFor(type),
     options: opts && [...opts],
     wordLimit: 2,
+    ...(type === "multi-select" ? { choose: 2 as const } : {}),
   }));
 }

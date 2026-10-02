@@ -10,7 +10,7 @@ import { ProgressRing } from "@/components/common/ProgressRing";
 import { QuestionRenderer } from "./questions/QuestionRenderer";
 import { EmptyState } from "@/components/common/EmptyState";
 import { bandTone, formatBand, pad2 } from "@/lib/utils";
-import { isQuestionCorrect } from "@/lib/answerMatch";
+import { questionMarks } from "@/lib/answerMatch";
 
 export function ListeningResultsPage() {
   const navigate = useNavigate();
@@ -39,10 +39,9 @@ export function ListeningResultsPage() {
 
   const perSection = exam
     ? exam.sections.map((s) => {
-        const total = s.group.questions.length;
-        const correct = s.group.questions.filter(
-          (q) => isQuestionCorrect(attempt.answers[q.id], q, s.group.type)
-        ).length;
+        const marks = s.group.questions.map((q) => questionMarks(attempt.answers[q.id], q, s.group.type));
+        const total = marks.reduce((n, m) => n + m.total, 0);
+        const correct = marks.reduce((n, m) => n + m.earned, 0);
         return { id: s.id, number: s.number, context: s.context, correct, total };
       })
     : [];

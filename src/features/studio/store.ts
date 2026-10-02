@@ -11,8 +11,10 @@ export interface StudioQuestion {
   answer: string;
   /** per-question type override; undefined = inherit the passage's question type */
   type?: QuestionType;
-  /** option texts for Multiple Choice (A–D) / Multi-Select (A–E) */
+  /** option texts for Multiple Choice (A–D) / Multi-Select (A–E, or A–G for THREE) */
   options?: string[];
+  /** Multi-Select: how many letters are correct ("Choose TWO" = 2, "Choose THREE" = 3); `answer` holds them as "A,C" */
+  choose?: 2 | 3;
   /** word limit for completion / short-answer types — an over-limit answer is marked wrong */
   wordLimit?: number;
   /** extra accepted answers for text types (spelling variants, "(optional)" words) */

@@ -11,7 +11,7 @@ import type { QuestionType } from "@/mock/types";
 import { toast } from "sonner";
 import { api, ApiError, type AiStudioQuestion } from "@/lib/api";
 import { MediaDrop, AiButton, Field } from "../components";
-import { QuestionRow, aiQuestions, defaultAnswerFor, GenerateCountInput, GENERATE_DEFAULT } from "../QuestionRow";
+import { QuestionRow, aiQuestions, defaultAnswerFor, GenerateCountInput, GenerateChooseSelect, GENERATE_DEFAULT, questionSpan, marksOf, questionsLabel } from "../QuestionRow";
 import { newPassage, newQuestion, type StudioExam, type StudioPassage, type StudioQuestion } from "../store";
 import { cn } from "@/lib/utils";
 import {
@@ -226,6 +226,7 @@ const withId = (q: AiStudioQuestion): StudioQuestion => ({
   options: q.options,
   wordLimit: q.wordLimit,
   accepted: q.accepted,
+  choose: q.choose === 3 ? 3 : q.choose === 2 ? 2 : undefined,
 });
 
 export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Partial<StudioExam>) => void }) {
@@ -234,6 +235,8 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
   const setB = (k: string, v: boolean) => setBusy((m) => ({ ...m, [k]: v }));
   // Per passage: how many questions the next "Generate with AI" adds (not saved with the exam).
   const [genCount, setGenCount] = useState<Record<string, number>>({});
+  // Per passage: "Choose TWO" or "THREE" for the next multi-select generation.
+  const [chooseFor, setChooseFor] = useState<Record<string, 2 | 3>>({});
   // Keyed by passage id so simultaneous "extract" cards each keep their own file input.
   const extractInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
@@ -242,7 +245,7 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
 
   return (
     <div className="space-y-5">
-      <FullMockCheck counts={passages.map((p) => p.questions.length)} target={READING_FULL} unit="Passage" />
+      <FullMockCheck counts={passages.map((p) => marksOf(p.questions, p.questionType))} target={READING_FULL} unit="Passage" />
       {exam.module === "both" && (
         <p className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
           Academic and General Training reading are written and stored separately — set the exam's module to Academic or General
@@ -254,8 +257,11 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
           setP(idx, { questions: p.questions.map((q) => (q.id === qid ? { ...q, ...np } : q)) });
         const toGenerate = genCount[p.id] ?? GENERATE_DEFAULT;
         // Questions are numbered across the whole exam, as on the paper.
-        const offset = passages.slice(0, idx).reduce((n, x) => n + x.questions.length, 0);
-        const fillDisabled = p.questionType === "multi-select";
+        const offset = passages.slice(0, idx).reduce((n, x) => n + x.questions.reduce((m, q) => m + questionSpan(q, x.questionType), 0), 0);
+        // First question number of each question (a "Choose TWO" takes two numbers).
+        const starts: number[] = [];
+        p.questions.reduce((k, q) => (starts.push(k + 1), k + questionSpan(q, p.questionType)), offset);
+        const genChoose = chooseFor[p.id] ?? 2;
 
         return (
           <Card key={p.id} className="p-5">
@@ -378,9 +384,12 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
             {/* questions */}
             <div className="mt-5">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-bold">Questions ({p.questions.length})</p>
+                <p className="text-sm font-bold">Questions ({questionsLabel(p.questions, p.questionType)})</p>
                 <div className="flex flex-wrap items-center gap-2">
                   <GenerateCountInput value={toGenerate} onChange={(n) => setGenCount((m) => ({ ...m, [p.id]: n }))} />
+                  {p.questionType === "multi-select" && (
+                    <GenerateChooseSelect value={genChoose} onChange={(c) => setChooseFor((m) => ({ ...m, [p.id]: c }))} />
+                  )}
                   <AiButton
                     label="Generate with AI"
                     loading={busy[`gen:${p.id}`]}
@@ -391,6 +400,7 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                           passageText: p.text,
                           questionType: p.questionType,
                           count: toGenerate,
+                          choose: p.questionType === "multi-select" ? genChoose : undefined,
                           options: aiListFor(p.questionType, p),
                           module: generationModule(exam.module),
                           section: idx + 1,
@@ -410,14 +420,13 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                   />
                   <AiButton
                     label="Fill Missing Answers with AI"
-                    disabled={fillDisabled}
                     loading={busy[`fill:${p.id}`]}
                     onClick={async () => {
                       setB(`fill:${p.id}`, true);
                       try {
                         const res = await api.ai.studioFill({
                           passageText: p.text,
-                          questions: p.questions.map((q) => ({ prompt: q.prompt, type: q.type ?? p.questionType, options: aiListFor(q.type ?? p.questionType, p) ?? q.options, answer: q.answer, wordLimit: q.wordLimit, accepted: q.accepted })),
+                          questions: p.questions.map((q) => ({ prompt: q.prompt, type: q.type ?? p.questionType, options: aiListFor(q.type ?? p.questionType, p) ?? q.options, answer: q.answer, wordLimit: q.wordLimit, accepted: q.accepted, choose: q.choose })),
                         });
                         const filled = res.questions;
                         setP(idx, {
@@ -442,8 +451,9 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                   {/* One block per run of same-type questions, laid out like the paper:
                       "Questions 32–36 / instruction / questions / Sentence endings A–H". */}
                   {questionRuns(p).map((run) => {
-                    const first = offset + run.items[0].qi + 1;
-                    const last = offset + run.items[run.items.length - 1].qi + 1;
+                    const lastQ = run.items[run.items.length - 1];
+                    const first = starts[run.items[0].qi];
+                    const last = starts[lastQ.qi] + questionSpan(lastQ.q, p.questionType) - 1;
                     const opts = matchingOptionsFor(run.type, p);
                     return (
                       <div key={run.items[0].q.id} className="rounded-xl border border-border p-4">
@@ -459,7 +469,7 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                             <QuestionRow
                               key={q.id}
                               q={q}
-                              n={offset + qi + 1}
+                              n={starts[qi]}
                               inheritType={p.questionType}
                               typeOptions={READING_TYPES}
                               matchOptionsFor={(t) => matchingOptionsFor(t, p)}

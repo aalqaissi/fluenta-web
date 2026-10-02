@@ -82,7 +82,44 @@ function expand(raw: string): string[] {
   return out;
 }
 
+export const MULTI_SELECT = "multi-select";
+
+/** "a, C" → ["A", "C"]: the distinct single letters of a multi-select answer, in order. */
+export function answerLetters(s: string | null | undefined): string[] {
+  const out: string[] = [];
+  for (const part of (s ?? "").split(/[^A-Za-z]+/)) {
+    const l = part.toUpperCase();
+    if (l.length === 1 && !out.includes(l)) out.push(l);
+  }
+  return out;
+}
+
+export interface Marks {
+  earned: number;
+  total: number;
+}
+
+/**
+ * Marks for one question. Multi-select ("Choose TWO/THREE") is worth one mark per correct letter, in
+ * any order — choosing more letters than asked earns nothing. Every other type is worth 1 mark when
+ * {@link answerMatches} holds. Mirrors `AnswerMatcher.marks` (pinned by answer-marks-vectors.json).
+ */
+export function answerMarks(given: string | null | undefined, key: AnswerKey): Marks {
+  if (key?.type === MULTI_SELECT) {
+    const correct = answerLetters(key.answer);
+    const picked = answerLetters(given);
+    const total = Math.max(1, correct.length);
+    if (picked.length > total) return { earned: 0, total };
+    return { earned: picked.filter((l) => correct.includes(l)).length, total };
+  }
+  return { earned: answerMatches(given, key) ? 1 : 0, total: 1 };
+}
+
 export function answerMatches(given: string | null | undefined, key: AnswerKey): boolean {
+  if (key?.type === MULTI_SELECT && answerLetters(key.answer).length > 1) {
+    const m = answerMarks(given, key);
+    return m.earned === m.total;
+  }
   const g = normalizeAnswer(given);
   if (!g || !key || key.answer == null) return false;
   if (gated(key.type) && !withinLimit(g, key.wordLimit)) return false;
@@ -97,4 +134,24 @@ export function isQuestionCorrect(
   groupType?: string,
 ): boolean {
   return answerMatches(given, { answer: q.correct, accepted: q.accepted, wordLimit: q.wordLimit, type: q.type ?? groupType });
+}
+
+/** Question numbers a runtime question takes — a "Choose TWO" takes 2, everything else 1. */
+export function questionSlots(q: { marks?: number }): number {
+  return q.marks && q.marks > 1 ? q.marks : 1;
+}
+
+/** How many of a question's numbers the student has answered (letters picked, for Choose TWO/THREE). */
+export function answeredSlots(given: string | null | undefined, q: { marks?: number }): number {
+  if (!given?.trim()) return 0;
+  return q.marks && q.marks > 1 ? Math.min(answerLetters(given).length, q.marks) : 1;
+}
+
+/** Marks for a runtime question (`correct` + group type fallback). */
+export function questionMarks(
+  given: string | null | undefined,
+  q: { correct: string; accepted?: string[]; wordLimit?: string | number; type?: string },
+  groupType?: string,
+): Marks {
+  return answerMarks(given, { answer: q.correct, accepted: q.accepted, wordLimit: q.wordLimit, type: q.type ?? groupType });
 }

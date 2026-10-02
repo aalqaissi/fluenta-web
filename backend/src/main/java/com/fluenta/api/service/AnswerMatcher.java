@@ -36,7 +36,43 @@ public final class AnswerMatcher {
     private static final Pattern OPTIONAL = Pattern.compile("\\(([^)]*)\\)");
     private static final String EDGE = ".,;:!?\"'";
 
+    /** Marks earned out of marks available for one question. */
+    public record Marks(int earned, int total) {}
+
+    public static final String MULTI_SELECT = "multi-select";
+
+    /**
+     * Marks for one question. Multi-select ("Choose TWO/THREE") is worth one mark per correct letter,
+     * in any order — choosing more letters than asked earns nothing. Every other type is worth 1
+     * mark when {@link #matches} holds.
+     */
+    public static Marks marks(String given, Key key) {
+        if (key != null && MULTI_SELECT.equals(key.type())) {
+            Set<String> correct = letters(key.answer());
+            Set<String> picked = letters(given);
+            int total = Math.max(1, correct.size());
+            if (picked.size() > total) return new Marks(0, total);
+            picked.retainAll(correct);
+            return new Marks(picked.size(), total);
+        }
+        return new Marks(matches(given, key) ? 1 : 0, 1);
+    }
+
+    /** "a, C" → {A, C}: the distinct single letters of a multi-select answer. */
+    public static Set<String> letters(String s) {
+        Set<String> out = new java.util.LinkedHashSet<>();
+        if (s == null) return out;
+        for (String part : s.split("[^A-Za-z]+")) {
+            if (part.length() == 1) out.add(part.toUpperCase(Locale.ROOT));
+        }
+        return out;
+    }
+
     public static boolean matches(String given, Key key) {
+        if (key != null && MULTI_SELECT.equals(key.type()) && letters(key.answer()).size() > 1) {
+            Marks m = marks(given, key);
+            return m.earned() == m.total();
+        }
         String g = normalize(given);
         if (g.isEmpty() || key == null || key.answer() == null) return false;
         if (gated(key.type()) && !withinLimit(g, key.wordLimit())) return false;

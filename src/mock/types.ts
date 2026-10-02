@@ -74,6 +74,11 @@ export interface Question {
   type?: QuestionType;
   /** per-question choices for multiple-choice / multi-select */
   options?: QuestionOption[];
+  /**
+   * Multi-select ("Choose TWO/THREE"): how many letters to choose — the question is worth, and numbered
+   * as, that many questions (e.g. Questions 14–15); `correct` holds the letters as "A,C".
+   */
+  marks?: number;
 }
 
 export interface QuestionGroup {

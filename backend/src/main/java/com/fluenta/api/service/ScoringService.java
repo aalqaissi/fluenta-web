@@ -77,11 +77,14 @@ public class ScoringService {
     /** Score submitted answers against an exam's content for the given skill. */
     public Score score(String skill, JsonNode content, Map<String, String> answers) {
         Map<String, AnswerMatcher.Key> key = keys(content);
+        // Marks, not questions: a "Choose TWO" multi-select is worth 2 (one per correct letter).
         int correct = 0;
+        int total = 0;
         for (Map.Entry<String, AnswerMatcher.Key> q : key.entrySet()) {
-            if (AnswerMatcher.matches(answers.getOrDefault(q.getKey(), ""), q.getValue())) correct++;
+            AnswerMatcher.Marks m = AnswerMatcher.marks(answers.getOrDefault(q.getKey(), ""), q.getValue());
+            correct += m.earned();
+            total += m.total();
         }
-        int total = key.size();
         double band = "listening".equalsIgnoreCase(skill)
                 ? bandFromAccuracy(correct, total)
                 : rawToBand(correct);

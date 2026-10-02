@@ -13,7 +13,8 @@ import type {
   WritingVisual,
 } from "@/mock/types";
 import { QUESTION_TYPE_LABEL, writingTasks } from "@/mock/data";
-import { TEXT_ANSWER_TYPES } from "@/lib/answerMatch";
+import { answerLetters, TEXT_ANSWER_TYPES } from "@/lib/answerMatch";
+import { chooseCount } from "./QuestionRow";
 import { studioStore, type StudioExam, type ChartType, type Formality } from "./store";
 import { parsePassageText, studentOptionsFor, paragraphOptions, matchingInstructions, PARAGRAPH_OPTION_TYPES } from "./passageText";
 
@@ -24,6 +25,16 @@ import { parsePassageText, studentOptionsFor, paragraphOptions, matchingInstruct
  * text inputs so the authored content is still fully playable & scorable.
  */
 const LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+
+/** Multi-select key: the correct letters, sorted and comma-separated ("c, a" → "A,C"). */
+function msKey(type: QuestionType, answer: string): string {
+  return type === "multi-select" ? [...answerLetters(answer)].sort().join(",") : answer;
+}
+
+/** A "Choose TWO/THREE" question is worth (and numbered as) that many questions. */
+function msMarks(type: QuestionType, q: { choose?: number; answer?: string }): { marks?: number } {
+  return type === "multi-select" ? { marks: chooseCount(q) } : {};
+}
 const TEXT_TYPES = TEXT_ANSWER_TYPES;
 
 export function readingInstructions(type: QuestionType): string {
@@ -79,7 +90,8 @@ export function studioReadingToExam(e: StudioExam): ReadingExam {
         ? (q.options ?? []).map((t, i) => ({ key: LETTERS[i], text: t || `Option ${LETTERS[i]}` }))
         : undefined;
       const wordLimit = TEXT_TYPES.has(qType) && q.wordLimit ? `Max ${q.wordLimit} word${q.wordLimit === 1 ? "" : "s"}` : undefined;
-      const question: Question = { id: q.id, number: counter++, prompt: q.prompt, correct: q.answer, accepted: TEXT_TYPES.has(qType) ? q.accepted : undefined, type: qType, options, wordLimit };
+      const question: Question = { id: q.id, number: counter, prompt: q.prompt, correct: msKey(qType, q.answer), accepted: TEXT_TYPES.has(qType) ? q.accepted : undefined, type: qType, options, wordLimit, ...msMarks(qType, q) };
+      counter += question.marks ?? 1;
 
       const last = groups.at(-1);
       if (last && last.type === qType) last.questions.push(question);
@@ -99,7 +111,8 @@ export function studioReadingToExam(e: StudioExam): ReadingExam {
     }
     for (const g of groups) {
       const first = g.questions[0].number;
-      const lastN = g.questions[g.questions.length - 1].number;
+      const lastQ = g.questions[g.questions.length - 1];
+      const lastN = lastQ.number + (lastQ.marks ?? 1) - 1;
       g.rangeLabel = first === lastN ? `Question ${first}` : `Questions ${first}–${lastN}`;
       // Matching groups name their letter range ("…with the correct ending, A–H."), as on the paper.
       g.instructions = matchingInstructions(g.type, g.sharedOptions) ?? g.instructions;
@@ -150,7 +163,9 @@ export function studioListeningToExam(e: StudioExam): ListeningExam {
         ? (q.options ?? []).map((t, i) => ({ key: LETTERS[i], text: t || `Option ${LETTERS[i]}` }))
         : undefined;
       const wordLimit = TEXT_TYPES.has(qType) && q.wordLimit ? `Max ${q.wordLimit} word${q.wordLimit === 1 ? "" : "s"}` : undefined;
-      return { id: q.id, number: counter++, prompt: q.prompt, correct: q.answer, accepted: TEXT_TYPES.has(qType) ? q.accepted : undefined, type: qType, options, wordLimit };
+      const question: Question = { id: q.id, number: counter, prompt: q.prompt, correct: msKey(qType, q.answer), accepted: TEXT_TYPES.has(qType) ? q.accepted : undefined, type: qType, options, wordLimit, ...msMarks(qType, q) };
+      counter += question.marks ?? 1;
+      return question;
     });
 
     const group: QuestionGroup = {

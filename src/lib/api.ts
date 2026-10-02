@@ -316,12 +316,16 @@ export interface AiStudioQuestion {
   answer: string;
   wordLimit?: number;
   accepted?: string[];
+  /** multi-select: letters to choose (2 or 3); `answer` is then "A,C" */
+  choose?: number;
 }
 /** `options`: matching types' lettered list as it stands (blank entries are written by the AI); `count` 0 only completes it. */
 export interface AiStudioGenerateRequest {
   passageText: string; questionType: string; count: number; options?: string[];
   /** generation context: Academic and General Training reading are generated separately */
   module?: string; section?: number; skill?: "reading" | "listening";
+  /** multi-select: "Choose TWO" (2) or "Choose THREE" (3) — each generated question gets that many correct letters */
+  choose?: number;
 }
 export interface AiStudioPassageRequest { module: string; section: number; topic?: string; }
 export interface AiStudioPassageReply { title: string; text: string; }

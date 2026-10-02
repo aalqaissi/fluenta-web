@@ -185,6 +185,91 @@ class StudioAiServiceTest {
         });
     }
 
+    // --- multi-select: "Choose TWO/THREE" — one question with several correct letters ---
+
+    @Test
+    void multiSelectGenerateKeepsEveryQuestionWithChooseNLetters() {
+        when(ai.complete(anyString(), anyString())).thenReturn("""
+            {"questions":[
+              {"prompt":"Which TWO benefits are mentioned?","options":["a","b","c","d","e"],"answer":"C, a"},
+              {"prompt":"Which TWO problems are noted?","options":["a","b","c","d","e"],"answer":"B,D,E"},
+              {"prompt":"Which TWO groups took part?","options":["a","b","c"],"answer":"Z"}
+            ]}""");
+        var r = studio.generate(new StudioGenerateRequest("passage", "multi-select", 3, null, null, null, null, 2));
+        assertThat(r.questions()).hasSize(3).allSatisfy(q -> {
+            assertThat(q.type()).isEqualTo("multi-select");
+            assertThat(q.choose()).isEqualTo(2);
+            assertThat(q.options()).hasSize(5);                    // padded to 5 for choose TWO
+        });
+        // Options are shuffled after generation, so check the texts the answer letters point at:
+        assertThat(r.questions()).extracting(StudioAiServiceTest::answerTexts)
+                .containsExactly(List.of("a", "c"), List.of("b", "d"), List.of()); // trimmed to TWO; invalid dropped
+        assertThat(r.questions()).extracting(StudioQuestionDto::answer).allSatisfy(a -> assertThat(a).matches("|[A-E],[A-E]"));
+        verify(ai).complete(anyString(), argThat(u -> u.contains("CHOOSE: 2") && u.contains("COUNT: 3")));
+    }
+
+    /** The option texts a multi-select answer's letters point at, sorted. */
+    private static List<String> answerTexts(StudioQuestionDto q) {
+        return com.fluenta.api.service.AnswerMatcher.letters(q.answer()).stream()
+                .map(l -> q.options().get(l.charAt(0) - 'A')).sorted().toList();
+    }
+
+    @Test
+    void generatedChoiceOptionsAreShuffledAndTheAnswerFollowsItsText() {
+        // The model puts the correct options first (A, B) — a common bias. After generation the
+        // options are shuffled; the answer letters must still point at the same correct texts,
+        // and across many generations the correct pair must not always sit at A,B.
+        when(ai.complete(anyString(), anyString())).thenReturn("""
+            {"questions":[{"prompt":"Which TWO are true?",
+              "options":["right one","right two","wrong one","wrong two","wrong three"],"answer":"A,B"}]}""");
+        java.util.Set<String> answersSeen = new java.util.HashSet<>();
+        for (int i = 0; i < 30; i++) {
+            var q = studio.generate(new StudioGenerateRequest("passage", "multi-select", 1, null, null, null, null, 2))
+                    .questions().get(0);
+            assertThat(answerTexts(q)).containsExactly("right one", "right two");
+            assertThat(q.options()).containsExactlyInAnyOrder("right one", "right two", "wrong one", "wrong two", "wrong three");
+            answersSeen.add(q.answer());
+        }
+        assertThat(answersSeen).hasSizeGreaterThan(1);
+    }
+
+    @Test
+    void generatedMultipleChoiceIsShuffledToo() {
+        when(ai.complete(anyString(), anyString())).thenReturn("""
+            {"questions":[{"prompt":"Which?","type":"multiple-choice","options":["right","w1","w2","w3"],"answer":"A"}]}""");
+        java.util.Set<String> answersSeen = new java.util.HashSet<>();
+        for (int i = 0; i < 30; i++) {
+            var q = studio.generate(new StudioGenerateRequest("passage", "multiple-choice", 1)).questions().get(0);
+            assertThat(q.options().get(q.answer().charAt(0) - 'A')).isEqualTo("right");
+            answersSeen.add(q.answer());
+        }
+        assertThat(answersSeen).hasSizeGreaterThan(1);
+    }
+
+    @Test
+    void multiSelectChooseThreeGetsSevenOptions() {
+        when(ai.complete(anyString(), anyString())).thenReturn(
+            "{\"questions\":[{\"prompt\":\"Which THREE?\",\"options\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\"],\"answer\":\"g,a,d\"}]}");
+        var r = studio.generate(new StudioGenerateRequest("passage", "multi-select", 1, null, null, null, null, 3));
+        assertThat(r.questions()).singleElement().satisfies(q -> {
+            assertThat(q.options()).hasSize(7);
+            assertThat(answerTexts(q)).containsExactly("a", "d", "g");
+            assertThat(q.choose()).isEqualTo(3);
+        });
+    }
+
+    @Test
+    void multiSelectFillAnswersWithTheQuestionsChooseCount() {
+        when(ai.complete(anyString(), anyString())).thenReturn(
+            "{\"questions\":[{\"prompt\":\"Q\",\"type\":\"multi-select\",\"answer\":\"f, b, d\"}]}");
+        var in = new StudioQuestionDto("Q", "multi-select", List.of("a", "b", "c", "d", "e", "f", "g"), "", null, null, 3);
+        var r = studio.fill(new StudioFillRequest("passage", List.of(in)));
+        assertThat(r.questions()).singleElement().satisfies(q -> {
+            assertThat(q.answer()).isEqualTo("B,D,F");
+            assertThat(q.choose()).isEqualTo(3);
+        });
+    }
+
     @Test
     void fillRejectsOversizePassage() {
         assertThatThrownBy(() -> studio.fill(new StudioFillRequest("a".repeat(12_001),

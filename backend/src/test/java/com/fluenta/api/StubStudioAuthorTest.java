@@ -36,6 +36,25 @@ class StubStudioAuthorTest {
     }
 
     @Test
+    void multiSelectGeneratesChooseNLettersPerQuestion() {
+        var qs = stub.multiSelect(4, 3);
+        assertThat(qs).hasSize(4).allSatisfy(q -> {
+            assertThat(q.type()).isEqualTo("multi-select");
+            assertThat(q.options()).hasSize(7);
+            assertThat(q.answer()).matches("[A-G],[A-G],[A-G]");
+            assertThat(q.answer().split(",")).doesNotHaveDuplicates().isSorted();
+            assertThat(q.choose()).isEqualTo(3);
+        });
+    }
+
+    @Test
+    void multiSelectPlaceholderAnswersAreNotAlwaysTheFirstLetters() {
+        var seen = new java.util.HashSet<String>();
+        for (int i = 0; i < 30; i++) seen.add(stub.multiSelect(1, 2).get(0).answer());
+        assertThat(seen).hasSizeGreaterThan(1);
+    }
+
+    @Test
     void fillOnlySetsAnswersLeavingPromptsIntact() {
         var input = List.of(new StudioQuestionDto("Q1", "yes-no-notgiven", null, "", null));
         var out = stub.fill(input, "yes-no-notgiven");
