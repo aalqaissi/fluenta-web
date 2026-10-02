@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -19,6 +19,30 @@ const GT_BRIEF: Record<number, string> = {
   2: "General Training Section 2 — workplace texts: job descriptions, policies, contracts, training material, staff procedures.",
   3: "General Training Section 3 — one longer, more complex text on a topic of general interest.",
 };
+
+/** Yalla English Hub vocabulary units ("Tips & Lessons" → Vocabulary) — suggested passage topics. */
+export const YALLA_TOPICS = [
+  "Character & psychology",
+  "Time & change",
+  "Individuality & community",
+  "Chemistry & medicine",
+  "Study & work",
+  "Advertising & marketing",
+  "Tourism & travel",
+  "Government & society",
+  "Animals & conservation",
+  "Space & physics",
+  "Technology & design",
+  "Fashion & consumerism",
+  "Rural life & city life",
+  "Problems & solutions",
+  "Natural phenomena & agriculture",
+  "Energy & natural resources",
+  "Management & personal finance",
+  "Crime & punishment",
+  "The media",
+  "The arts",
+];
 
 export const LISTENING_PART_CONTEXT: Record<number, string> = {
   1: "Part 1 — a conversation in an everyday social context (e.g. a booking or enquiry).",
@@ -42,15 +66,24 @@ export function WritePassageWithAi({ module, section, onDone }: {
 }) {
   const [topic, setTopic] = useState("");
   const [busy, setBusy] = useState(false);
+  const listId = useId();
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Input
         value={topic}
         onChange={(e) => setTopic(e.target.value)}
-        placeholder="Topic (optional), e.g. urban beekeeping"
+        placeholder="Topic (optional) — pick a Yalla unit or type your own"
         className="h-8 max-w-xs text-xs"
         aria-label="Passage topic"
+        list={listId}
+        autoComplete="off"
       />
+      {/* suggestions from the Yalla vocabulary units; any other topic can still be typed */}
+      <datalist id={listId}>
+        {YALLA_TOPICS.map((t) => (
+          <option key={t} value={t} />
+        ))}
+      </datalist>
       <AiButton
         label="Write passage with AI"
         loading={busy}
