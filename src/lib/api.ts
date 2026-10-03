@@ -326,6 +326,8 @@ export interface AiStudioGenerateRequest {
   module?: string; section?: number; skill?: "reading" | "listening";
   /** multi-select: "Choose TWO" (2) or "Choose THREE" (3) — each generated question gets that many correct letters */
   choose?: number;
+  /** Matching Headings: the passage's paragraph letters — each generated question names one of them, once */
+  paragraphs?: string[];
 }
 export interface AiStudioPassageRequest { module: string; section: number; topic?: string; }
 export interface AiStudioPassageReply { title: string; text: string; }

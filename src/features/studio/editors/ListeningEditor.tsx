@@ -11,6 +11,7 @@ import type { QuestionType } from "@/mock/types";
 import { api, type AiStudioQuestion } from "@/lib/api";
 import { MediaDrop, AiButton, Field } from "../components";
 import { AudioUpload } from "../AudioUpload";
+import { typeRuleLine } from "../questionTypeRules";
 import { QuestionRow, aiQuestions, defaultAnswerFor, GenerateCountInput, GenerateChooseSelect, GENERATE_DEFAULT, questionSpan, marksOf, questionsLabel } from "../QuestionRow";
 import { newSection, newQuestion, type StudioExam, type StudioSection, type StudioQuestion } from "../store";
 
@@ -166,6 +167,12 @@ export function ListeningEditor({ exam, patch }: { exam: StudioExam; patch: (p: 
                     </Button>
                   </div>
                 </div>
+                {typeRuleLine(s.questionType) && (
+                  <p className="mb-3 rounded-lg bg-info/[0.06] px-2.5 py-1.5 text-xs text-info">
+                    <span className="font-bold">IELTS — what this tests: </span>
+                    {typeRuleLine(s.questionType)}
+                  </p>
+                )}
                 {s.questions.length === 0 ? (
                   <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">No questions yet.</p>
                 ) : (
