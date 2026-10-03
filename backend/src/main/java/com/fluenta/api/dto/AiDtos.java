@@ -74,8 +74,17 @@ public final class AiDtos {
      * ... plus the generation context: {@code module} academic|general (reading only — the two are generated
      * separately), {@code section} the passage/part number, {@code skill} reading|listening.
      */
+    /**
+     * {@code paragraphs}: the passage's paragraph letters ("A", "B"…) — Matching Headings questions each
+     * name one of them.
+     */
     public record StudioGenerateRequest(String passageText, String questionType, Integer count, List<String> options,
-                                        String module, Integer section, String skill, Integer choose) {
+                                        String module, Integer section, String skill, Integer choose,
+                                        List<String> paragraphs) {
+        public StudioGenerateRequest(String passageText, String questionType, Integer count, List<String> options,
+                                     String module, Integer section, String skill, Integer choose) {
+            this(passageText, questionType, count, options, module, section, skill, choose, null);
+        }
         public StudioGenerateRequest(String passageText, String questionType, Integer count, List<String> options,
                                      String module, Integer section, String skill) {
             this(passageText, questionType, count, options, module, section, skill, null);

@@ -9,8 +9,15 @@ import type { QuestionOption, QuestionType } from "@/mock/types";
 import type { StudioQuestion } from "./store";
 import { answerLetters, answerMatches, TEXT_ANSWER_TYPES } from "@/lib/answerMatch";
 import { cn } from "@/lib/utils";
+import { optionLabel } from "./passageText";
 
 const LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+
+/** "Paragraph B" / "B" → "B" (null when the prompt doesn't name a single paragraph). */
+function paragraphOf(prompt: string): string | null {
+  const m = prompt.trim().match(/^(?:paragraph\s+)?([A-Z])$/i);
+  return m ? m[1].toUpperCase() : null;
+}
 
 /** How many letters a multi-select question asks for: its `choose`, else inferred from its answer (2 or 3). */
 export function chooseCount(q: { choose?: number; answer?: string }): 2 | 3 {
@@ -70,6 +77,7 @@ export function QuestionRow({
   onChange,
   onDelete,
   matchOptionsFor,
+  paragraphChoices,
 }: {
   q: StudioQuestion;
   n: number;
@@ -79,6 +87,8 @@ export function QuestionRow({
   onDelete: () => void;
   /** lettered choices for matching types (from the passage), so the answer is picked from a legend */
   matchOptionsFor?: (type: QuestionType) => QuestionOption[] | undefined;
+  /** the passage's paragraph letters — a Matching Headings question names one of them */
+  paragraphChoices?: string[];
 }) {
   const type = q.type ?? inheritType;
   const matchOptions = matchOptionsFor?.(type);
@@ -124,7 +134,20 @@ export function QuestionRow({
         </div>
       </div>
 
-      <Input value={q.prompt} onChange={(e) => onChange({ prompt: e.target.value })} placeholder="Question text…" />
+      {type === "matching-headings" && paragraphChoices?.length ? (
+        // IELTS: each Headings question is a paragraph of the passage.
+        <Select value={paragraphOf(q.prompt) ?? undefined} onValueChange={(v) => onChange({ prompt: `Paragraph ${v}` })}>
+          <SelectTrigger className="h-9 w-48"><SelectValue placeholder="Choose the paragraph" /></SelectTrigger>
+          <SelectContent>
+            {q.prompt && !paragraphOf(q.prompt) && <SelectItem value="__keep" disabled>{q.prompt}</SelectItem>}
+            {paragraphChoices.map((k) => (
+              <SelectItem key={k} value={k}>Paragraph {k}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : (
+        <Input value={q.prompt} onChange={(e) => onChange({ prompt: e.target.value })} placeholder="Question text…" />
+      )}
 
       {isMS && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -207,11 +230,11 @@ export function QuestionRow({
               <SelectContent>
                 {/* keep an answer that no longer matches the list visible instead of silently blank */}
                 {q.answer && !matchOptions.some((o) => o.key === q.answer) && (
-                  <SelectItem value={q.answer}>{q.answer} — not in the answer options</SelectItem>
+                  <SelectItem value={q.answer}>{optionLabel(type, q.answer)} — not in the answer options</SelectItem>
                 )}
                 {matchOptions.map((o) => (
                   <SelectItem key={o.key} value={o.key}>
-                    {o.key} — {o.text.length > 60 ? o.text.slice(0, 60) + "…" : o.text}
+                    {optionLabel(type, o.key)} — {o.text.length > 60 ? o.text.slice(0, 60) + "…" : o.text}
                   </SelectItem>
                 ))}
               </SelectContent>

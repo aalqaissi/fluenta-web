@@ -68,14 +68,49 @@ export function optionListTitle(type: QuestionType): string {
 }
 
 /** "A–H" for a list of options (or "A" for one). */
-export function letterRange(options: QuestionOption[] | undefined): string {
+export function letterRange(options: QuestionOption[] | undefined, type?: QuestionType): string {
   if (!options?.length) return "";
-  return options.length === 1 ? options[0].key : `${options[0].key}–${options[options.length - 1].key}`;
+  const first = optionLabel(type, options[0].key);
+  return options.length === 1 ? first : `${first}–${optionLabel(type, options[options.length - 1].key)}`;
+}
+
+/** Types whose answers each name a different list entry (IELTS: each heading/ending used at most once). */
+export const LETTERS_ONCE_TYPES = new Set<QuestionType>(["matching-headings", "matching-sentence-endings"]);
+
+const ROMAN: [number, string][] = [[10, "x"], [9, "ix"], [5, "v"], [4, "iv"], [1, "i"]];
+/** 1 → "i", 4 → "iv", 12 → "xii" (lower case, as on the IELTS paper). */
+export function toRoman(n: number): string {
+  let out = "";
+  for (const [v, s] of ROMAN) while (n >= v) { out += s; n -= v; }
+  return out;
+}
+
+/** "iv" → 4 (0 when not a valid lower-case Roman numeral). */
+export function fromRoman(s: string): number {
+  const v: Record<string, number> = { i: 1, v: 5, x: 10 };
+  let n = 0;
+  for (let i = 0; i < s.length; i++) {
+    const cur = v[s[i]] ?? 0;
+    const nxt = v[s[i + 1]] ?? 0;
+    n += cur < nxt ? -cur : cur;
+  }
+  return toRoman(n) === s ? n : 0;
+}
+
+/**
+ * How a list key is shown. Matching Headings are numbered i, ii, iii… on the IELTS paper (paragraphs
+ * already use letters); the stored key stays A, B, C… so answers and scoring are unchanged.
+ */
+export function optionLabel(type: QuestionType | undefined, key: string): string {
+  // Only a stored capital letter is translated — keys already written as numerals ("i", "ii" in the
+  // built-in exams) are shown as they are.
+  if (type !== "matching-headings" || !/^[A-Z]$/.test(key.trim())) return key;
+  return toRoman(LETTERS.indexOf(key.trim()) + 1);
 }
 
 /** IELTS-style instruction for a matching group, naming the letter range when known. */
 export function matchingInstructions(type: QuestionType, options: QuestionOption[] | undefined): string | undefined {
-  const r = letterRange(options);
+  const r = letterRange(options, type);
   const range = r ? `, ${r}` : "";
   switch (type) {
     case "matching-sentence-endings":
@@ -104,8 +139,10 @@ export function parseOptionList(text: string): string[] {
     // "A. text", "A) text", "(A) text", "A: text", "A - text" — a bare "A text" is left alone,
     // since a plain line can start with the word "A".
     const m = line.match(/^\(?([A-Z])\s*[.):\-–]\s*(.*)$/);
-    const at = m ? LETTERS.indexOf(m[1]) : next;
-    const body = (m ? m[2] : line).trim();
+    // Headings lists are numbered i, ii, iii… on the paper — accept lower-case Roman numerals too.
+    const r = m ? null : line.match(/^\(?([ivx]+)\s*[.):\-–]\s*(.*)$/);
+    const at = m ? LETTERS.indexOf(m[1]) : r ? fromRoman(r[1]) - 1 : next;
+    const body = (m ? m[2] : r ? r[2] : line).trim();
     if (at < 0 || at >= LETTERS.length) continue;
     while (out.length < at) out.push("");
     out[at] = body;

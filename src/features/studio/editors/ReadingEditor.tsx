@@ -16,17 +16,20 @@ import { newPassage, newQuestion, type StudioExam, type StudioPassage, type Stud
 import { cn } from "@/lib/utils";
 import {
   AUTHORED_OPTION_TYPES,
+  LETTERS_ONCE_TYPES,
   LETTERS,
   PARAGRAPH_OPTION_TYPES,
   authoredOptions,
   matchingInstructions,
   matchingOptionsFor,
+  optionLabel,
   optionListTitle,
   paragraphOptions,
   parseOptionList,
   parsePassageText,
 } from "../passageText";
 import { readingInstructions } from "../convert";
+import { typeRuleLine } from "../questionTypeRules";
 
 /**
  * The lettered list the AI works from for a matching type: the admin's list (blank rows included,
@@ -55,10 +58,13 @@ function OptionListEditor({
   onOptions,
   onFillWithAi,
   filling,
+  numbered,
 }: {
   type: QuestionType;
   passage: StudioPassage;
   answers: string[];
+  /** this type's questions with their exam-wide numbers, for the each-letter-once check */
+  numbered?: { n: number; answer: string }[];
   onOptions: (options: string[]) => void;
   /** AI writes the empty rows (filled ones are kept). */
   onFillWithAi: (options: string[]) => void;
@@ -78,7 +84,9 @@ function OptionListEditor({
     onOptions(next);
   };
   const defined = new Set(authoredOptions(p.options).map((o) => o.key));
-  const missing = [...new Set(answers.map((a) => a.trim().toUpperCase()).filter((a) => a && !defined.has(a)))].sort();
+  const missing = [...new Set(answers.map((a) => a.trim().toUpperCase()).filter((a) => a && !defined.has(a)))]
+    .sort()
+    .map((k) => optionLabel(type, k));
 
   return (
     <div className="mt-4 rounded-xl border border-border bg-muted/30 p-4">
@@ -102,7 +110,7 @@ function OptionListEditor({
             variant="ghost"
             size="sm"
             onClick={() => {
-              setDraft(authoredOptions(p.options).map((o) => `${o.key}. ${o.text}`).join("\n"));
+              setDraft(authoredOptions(p.options).map((o) => `${optionLabel(type, o.key)}. ${o.text}`).join("\n"));
               setPasting((v) => !v);
             }}
           >
@@ -140,8 +148,8 @@ function OptionListEditor({
           <div className="space-y-2">
             {options.map((o, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className="w-6 shrink-0 text-sm font-bold text-primary">{LETTERS[i]}.</span>
-                <Input value={o} onChange={(e) => set(i, e.target.value)} placeholder={`${OPTION_NOUN[type] ?? "Option"} ${LETTERS[i]}`} />
+                <span className="w-8 shrink-0 text-sm font-bold text-primary">{optionLabel(type, LETTERS[i])}.</span>
+                <Input value={o} onChange={(e) => set(i, e.target.value)} placeholder={`${OPTION_NOUN[type] ?? "Option"} ${optionLabel(type, LETTERS[i])}`} />
                 {options.length > 1 && (
                   <Button variant="ghost" size="icon-sm" title="Remove" onClick={() => onOptions(options.filter((_, j) => j !== i))}>
                     <Trash2 className="size-4 text-muted-foreground" />
@@ -158,10 +166,45 @@ function OptionListEditor({
         </>
       )}
 
+      {LETTERS_ONCE_TYPES.has(type) && (
+        <LettersOnceWarnings type={type} numbered={numbered ?? []} listSize={defined.size} />
+      )}
+
       {missing.length > 0 && (
         <p className="mt-3 text-xs font-semibold text-destructive">
           {missing.length === 1 ? `Answer ${missing[0]} isn't` : `Answers ${missing.join(", ")} aren't`} in this list yet — students can't see what{" "}
           {missing.length === 1 ? "it means" : "they mean"}.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * IELTS rules for Matching Headings / Sentence Endings: each list entry answers at most one question,
+ * and the list is longer than the number of questions (the spare entries are distractors).
+ */
+function LettersOnceWarnings({ type, numbered, listSize }: { type: QuestionType; numbered: { n: number; answer: string }[]; listSize: number }) {
+  const byLetter = new Map<string, number[]>();
+  for (const { n, answer } of numbered) {
+    const k = answer.trim().toUpperCase();
+    if (k) byLetter.set(k, [...(byLetter.get(k) ?? []), n]);
+  }
+  const repeats = [...byLetter.entries()].filter(([, ns]) => ns.length > 1).sort(([a], [b]) => a.localeCompare(b));
+  const noun = type === "matching-headings" ? "heading" : "ending";
+  const tooShort = listSize > 0 && numbered.length > 0 && listSize <= numbered.length;
+  if (!repeats.length && !tooShort) return null;
+  return (
+    <div className="mt-3 space-y-1 text-xs font-semibold text-destructive">
+      {repeats.map(([k, ns]) => (
+        <p key={k}>
+          {optionLabel(type, k)} is the answer to Questions {ns.join(" and ")} — in IELTS each {noun} can be used only once.
+        </p>
+      ))}
+      {tooShort && (
+        <p>
+          IELTS lists have more {noun}s than questions — add at least {numbered.length + 1 - listSize} more {noun}
+          {numbered.length + 1 - listSize === 1 ? "" : "s"} so some are left over.
         </p>
       )}
     </div>
@@ -262,6 +305,10 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
         const starts: number[] = [];
         p.questions.reduce((k, q) => (starts.push(k + 1), k + questionSpan(q, p.questionType)), offset);
         const genChoose = chooseFor[p.id] ?? 2;
+        // The passage's paragraph letters (labelled, else A, B, C… in order) — what Headings questions name.
+        const parsedText = parsePassageText(p.text);
+        const paragraphKeys = paragraphOptions(parsedText).map((o) => o.key);
+        const unlabelled = !parsedText.labels?.some(Boolean);
 
         return (
           <Card key={p.id} className="p-5">
@@ -401,6 +448,7 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                           questionType: p.questionType,
                           count: toGenerate,
                           choose: p.questionType === "multi-select" ? genChoose : undefined,
+                          paragraphs: p.questionType === "matching-headings" ? paragraphKeys : undefined,
                           options: aiListFor(p.questionType, p),
                           module: generationModule(exam.module),
                           section: idx + 1,
@@ -461,9 +509,15 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                           {first === last ? `Question ${first}` : `Questions ${first}–${last}`}
                           <span className="font-semibold text-muted-foreground"> · {QUESTION_TYPE_LABEL[run.type]}</span>
                         </p>
-                        <p className="mb-3 mt-0.5 text-sm italic text-muted-foreground">
+                        <p className="mt-0.5 text-sm italic text-muted-foreground">
                           {matchingInstructions(run.type, opts) ?? readingInstructions(run.type)}
                         </p>
+                        {typeRuleLine(run.type) && (
+                          <p className="mb-3 mt-1.5 rounded-lg bg-info/[0.06] px-2.5 py-1.5 text-xs text-info">
+                            <span className="font-bold">IELTS — what this tests: </span>
+                            {typeRuleLine(run.type)}
+                          </p>
+                        )}
                         <div className="space-y-3">
                           {run.items.map(({ q, qi }) => (
                             <QuestionRow
@@ -473,6 +527,7 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                               inheritType={p.questionType}
                               typeOptions={READING_TYPES}
                               matchOptionsFor={(t) => matchingOptionsFor(t, p)}
+                              paragraphChoices={paragraphKeys}
                               onChange={(np) => patchQ(q.id, np)}
                               onDelete={() => setP(idx, { questions: p.questions.filter((x) => x.id !== q.id) })}
                             />
@@ -483,6 +538,9 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                             type={run.type}
                             passage={p}
                             answers={p.questions.filter((x) => (x.type ?? p.questionType) === run.type).map((x) => x.answer)}
+                            numbered={p.questions.flatMap((x, i) =>
+                              (x.type ?? p.questionType) === run.type ? [{ n: starts[i], answer: x.answer }] : [],
+                            )}
                             onOptions={(options) => setP(idx, { options })}
                             filling={busy[`opt:${p.id}`]}
                             onFillWithAi={async (options) => {
@@ -500,6 +558,12 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
                           />
                         )}
                         {PARAGRAPH_OPTION_TYPES.has(run.type) && <ParagraphList passage={p} />}
+                        {run.type === "matching-headings" && unlabelled && (
+                          <p className="mt-3 text-xs text-muted-foreground">
+                            No paragraph letters in the passage text, so questions name paragraphs A–{paragraphKeys.at(-1) ?? "A"} in order.
+                            Put each letter on its own line above its paragraph to set them.
+                          </p>
+                        )}
                       </div>
                     );
                   })}

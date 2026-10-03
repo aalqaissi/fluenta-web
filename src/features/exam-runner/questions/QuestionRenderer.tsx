@@ -1,7 +1,7 @@
 import { Check, X } from "lucide-react";
 import type { QuestionGroup, QuestionOption } from "@/mock/types";
 import { mcOptions } from "@/mock/passages";
-import { optionListTitle } from "@/features/studio/passageText";
+import { optionLabel, optionListTitle } from "@/features/studio/passageText";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -44,7 +44,7 @@ export function QuestionRenderer({ group, answers, setAnswer, review }: Props) {
           <ul className="space-y-1.5 text-sm">
             {group.sharedOptions.map((o) => (
               <li key={o.key} className="flex gap-2">
-                <span className="font-bold text-primary">{o.key}</span>
+                <span className="min-w-6 font-bold text-primary">{optionLabel(group.type, o.key)}</span>
                 <span>{o.text}</span>
               </li>
             ))}
@@ -116,7 +116,7 @@ export function QuestionRenderer({ group, answers, setAnswer, review }: Props) {
                           <SelectContent>
                             {(q.options ?? group.sharedOptions ?? []).map((o) => (
                               <SelectItem key={o.key} value={o.key}>
-                                {o.text ? `${o.key} — ${o.text.length > 40 ? o.text.slice(0, 40) + "…" : o.text}` : o.key}
+                                {o.text ? `${optionLabel(qType, o.key)} — ${o.text.length > 40 ? o.text.slice(0, 40) + "…" : o.text}` : optionLabel(qType, o.key)}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -136,7 +136,7 @@ export function QuestionRenderer({ group, answers, setAnswer, review }: Props) {
 
                   {review && !correct && (
                     <p className="mt-2 text-xs font-semibold text-success">
-                      Correct answer{pick > 1 ? "s" : ""}: {pick > 1 ? answerLetters(q.correct).join(", ") : q.correct}
+                      Correct answer{pick > 1 ? "s" : ""}: {pick > 1 ? answerLetters(q.correct).join(", ") : optionLabel(qType, q.correct)}
                       {marks && <span className="ml-2 text-muted-foreground">({marks.earned} of {marks.total} marks)</span>}
                     </p>
                   )}

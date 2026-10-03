@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fluenta.api.config.AiProperties;
 import com.fluenta.api.dto.AiDtos.*;
 import com.fluenta.api.service.studio.ContentRules;
+import com.fluenta.api.service.studio.QuestionTypeRules;
 import com.fluenta.api.service.studio.StubStudioAuthor;
 import com.fluenta.api.web.ApiException;
 import org.springframework.stereotype.Service;
@@ -100,7 +101,7 @@ public class StudioAiService {
             int choose = chooseOf(req.choose(), null);
             if (!props.live()) return new StudioQuestionsReply(stub.multiSelect(count, choose));
             String user = contextLine(req) + "QUESTION TYPE: " + type + "\nCHOOSE: " + choose + "\nCOUNT: " + count
-                    + "\nPASSAGE:\n" + passage;
+                    + "\n" + QuestionTypeRules.prompt(type) + "PASSAGE:\n" + passage;
             List<StudioQuestionDto> qs = new ArrayList<>();
             for (StudioQuestionDto q : readQuestions(parse(ai.complete(GEN_SYSTEM, user)))) {
                 if (qs.size() >= count) break;
@@ -110,7 +111,8 @@ public class StudioAiService {
             return new StudioQuestionsReply(qs);
         }
         if (!props.live()) return new StudioQuestionsReply(stub.generate(type, count));
-        String user = contextLine(req) + "QUESTION TYPE: " + type + "\nCOUNT: " + count + "\nPASSAGE:\n" + passage;
+        String user = contextLine(req) + "QUESTION TYPE: " + type + "\nCOUNT: " + count + "\n"
+                + QuestionTypeRules.prompt(type) + "PASSAGE:\n" + passage;
         List<StudioQuestionDto> qs = new ArrayList<>();
         for (StudioQuestionDto q : normalize(readQuestions(parse(ai.complete(GEN_SYSTEM, user))), type)) {
             qs.add("multiple-choice".equals(q.type()) ? shuffleOptions(q) : q);
@@ -203,14 +205,20 @@ public class StudioAiService {
         if (given.size() > MAX_OPTIONS) given = new ArrayList<>(given.subList(0, MAX_OPTIONS));
         for (int i = 0; i < given.size(); i++) given.set(i, given.get(i) == null ? "" : given.get(i).trim());
 
+        List<String> paragraphs = paragraphLetters(req.paragraphs());
         if (!props.live()) {
-            return new StudioQuestionsReply(stub.matchingQuestions(type, count, given.size()), stub.matchingOptions(type, given));
+            return new StudioQuestionsReply(stub.matchingQuestions(type, count, given.size(), paragraphs), stub.matchingOptions(type, given));
         }
         StringBuilder list = new StringBuilder();
         for (int i = 0; i < given.size(); i++) {
             list.append((char) ('A' + i)).append(". ").append(given.get(i).isEmpty() ? "(write this one)" : given.get(i)).append('\n');
         }
-        String user = contextLine(req) + "QUESTION TYPE: " + type + "\nCOUNT: " + count + "\nLIST:\n" + list + "PASSAGE:\n" + passage;
+        String user = contextLine(req) + "QUESTION TYPE: " + type + "\nCOUNT: " + count + "\n" + QuestionTypeRules.prompt(type)
+                + (HEADINGS.equals(type) && !paragraphs.isEmpty()
+                        ? "PARAGRAPHS: " + String.join(", ", paragraphs)
+                          + " (each question names one of these, written \"Paragraph X\", each at most once)\n"
+                        : "")
+                + "LIST:\n" + list + "PASSAGE:\n" + passage;
         JsonNode node = parse(ai.complete(MATCH_SYSTEM, user));
 
         // Gate: same length as asked, admin entries win, blanks the model skipped get a placeholder.
@@ -223,14 +231,48 @@ public class StudioAiService {
             String theirs = i < fromAi.size() ? stripLetter(fromAi.get(i)) : "";
             filled.add(!mine.isEmpty() ? mine : !theirs.isEmpty() ? theirs : placeholders.get(i));
         }
+        // Gate (IELTS): Headings and Sentence Endings use each letter at most once; each Headings question
+        // names one real paragraph, once. A question that breaks this is dropped — re-lettering it would
+        // silently make its answer wrong — so fewer than COUNT may come back.
+        boolean once = QuestionTypeRules.lettersOnce(type);
+        Set<String> usedLetters = new java.util.HashSet<>();
+        Set<String> usedParagraphs = new java.util.HashSet<>();
         List<StudioQuestionDto> qs = new ArrayList<>();
         for (JsonNode q : node.path("questions")) {
             if (qs.size() >= count) break;
             String prompt = q.path("prompt").asText("").trim();
             if (prompt.isEmpty()) continue;
-            qs.add(new StudioQuestionDto(prompt, type, null, letterInRange(q.path("answer").asText(""), filled.size()), null));
+            String answer = letterInRange(q.path("answer").asText(""), filled.size());
+            String paragraph = null;
+            if (HEADINGS.equals(type)) {
+                java.util.regex.Matcher m = PARAGRAPH_REF.matcher(prompt);
+                if (!m.matches()) continue;
+                paragraph = m.group(1).toUpperCase(java.util.Locale.ROOT);
+                if ((!paragraphs.isEmpty() && !paragraphs.contains(paragraph)) || usedParagraphs.contains(paragraph)) continue;
+                prompt = "Paragraph " + paragraph;
+            }
+            if (once && usedLetters.contains(answer)) continue;
+            // Record only once the question is kept, so a dropped one doesn't block a later valid one.
+            usedLetters.add(answer);
+            if (paragraph != null) usedParagraphs.add(paragraph);
+            qs.add(new StudioQuestionDto(prompt, type, null, answer, null));
         }
         return new StudioQuestionsReply(qs, filled);
+    }
+
+    private static final String HEADINGS = "matching-headings";
+    /** "Paragraph B", "para. B", "Section B" or a bare "B" (whole prompt) → B. */
+    private static final java.util.regex.Pattern PARAGRAPH_REF =
+            java.util.regex.Pattern.compile("(?i)^(?:(?:paragraph|para\\.?|section)\\s+)?\\(?([A-Z])\\)?\\.?$");
+
+    /** Distinct single paragraph letters, upper case, in order. */
+    private static List<String> paragraphLetters(List<String> raw) {
+        List<String> out = new ArrayList<>();
+        if (raw != null) for (String s : raw) {
+            String l = s == null ? "" : s.trim().toUpperCase(java.util.Locale.ROOT);
+            if (l.length() == 1 && Character.isLetter(l.charAt(0)) && !out.contains(l)) out.add(l);
+        }
+        return out;
     }
 
     /** "A. text" / "A) text" → "text" (models sometimes echo the letter). */

@@ -31,7 +31,8 @@ class StubStudioAuthorTest {
         assertThat(options.get(1)).isEqualTo("kept.");
         assertThat(options.get(0)).isNotBlank();
         var qs = stub.matchingQuestions("matching-sentence-endings", 4, 3);
-        assertThat(qs).extracting(StudioQuestionDto::answer).containsExactly("A", "B", "C", "A");
+        // Sentence endings use each ending once, so 4 asked from a 3-entry list gives 3.
+        assertThat(qs).extracting(StudioQuestionDto::answer).containsExactly("A", "B", "C");
         assertThat(qs).allSatisfy(q -> assertThat(q.type()).isEqualTo("matching-sentence-endings"));
     }
 
@@ -52,6 +53,15 @@ class StubStudioAuthorTest {
         var seen = new java.util.HashSet<String>();
         for (int i = 0; i < 30; i++) seen.add(stub.multiSelect(1, 2).get(0).answer());
         assertThat(seen).hasSizeGreaterThan(1);
+    }
+
+    @Test
+    void offlineHeadingsNameParagraphsAndUseEachHeadingOnce() {
+        var qs = stub.matchingQuestions("matching-headings", 6, 5, List.of("A", "B", "C"));
+        assertThat(qs).extracting(StudioQuestionDto::prompt).containsExactly("Paragraph A", "Paragraph B", "Paragraph C");
+        assertThat(qs).extracting(StudioQuestionDto::answer).doesNotHaveDuplicates();
+        assertThat(stub.matchingQuestions("matching-sentence-endings", 6, 4)).hasSize(4);
+        assertThat(stub.matchingQuestions("matching-features", 6, 4)).hasSize(6);
     }
 
     @Test

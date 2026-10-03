@@ -149,6 +149,54 @@ class StudioAiServiceTest {
         assertThat(r.questions().get(0).answer()).isEqualTo("B");
     }
 
+    // --- Bug 6: IELTS rules per type; letters once; headings tied to the passage's paragraphs ---
+
+    @Test
+    void generatePromptCarriesTheTypesIeltsRules() {
+        when(ai.complete(anyString(), anyString())).thenReturn("{\"questions\":[]}");
+        studio.generate(new StudioGenerateRequest("passage", "true-false-notgiven", 2));
+        verify(ai).complete(anyString(), argThat(u -> u.contains("TYPE RULES (true-false-notgiven)")
+                && u.contains("FACTUAL") && u.contains("ORDER: questions follow the order")));
+    }
+
+    @Test
+    void sentenceEndingsUseEachEndingOnceDroppingRepeats() {
+        when(ai.complete(anyString(), anyString())).thenReturn("""
+            {"options":["e1","e2","e3","e4","e5"],"questions":[
+              {"prompt":"Beginning one","answer":"B"},
+              {"prompt":"Beginning two","answer":"B"},
+              {"prompt":"Beginning three","answer":"D"}]}""");
+        var r = studio.generate(new StudioGenerateRequest("passage", "matching-sentence-endings", 3, List.of("", "", "", "", "")));
+        assertThat(r.questions()).extracting(StudioQuestionDto::answer).containsExactly("B", "D");
+        assertThat(r.questions()).extracting(StudioQuestionDto::prompt).containsExactly("Beginning one", "Beginning three");
+    }
+
+    @Test
+    void featuresMayReuseALetter() {
+        when(ai.complete(anyString(), anyString())).thenReturn("""
+            {"options":["Kahneman","Damasio"],"questions":[
+              {"prompt":"Described two systems","answer":"A"},{"prompt":"Studied heuristics","answer":"A"}]}""");
+        var r = studio.generate(new StudioGenerateRequest("passage", "matching-features", 2, List.of("", "")));
+        assertThat(r.questions()).extracting(StudioQuestionDto::answer).containsExactly("A", "A");
+    }
+
+    @Test
+    void headingsNameRealParagraphsOnceEachWithDistinctHeadings() {
+        when(ai.complete(anyString(), anyString())).thenReturn("""
+            {"options":["h1","h2","h3","h4","h5"],"questions":[
+              {"prompt":"paragraph b","answer":"C"},
+              {"prompt":"Paragraph Z","answer":"A"},
+              {"prompt":"Paragraph B","answer":"D"},
+              {"prompt":"Section D","answer":"C"},
+              {"prompt":"Paragraph D","answer":"E"}]}""");
+        var r = studio.generate(new StudioGenerateRequest("passage", "matching-headings", 4,
+                List.of("", "", "", "", ""), null, null, null, null, List.of("A", "B", "C", "D")));
+        // Z isn't a paragraph; the 2nd B repeats a paragraph; "Section D" repeats heading C.
+        assertThat(r.questions()).extracting(StudioQuestionDto::prompt).containsExactly("Paragraph B", "Paragraph D");
+        assertThat(r.questions()).extracting(StudioQuestionDto::answer).containsExactly("C", "E");
+        verify(ai).complete(anyString(), argThat(u -> u.contains("PARAGRAPHS: A, B, C, D") && u.contains("TYPE RULES (matching-headings)")));
+    }
+
     @Test
     void matchingGenerateWithZeroCountOnlyFillsTheList() {
         when(ai.complete(anyString(), anyString())).thenReturn(

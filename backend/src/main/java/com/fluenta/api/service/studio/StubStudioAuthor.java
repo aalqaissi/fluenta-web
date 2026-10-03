@@ -81,12 +81,25 @@ public class StubStudioAuthor {
 
     /** Placeholder matching questions whose answers walk through the list A, B, C… */
     public List<StudioQuestionDto> matchingQuestions(String type, int count, int optionCount) {
+        return matchingQuestions(type, count, optionCount, List.of());
+    }
+
+    /**
+     * Placeholder matching questions following the IELTS rules: Headings / Sentence Endings use each letter
+     * once (so at most one question per list entry), and each Headings question names one paragraph.
+     */
+    public List<StudioQuestionDto> matchingQuestions(String type, int count, int optionCount, List<String> paragraphs) {
+        boolean once = QuestionTypeRules.lettersOnce(type);
+        boolean headings = "matching-headings".equals(type);
+        int n = once ? Math.min(count, optionCount) : count;
+        if (headings && !paragraphs.isEmpty()) n = Math.min(n, paragraphs.size());
         List<StudioQuestionDto> out = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < n; i++) {
             String letter = String.valueOf((char) ('A' + (i % Math.max(1, optionCount))));
-            out.add(new StudioQuestionDto(
-                    i == 0 ? "AI-generated question about the content." : "Another AI-generated question.",
-                    type, null, letter, null));
+            String prompt = headings
+                    ? "Paragraph " + (paragraphs.isEmpty() ? String.valueOf((char) ('A' + i)) : paragraphs.get(i))
+                    : i == 0 ? "AI-generated question about the content." : "Another AI-generated question.";
+            out.add(new StudioQuestionDto(prompt, type, null, letter, null));
         }
         return out;
     }
