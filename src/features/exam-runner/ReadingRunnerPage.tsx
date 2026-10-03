@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Clock, Search, BookOpen, Flag } from "lucide-react";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, resolveMedia } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { loadReadingExam } from "./loadExam";
 import { setLastAttempt } from "@/store/attempt-store";
@@ -149,6 +149,13 @@ function ReadingRunner({ exam }: { exam: ReadingExam }) {
               />
             </div>
             <h2 className="mb-3 text-xl font-extrabold tracking-tight">{passage.headline}</h2>
+            {passage.imageUrl && (
+              <img
+                src={resolveMedia(passage.imageUrl)}
+                alt={`Diagram for ${passage.headline}`}
+                className="mb-4 max-h-[420px] w-full rounded-xl border border-border bg-white object-contain"
+              />
+            )}
             <HighlightableText
               paragraphs={passage.paragraphs}
               labels={passage.paragraphLabels}

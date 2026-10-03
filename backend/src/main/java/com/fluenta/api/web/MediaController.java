@@ -7,7 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
-/** Generic authenticated media upload (Listening audio today; reusable later). */
+/** Generic authenticated media upload (Listening/Speaking audio and Studio passage images). */
 @RestController
 @RequestMapping("/api/media")
 public class MediaController {

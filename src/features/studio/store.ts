@@ -23,9 +23,12 @@ export interface StudioQuestion {
 export interface StudioPassage {
   id: string;
   title: string;
-  inputMode: "type" | "upload" | "extract";
+  /** @deprecated the passage editor is a single page now; kept so older saved exams still load */
+  inputMode?: "type" | "upload" | "extract";
   text: string;
-  imageName: string | null; // diagram/map/process
+  imageName: string | null; // diagram/map/process — file name, for the editor
+  /** uploaded diagram/map/process image (`/media/…`), shown with the passage in the exam */
+  imageUrl?: string;
   questionType: QuestionType;
   /** lettered answer list (A, B, C…) for Matching Headings / Features / Sentence Endings */
   options?: string[];
@@ -129,7 +132,7 @@ function blankExam(skill: StudioSkill): StudioExam {
 }
 
 export function newPassage(n: number): StudioPassage {
-  return { id: uid(), title: `Passage ${n}`, inputMode: "type", text: "", imageName: null, questionType: "true-false-notgiven", questions: [] };
+  return { id: uid(), title: `Passage ${n}`, text: "", imageName: null, questionType: "true-false-notgiven", questions: [] };
 }
 export function newSection(n: number): StudioSection {
   return { id: uid(), title: `Section ${n}`, audioName: null, audioUrl: null, imageName: null, transcript: "", questionType: "sentence-completion", questions: [] };
