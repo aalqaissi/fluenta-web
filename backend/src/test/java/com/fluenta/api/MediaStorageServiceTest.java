@@ -44,6 +44,33 @@ class MediaStorageServiceTest {
         assertEquals(400, ex.getStatus().value());
     }
 
+    // --- images (Studio passage diagrams / maps / process images) ---
+
+    @Test
+    void storesPngJpegAndWebpImages(@TempDir Path dir) {
+        var svc = svc(dir);
+        assertTrue(svc.store(new MockMultipartFile("file", "d.png", "image/png", new byte[]{1})).endsWith(".png"));
+        assertTrue(svc.store(new MockMultipartFile("file", "d.jpg", "image/jpeg", new byte[]{1})).endsWith(".jpg"));
+        assertTrue(svc.store(new MockMultipartFile("file", "d.webp", "image/webp", new byte[]{1})).endsWith(".webp"));
+        // vague content-type: fall back to the file name
+        assertTrue(svc.store(new MockMultipartFile("file", "map.JPEG", "application/octet-stream", new byte[]{1})).endsWith(".jpg"));
+    }
+
+    @Test
+    void imagesAreCappedAtFiveMegabytes(@TempDir Path dir) {
+        var svc = svc(dir);
+        var big = new MockMultipartFile("file", "d.png", "image/png", new byte[5 * 1024 * 1024 + 1]);
+        var ex = assertThrows(ApiException.class, () -> svc.store(big));
+        assertTrue(ex.getMessage().contains("5 MB"), ex.getMessage());
+    }
+
+    @Test
+    void rejectsOtherImageTypes(@TempDir Path dir) {
+        var svc = svc(dir);
+        var svg = new MockMultipartFile("file", "d.svg", "image/svg+xml", new byte[]{1});
+        assertThrows(ApiException.class, () -> svc.store(svg));
+    }
+
     @Test
     void rejectsEmpty(@TempDir Path dir) {
         var svc = svc(dir);

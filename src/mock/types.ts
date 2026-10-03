@@ -101,6 +101,8 @@ export interface Passage {
   paragraphs: string[];
   /** IELTS paragraph letters ("A", "B", …) aligned with `paragraphs`, when the passage is labelled */
   paragraphLabels?: string[];
+  /** diagram / map / process image shown with the passage (`/media/…` or absolute URL) */
+  imageUrl?: string;
   groups: QuestionGroup[];
 }
 

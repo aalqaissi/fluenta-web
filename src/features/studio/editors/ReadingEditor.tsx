@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { FullMockCheck, READING_FULL, WritePassageWithAi, generationModule, passageBrief } from "../ContentRules";
-import { Plus, Trash2, Type, Image as ImageIcon, Sparkles, ClipboardPaste } from "lucide-react";
+import { Plus, Trash2, ClipboardPaste } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,8 @@ import { QUESTION_TYPE_LABEL } from "@/mock/data";
 import type { QuestionType } from "@/mock/types";
 import { toast } from "sonner";
 import { api, ApiError, type AiStudioQuestion } from "@/lib/api";
-import { MediaDrop, AiButton, Field } from "../components";
+import { AiButton, Field } from "../components";
+import { ImageUpload } from "../ImageUpload";
 import { QuestionRow, aiQuestions, defaultAnswerFor, GenerateCountInput, GenerateChooseSelect, GENERATE_DEFAULT, questionSpan, marksOf, questionsLabel } from "../QuestionRow";
 import { newPassage, newQuestion, type StudioExam, type StudioPassage, type StudioQuestion } from "../store";
 import { cn } from "@/lib/utils";
@@ -252,15 +253,6 @@ function questionRuns(p: StudioPassage): { type: QuestionType; items: { q: Studi
 // form completion is a Listening task type; everything else is valid for Reading
 const READING_TYPES = (Object.keys(QUESTION_TYPE_LABEL) as QuestionType[]).filter((t) => t !== "form-completion");
 
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(String(r.result).split(",")[1] ?? "");
-    r.onerror = reject;
-    r.readAsDataURL(file);
-  });
-}
-
 const withId = (q: AiStudioQuestion): StudioQuestion => ({
   id: Math.random().toString(36).slice(2, 9),
   prompt: q.prompt,
@@ -280,8 +272,6 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
   const [genCount, setGenCount] = useState<Record<string, number>>({});
   // Per passage: "Choose TWO" or "THREE" for the next multi-select generation.
   const [chooseFor, setChooseFor] = useState<Record<string, 2 | 3>>({});
-  // Keyed by passage id so simultaneous "extract" cards each keep their own file input.
-  const extractInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   const setP = (idx: number, np: Partial<StudioPassage>) =>
     patch({ passages: passages.map((p, i) => (i === idx ? { ...p, ...np } : p)) });
@@ -321,30 +311,6 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
               )}
             </div>
 
-            {/* input mode */}
-            <div className="mb-4 inline-flex flex-wrap rounded-lg border border-border p-1">
-              {(["type", "upload", "extract"] as const).map((m) => {
-                const meta = {
-                  type: { icon: Type, label: "Type / Paste" },
-                  upload: { icon: ImageIcon, label: "Upload from image" },
-                  extract: { icon: Sparkles, label: "Extract with AI" },
-                }[m];
-                const Icon = meta.icon;
-                return (
-                  <button
-                    key={m}
-                    onClick={() => setP(idx, { inputMode: m })}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
-                      p.inputMode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                    )}
-                  >
-                    <Icon className="size-3.5" /> {meta.label}
-                  </button>
-                );
-              })}
-            </div>
-
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Passage title (optional)">
                 <Input value={p.title} onChange={(e) => setP(idx, { title: e.target.value })} placeholder="e.g. The History of Glass" />
@@ -362,69 +328,38 @@ export function ReadingEditor({ exam, patch }: { exam: StudioExam; patch: (p: Pa
             </div>
 
             <div className="mt-4">
-              {p.inputMode === "type" ? (
-                <Field
-                  label="Passage text"
-                  hint="Put a paragraph letter (A, B, C…) on its own line above each paragraph to label it — students see the letters, and Matching Information uses them as the answers."
-                >
-                  <div className="mb-2 space-y-2 rounded-lg bg-muted/40 p-2.5">
-                    <p className="text-xs text-muted-foreground">{passageBrief(exam.module, idx + 1)}</p>
-                    <WritePassageWithAi
-                      module={exam.module}
-                      section={idx + 1}
-                      onDone={(r) => setP(idx, { text: r.text, title: p.title || r.title })}
-                    />
-                  </div>
-                  <Textarea value={p.text} onChange={(e) => setP(idx, { text: e.target.value })} rows={12} placeholder="Paste or type the full reading passage here…" />
-                </Field>
-              ) : p.inputMode === "upload" ? (
-                <Field label="Passage image">
-                  <MediaDrop kind="image" value={p.imageName} onChange={(name) => setP(idx, { imageName: name })} />
-                </Field>
-              ) : (
-                <Field label="Passage photos" hint="Upload photos of the passage and question sheet — AI reads them and fills the form.">
-                  <div className="space-y-2">
-                    <MediaDrop kind="image" value={p.imageName} onChange={(name) => setP(idx, { imageName: name })} />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      ref={(el) => {
-                        if (el) extractInputRefs.current.set(p.id, el);
-                        else extractInputRefs.current.delete(p.id);
-                      }}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        e.target.value = "";
-                        if (!file) return;
-                        setB(`ext:${p.id}`, true);
-                        try {
-                          const base64 = await fileToBase64(file);
-                          const res = await api.ai.studioExtract({ images: [{ base64, mediaType: file.type || "image/jpeg" }] });
-                          setP(idx, { text: res.passageText || p.text, questions: [...p.questions, ...res.questions.map(withId)] });
-                        } catch {
-                          setP(idx, {
-                            text: p.text || "Extracted passage text (offline). Connect the AI service to read photos.",
-                            questions: [...p.questions, newQuestion(), newQuestion()],
-                          });
-                        } finally {
-                          setB(`ext:${p.id}`, false);
-                        }
-                      }}
-                    />
-                    <AiButton
-                      label="Extract passage & questions"
-                      loading={busy[`ext:${p.id}`]}
-                      onClick={() => extractInputRefs.current.get(p.id)?.click()}
-                    />
-                  </div>
-                </Field>
-              )}
+              <Field
+                label="Passage text"
+                hint="Put a paragraph letter (A, B, C…) on its own line above each paragraph to label it — students see the letters, and Matching Information uses them as the answers."
+              >
+                <div className="mb-2 space-y-2 rounded-lg bg-muted/40 p-2.5">
+                  <p className="text-xs text-muted-foreground">{passageBrief(exam.module, idx + 1)}</p>
+                  <WritePassageWithAi
+                    module={exam.module}
+                    section={idx + 1}
+                    hasText={!!p.text.trim()}
+                    onDone={(r) => {
+                      setP(idx, {
+                        text: r.text,
+                        title: p.title || r.title,
+                        // questions read from the photos too (a question sheet), appended to the existing ones
+                        ...(r.questions?.length ? { questions: [...p.questions, ...r.questions.map(withId)] } : {}),
+                      });
+                      if (r.questions?.length) toast.success(`${r.questions.length} question${r.questions.length === 1 ? "" : "s"} from the photos added too`);
+                    }}
+                  />
+                </div>
+                <Textarea value={p.text} onChange={(e) => setP(idx, { text: e.target.value })} rows={12} placeholder="Paste or type the full reading passage here…" />
+              </Field>
             </div>
 
             <div className="mt-4">
-              <Field label="Diagram / Map / Process image (optional)">
-                <MediaDrop kind="image" value={p.inputMode === "type" ? p.imageName : null} onChange={(name) => setP(idx, { imageName: name })} />
+              <Field label="Diagram / Map / Process image (optional)" hint="Shown with the passage in the exam — e.g. for Diagram Label Completion.">
+                <ImageUpload
+                  value={p.imageUrl ? { url: p.imageUrl, name: p.imageName ?? "image" } : null}
+                  onUploaded={(r) => setP(idx, { imageUrl: r.url, imageName: r.name })}
+                  onRemove={() => setP(idx, { imageUrl: undefined, imageName: null })}
+                />
               </Field>
             </div>
 

@@ -126,6 +126,7 @@ export function studioReadingToExam(e: StudioExam): ReadingExam {
       passageNumber: pi + 1,
       totalPassages: passages.length,
       paragraphs: parsed.paragraphs,
+      imageUrl: p.imageUrl,
       // Unlabelled passages get A, B, C… when a question asks "which paragraph", so students can answer.
       paragraphLabels:
         parsed.labels ??
